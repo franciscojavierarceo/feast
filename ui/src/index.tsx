@@ -16,6 +16,7 @@ import FeastUI from "./FeastUI";
 //    is a record with three keys: label, path, and Component.
 //    Import your component and pass it as Component
 import DataTab from "./custom-tabs/data-tab/DataTab";
+import VisualizationTab from "./custom-tabs/visualization-tab/VisualizationTab";
 import RFVDemoCustomTab from "./custom-tabs/reguar-fv-demo-tab/DemoCustomTab";
 import ODFVDemoCustomTab from "./custom-tabs/ondemand-fv-demo-tab/DemoCustomTab";
 import FSDemoCustomTab from "./custom-tabs/feature-service-demo-tab/DemoCustomTab";
@@ -37,6 +38,11 @@ const tabsRegistry = {
       label: "Data Tab Demo", // Navigation Label for the tab
       path: "data-tab", // Subpath for the tab
       Component: DataTab,
+    },
+    {
+      label: "Visualization Tab Demo", // Navigation Label for the tab
+      path: "visualization-tab", // Subpath for the tab
+      Component: VisualizationTab,
     },
   ],
   OnDemandFeatureViewCustomTabs: [
