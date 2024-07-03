@@ -3,7 +3,7 @@ import inspect
 from typing import Callable, Dict, Any
 import dill
 from ibis.expr.types import Table
-from feast.protos.feast.core.Transformation_pb2 import SubstraitTransformation
+from feast.protos.feast.core.Transformation_pb2 import SubstraitTransformationV2
 
 def transform(sources=None, schema=None, mode="python"):
     """
