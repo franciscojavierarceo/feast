@@ -293,7 +293,7 @@ class BuildPythonProtosCommand(Command):
         print(f"Subprocess PATH: {env['PATH']}")
         print(f"Subprocess PYTHONPATH: {env['PYTHONPATH']}")
         subprocess.check_call(
-            self.python_protoc
+            ["/home/ubuntu/feast/venv/bin/python", "-m", "grpc_tools.protoc"]
             + [
                 "-I",
                 self.proto_folder,
