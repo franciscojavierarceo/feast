@@ -41,17 +41,17 @@ install-python-ci-dependencies:
 	python setup.py build_python_protos --inplace
 
 install-python-ci-dependencies-uv:
-	uv pip sync --system sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
-	uv pip install --system --no-deps -e .
+	pip-sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	pip install --no-deps -e .
 	python setup.py build_python_protos --inplace
 
 install-python-ci-dependencies-uv-venv:
-	uv pip sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
-	uv pip install --no-deps -e .
+	pip-sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	pip install --no-deps -e .
 	python setup.py build_python_protos --inplace
 
 lock-python-ci-dependencies:
-	uv pip compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	pip-compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
 
 package-protos:
 	cp -r ${ROOT_DIR}/protos ${ROOT_DIR}/sdk/python/feast/protos
@@ -61,19 +61,19 @@ compile-protos-python:
 
 install-python:
 	@echo "Before activation: PATH=$$PATH"
-	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && venv/bin/python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && venv/bin/python setup.py develop )
+	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python setup.py develop )
 
 lock-python-dependencies:
-	uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
+	pip-compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
 
 lock-python-dependencies-all:
 	. ~/.bashrc && export PATH=$$PATH:/home/ubuntu/.pixi/bin
-	/home/ubuntu/.pixi/bin/pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.9-requirements.txt"
-	/home/ubuntu/.pixi/bin/pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.9-ci-requirements.txt"
-	/home/ubuntu/.pixi/bin/pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.10-requirements.txt"
-	/home/ubuntu/.pixi/bin/pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.10-ci-requirements.txt"
-	/home/ubuntu/.pixi/bin/pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.11-requirements.txt"
-	/home/ubuntu/.pixi/bin/pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.11-ci-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.9-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.9-ci-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.10-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.10-ci-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.11-requirements.txt"
+	/home/ubuntu/.pixi/bin/pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "pip-compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.11-ci-requirements.txt"
 
 benchmark-python:
 	IS_TEST=True python -m pytest --integration --benchmark  --benchmark-autosave --benchmark-save-data sdk/python/tests
