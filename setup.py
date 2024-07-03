@@ -288,7 +288,7 @@ class BuildPythonProtosCommand(Command):
         print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
         env = os.environ.copy()
         env["PATH"] = f"/home/ubuntu/feast/venv/bin:" + env["PATH"]
-        env["PYTHONPATH"] = os.environ.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"/home/ubuntu/feast/venv/lib/python3.10/site-packages:" + os.environ.get("PYTHONPATH", "")
         subprocess.check_call(
             self.python_protoc
             + [
