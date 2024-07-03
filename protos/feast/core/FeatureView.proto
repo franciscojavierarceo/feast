@@ -25,6 +25,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "feast/core/DataSource.proto";
 import "feast/core/Feature.proto";
+import "feast/core/Transformation.proto";
 
 message FeatureView {
     // User-specified specifications of this feature view.
@@ -76,7 +77,7 @@ message FeatureViewSpec {
     bool online = 8;
 
     // Transformation metadata for feature transformations
-    string transformation_metadata = 13;
+    FeatureTransformationV2 feature_transformation = 14;
 }
 
 message FeatureViewMeta {

@@ -1,6 +1,7 @@
 import functools
 import inspect
 from typing import Callable, Dict, Any
+import dill
 
 def transform(sources=None, schema=None, mode="python"):
     """
@@ -82,6 +83,7 @@ from feast.protos.feast.core.FeatureView_pb2 import (
 )
 from feast.types import from_value_type
 from feast.value_type import ValueType
+from feast.protos.feast.core.Transformation_pb2 import FeatureTransformationV2
 
 warnings.simplefilter("once", DeprecationWarning)
 
@@ -150,7 +152,7 @@ class FeatureView(BaseFeatureView):
         description: str = "",
         tags: Optional[Dict[str, str]] = None,
         owner: str = "",
-        transformation_metadata: Optional[Dict[str, Any]] = None,
+        transformation_metadata: Optional[FeatureTransformationV2] = None,
     ):
         """
         Creates a FeatureView object.
@@ -271,8 +273,8 @@ class FeatureView(BaseFeatureView):
         Returns:
             The transformed feature data.
         """
-        if self.transformation_metadata and "function" in self.transformation_metadata:
-            transform_func = self.transformation_metadata["function"]
+        if self.transformation_metadata and self.transformation_metadata.HasField("user_defined_function"):
+            transform_func = dill.loads(self.transformation_metadata.user_defined_function.body)
             data = transform_func(data)
         return data
 
@@ -415,7 +417,7 @@ class FeatureView(BaseFeatureView):
             online=self.online,
             batch_source=batch_source_proto,
             stream_source=stream_source_proto,
-            transformation_metadata=self.transformation_metadata,  # Serialize transformation metadata
+            feature_transformation=self.transformation_metadata,  # Serialize transformation metadata
         )
 
         return FeatureViewProto(spec=spec, meta=meta)
@@ -469,7 +471,7 @@ class FeatureView(BaseFeatureView):
                 else feature_view_proto.spec.ttl.ToTimedelta()
             ),
             source=batch_source,
-            transformation_metadata=feature_view_proto.spec.transformation_metadata,  # Deserialize transformation metadata
+            transformation_metadata=feature_view_proto.spec.feature_transformation,  # Deserialize transformation metadata
         )
         if stream_source:
             feature_view.stream_source = stream_source

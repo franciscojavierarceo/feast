@@ -168,3 +168,38 @@ def test_update_materialization_intervals():
         second_updated_feature_view.materialization_intervals[0][1]
         == updated_feature_view.materialization_intervals[0][1]
     )
+
+
+def test_feature_view_transformation():
+    from feast.protos.feast.core.Transformation_pb2 import FeatureTransformationV2
+    import dill
+
+    # Define a simple transformation function
+    def add_one(inputs: Dict[str, Any]) -> Dict[str, Any]:
+        return {"output": [x + 1 for x in inputs["input"]]}
+
+    # Serialize the transformation function using dill
+    serialized_func = dill.dumps(add_one)
+
+    # Create a FeatureTransformationV2 message with the serialized function
+    transformation_metadata = FeatureTransformationV2(
+        user_defined_function=FeatureTransformationV2.UserDefinedFunction(
+            body=serialized_func
+        )
+    )
+
+    # Create a FeatureView with the transformation metadata
+    feature_view = FeatureView(
+        name="test_feature_view",
+        entities=[],
+        schema=[Field(name="input", dtype=Float32)],
+        source=FileSource(path="some path"),
+        transformation_metadata=transformation_metadata,
+    )
+
+    # Apply the transformation
+    input_data = {"input": [1, 2, 3]}
+    transformed_data = feature_view.materialize(input_data)
+
+    # Assert the transformation output
+    assert transformed_data == {"output": [2, 3, 4]}
