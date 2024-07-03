@@ -61,7 +61,7 @@ compile-protos-python:
 
 install-python:
 	@echo "Before activation: PATH=$$PATH"
-	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && python setup.py develop )
+	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && venv/bin/python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && venv/bin/python setup.py develop )
 
 lock-python-dependencies:
 	uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
@@ -392,7 +392,7 @@ kill-trino-locally:
 	cd ${ROOT_DIR}; docker stop trino
 
 install-protoc-dependencies:
-	pip install --ignore-installed protobuf==4.24.0 "grpcio-tools>=1.56.2,<2" mypy-protobuf==3.1.0
+	pip install --ignore-installed protobuf==5.27.2 "grpcio-tools>=1.64.1,<2" mypy-protobuf==3.1.0
 
 # Docker
 
