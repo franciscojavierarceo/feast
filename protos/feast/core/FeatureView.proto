@@ -14,7 +14,6 @@
 // limitations under the License.
 //
 
-
 syntax = "proto3";
 package feast.core;
 
@@ -35,7 +34,7 @@ message FeatureView {
     FeatureViewMeta meta = 2;
 }
 
-// Next available id: 13
+// Next available id: 14
 // TODO(adchia): refactor common fields from this and ODFV into separate metadata proto
 message FeatureViewSpec {
     // Name of the feature view. Must be unique. Not updated.
@@ -75,6 +74,9 @@ message FeatureViewSpec {
 
     // Whether these features should be served online or not
     bool online = 8;
+
+    // Transformation metadata for feature transformations
+    string transformation_metadata = 13;
 }
 
 message FeatureViewMeta {

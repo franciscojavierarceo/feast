@@ -11,6 +11,52 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
+import inspect
+from typing import Callable, Dict, Any
+
+def transform(sources=None, schema=None, mode="python"):
+    def decorator(func: Callable[[Dict[str, Any]], Dict[str, Any]]):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper._transform_metadata = {
+            "sources": sources,
+            "schema": schema,
+            "mode": mode,
+            "function": func,
+        }
+        return wrapper
+    return decorator
+
+# Copyright 2019 The Feast Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Copyright 2019 The Feast Authors
+import functools
+import inspect
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import copy
 import warnings
 from datetime import datetime, timedelta
@@ -107,6 +153,7 @@ class FeatureView(BaseFeatureView):
         description: str = "",
         tags: Optional[Dict[str, str]] = None,
         owner: str = "",
+        transformation_metadata: Optional[Dict[str, Any]] = None,
     ):
         """
         Creates a FeatureView object.
@@ -211,9 +258,25 @@ class FeatureView(BaseFeatureView):
         )
         self.online = online
         self.materialization_intervals = []
+        self.transformation_metadata = transformation_metadata
 
     def __hash__(self):
         return super().__hash__()
+
+    def materialize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Materializes the feature data by applying the transformation function if present.
+
+        Args:
+            data: The input feature data.
+
+        Returns:
+            The transformed feature data.
+        """
+        if self.transformation_metadata and "function" in self.transformation_metadata:
+            transform_func = self.transformation_metadata["function"]
+            data = transform_func(data)
+        return data
 
     def __copy__(self):
         fv = FeatureView(
@@ -223,6 +286,7 @@ class FeatureView(BaseFeatureView):
             schema=self.schema,
             tags=self.tags,
             online=self.online,
+            transformation_metadata=self.transformation_metadata,
         )
 
         # This is deliberately set outside of the FV initialization as we do not have the Entity objects.
@@ -343,6 +407,7 @@ class FeatureView(BaseFeatureView):
             online=self.online,
             batch_source=batch_source_proto,
             stream_source=stream_source_proto,
+            transformation_metadata=self.transformation_metadata,  # Serialize transformation metadata
         )
 
         return FeatureViewProto(spec=spec, meta=meta)
@@ -396,6 +461,7 @@ class FeatureView(BaseFeatureView):
                 else feature_view_proto.spec.ttl.ToTimedelta()
             ),
             source=batch_source,
+            transformation_metadata=feature_view_proto.spec.transformation_metadata,  # Deserialize transformation metadata
         )
         if stream_source:
             feature_view.stream_source = stream_source
