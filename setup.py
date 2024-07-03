@@ -283,6 +283,7 @@ class BuildPythonProtosCommand(Command):
     def _generate_python_protos(self, path: str):
         proto_files = glob.glob(os.path.join(self.proto_folder, path))
         Path(self.python_folder).mkdir(parents=True, exist_ok=True)
+        print(f"Current PATH: {os.environ['PATH']}")
         subprocess.check_call(
             self.python_protoc
             + [
@@ -295,7 +296,8 @@ class BuildPythonProtosCommand(Command):
                 "--mypy_out",
                 self.python_folder,
             ]
-            + proto_files
+            + proto_files,
+            env=os.environ
         )
 
     def run(self):
