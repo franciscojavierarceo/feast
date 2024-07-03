@@ -60,7 +60,7 @@ compile-protos-python:
 	python setup.py build_python_protos --inplace
 
 install-python:
-	python -m piptools sync --exclude blinker sdk/python/requirements/py3.10-requirements.txt
+	python -m piptools sync --no-sync sdk/python/requirements/py3.10-requirements.txt
 	python setup.py develop
 
 lock-python-dependencies:
