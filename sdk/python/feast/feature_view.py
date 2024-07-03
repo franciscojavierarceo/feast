@@ -152,7 +152,7 @@ class FeatureView(BaseFeatureView):
         description: str = "",
         tags: Optional[Dict[str, str]] = None,
         owner: str = "",
-        transformation_metadata: Optional[FeatureTransformationV2] = None,
+        transformation: Optional[FeatureTransformationV2] = None,
     ):
         """
         Creates a FeatureView object.
@@ -174,7 +174,7 @@ class FeatureView(BaseFeatureView):
             tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
             owner (optional): The owner of the feature view, typically the email of the
                 primary maintainer.
-            transformation_metadata (optional): Metadata for feature transformations, including the transformation function.
+            transformation (optional): Metadata for feature transformations, including the transformation function.
 
         Raises:
             ValueError: A field mapping conflicts with an Entity or a Feature.
@@ -258,7 +258,7 @@ class FeatureView(BaseFeatureView):
         )
         self.online = online
         self.materialization_intervals = []
-        self.transformation_metadata = transformation_metadata
+        self.transformation = transformation
 
     def __hash__(self):
         return super().__hash__()
@@ -273,8 +273,8 @@ class FeatureView(BaseFeatureView):
         Returns:
             The transformed feature data.
         """
-        if self.transformation_metadata and self.transformation_metadata.HasField("user_defined_function"):
-            transform_func = dill.loads(self.transformation_metadata.user_defined_function.body)
+        if self.transformation and self.transformation.HasField("user_defined_function"):
+            transform_func = dill.loads(self.transformation.user_defined_function.body)
             data = transform_func(data)
         return data
 
@@ -417,7 +417,7 @@ class FeatureView(BaseFeatureView):
             online=self.online,
             batch_source=batch_source_proto,
             stream_source=stream_source_proto,
-            feature_transformation=self.transformation_metadata,  # Serialize transformation metadata
+            feature_transformation=self.transformation,  # Serialize transformation metadata
         )
 
         return FeatureViewProto(spec=spec, meta=meta)
@@ -471,7 +471,7 @@ class FeatureView(BaseFeatureView):
                 else feature_view_proto.spec.ttl.ToTimedelta()
             ),
             source=batch_source,
-            transformation_metadata=feature_view_proto.spec.feature_transformation,  # Deserialize transformation metadata
+            transformation=feature_view_proto.spec.feature_transformation,  # Deserialize transformation metadata
         )
         if stream_source:
             feature_view.stream_source = stream_source
