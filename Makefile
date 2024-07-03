@@ -41,12 +41,12 @@ install-python-ci-dependencies:
 	python setup.py build_python_protos --inplace
 
 install-python-ci-dependencies-uv:
-	pip-sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	PYTHON=3.10 pip-sync sdk/python/requirements/py3.10-ci-requirements.txt
 	pip install --no-deps -e .
 	python setup.py build_python_protos --inplace
 
 install-python-ci-dependencies-uv-venv:
-	pip-sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	PYTHON=3.10 pip-sync sdk/python/requirements/py3.10-ci-requirements.txt
 	pip install --no-deps -e .
 	python setup.py build_python_protos --inplace
 
