@@ -1,5 +1,4 @@
 #
-#  Copyright 2019 The Feast Authors
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -61,7 +60,7 @@ compile-protos-python:
 	python setup.py build_python_protos --inplace
 
 install-python:
-	python -m piptools sync sdk/python/requirements/py$(PYTHON)-requirements.txt
+	python -m piptools sync --exclude blinker sdk/python/requirements/py3.10-requirements.txt
 	python setup.py develop
 
 lock-python-dependencies:
