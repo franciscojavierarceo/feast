@@ -286,6 +286,7 @@ class BuildPythonProtosCommand(Command):
         print(f"Current PATH: {os.environ['PATH']}")
         print(f"Python Executable: {sys.executable}")
         print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
+        print(f"sys.path: {sys.path}")
         env = os.environ.copy()
         env["PATH"] = f"/home/ubuntu/feast/venv/bin:" + env["PATH"]
         env["PYTHONPATH"] = f"/home/ubuntu/feast/venv/lib/python3.10/site-packages:" + os.environ.get("PYTHONPATH", "")
