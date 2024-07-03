@@ -61,7 +61,7 @@ compile-protos-python:
 
 install-python:
 	@echo "Before activation: PATH=$$PATH"
-	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && venv/bin/python setup.py develop )
+	( . venv/bin/activate && export PYTHONPATH=$$PWD/venv/lib/python3.10/site-packages && echo "After activation: PATH=$$PATH" && echo "PYTHONPATH: $$PYTHONPATH" && make install-protoc-dependencies && venv/bin/python -c "import grpc_tools.protoc; print(grpc_tools.protoc.__file__)" && venv/bin/python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && venv/bin/python setup.py develop )
 
 lock-python-dependencies:
 	pip-compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
