@@ -17,9 +17,6 @@
 # Maximum interval(secs) to wait between retries for retry function
 MAX_WAIT_INTERVAL: str = "60"
 
-AWS_LAMBDA_FEATURE_SERVER_IMAGE = "feastdev/feature-server-python-aws"
-AWS_LAMBDA_FEATURE_SERVER_REPOSITORY = "feast-python-server"
-
 # feature_store.yaml environment variable name for remote feature server
 FEATURE_STORE_YAML_ENV_NAME: str = "FEATURE_STORE_YAML_BASE64"
 
@@ -28,12 +25,6 @@ FEAST_FS_YAML_FILE_PATH_ENV_NAME: str = "FEAST_FS_YAML_FILE_PATH"
 
 # Environment variable for registry
 REGISTRY_ENV_NAME: str = "REGISTRY_BASE64"
-
-# Environment variable for toggling the Usage feature
-FEAST_USAGE = "FEAST_USAGE"
-
-# Environment variable for FEAST_USAGE_ENDPOINT
-FEAST_USAGE_ENDPOINT = "FEAST_USAGE_ENDPOINT"
 
 # Environment variable for the path for overwriting universal test configs
 FULL_REPO_CONFIGS_MODULE_ENV_NAME: str = "FULL_REPO_CONFIGS_MODULE"
@@ -47,8 +38,8 @@ DEFAULT_FEATURE_TRANSFORMATION_SERVER_PORT = 6569
 # Default registry server port
 DEFAULT_REGISTRY_SERVER_PORT = 6570
 
-# Environment variable for feature server docker image tag
-DOCKER_IMAGE_TAG_ENV_NAME: str = "FEAST_SERVER_DOCKER_IMAGE_TAG"
+# Default offline server port
+DEFAULT_OFFLINE_SERVER_PORT = 8815
 
 # Default feature server registry ttl (seconds)
 DEFAULT_FEATURE_SERVER_REGISTRY_TTL = 5

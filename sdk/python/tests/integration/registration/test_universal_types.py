@@ -20,6 +20,7 @@ from feast.types import (
     String,
     UnixTimestamp,
 )
+from feast.utils import _utc_now
 from tests.data.data_creator import create_basic_driver_dataset
 from tests.integration.feature_repos.universal.entities import driver
 from tests.integration.feature_repos.universal.feature_views import driver_feature_view
@@ -93,7 +94,7 @@ def test_feature_get_historical_features_types_match(
 
     entity_df = pd.DataFrame()
     entity_df["driver_id"] = [1, 3]
-    ts = pd.Timestamp(datetime.utcnow()).round("ms")
+    ts = pd.Timestamp(_utc_now()).round("ms")
     entity_df["ts"] = [
         ts - timedelta(hours=4),
         ts - timedelta(hours=2),
@@ -110,7 +111,7 @@ def test_feature_get_historical_features_types_match(
 
     if config.feature_is_list:
         assert_feature_list_types(
-            environment.test_repo_config.provider,
+            environment.provider,
             config.feature_dtype,
             historical_features_df,
         )
@@ -119,7 +120,7 @@ def test_feature_get_historical_features_types_match(
             config.feature_dtype, historical_features_df
         )
     assert_expected_arrow_types(
-        environment.test_repo_config.provider,
+        environment.provider,
         config.feature_dtype,
         config.feature_is_list,
         historical_features,
@@ -335,10 +336,7 @@ ONLINE_TYPE_TEST_CONFIGS: List[TypeTestConfig] = populate_test_configs(offline=F
 )
 def offline_types_test_fixtures(request, environment):
     config: TypeTestConfig = request.param
-    if (
-        environment.test_repo_config.provider == "aws"
-        and config.feature_is_list is True
-    ):
+    if environment.provider == "aws" and config.feature_is_list is True:
         pytest.skip("Redshift doesn't support list features")
 
     return get_fixtures(request, environment)

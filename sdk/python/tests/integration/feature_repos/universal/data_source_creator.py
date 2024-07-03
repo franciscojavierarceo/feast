@@ -5,7 +5,7 @@ import pandas as pd
 
 from feast.data_source import DataSource
 from feast.feature_logging import LoggingDestination
-from feast.repo_config import FeastConfigBaseModel
+from feast.repo_config import FeastConfigBaseModel, RegistryConfig
 from feast.saved_dataset import SavedDatasetStorage
 
 
@@ -18,7 +18,6 @@ class DataSourceCreator(ABC):
         self,
         df: pd.DataFrame,
         destination_name: str,
-        event_timestamp_column="ts",
         created_timestamp_column="created_ts",
         field_mapping: Optional[Dict[str, str]] = None,
         timestamp_field: Optional[str] = None,
@@ -32,7 +31,6 @@ class DataSourceCreator(ABC):
             df: The dataframe to be used to create the data source.
             destination_name: This str is used by the implementing classes to
                 isolate the multiple dataframes from each other.
-            event_timestamp_column: (Deprecated) Pass through for the underlying data source.
             created_timestamp_column: Pass through for the underlying data source.
             field_mapping: Pass through for the underlying data source.
             timestamp_field: Pass through for the underlying data source.
@@ -43,6 +41,9 @@ class DataSourceCreator(ABC):
             test.
         """
         raise NotImplementedError
+
+    def setup(self, registry: RegistryConfig):
+        pass
 
     @abstractmethod
     def create_offline_store_config(self) -> FeastConfigBaseModel:

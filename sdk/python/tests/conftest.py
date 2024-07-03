@@ -13,11 +13,13 @@
 # limitations under the License.
 import logging
 import multiprocessing
+import os
 import random
-from datetime import datetime, timedelta
+from datetime import timedelta
 from multiprocessing import Process
 from sys import platform
 from typing import Any, Dict, List, Tuple, no_type_check
+from unittest import mock
 
 import pandas as pd
 import pytest
@@ -25,13 +27,14 @@ from _pytest.nodes import Item
 
 from feast.data_source import DataSource
 from feast.feature_store import FeatureStore  # noqa: E402
+from feast.utils import _utc_now
 from feast.wait import wait_retry_backoff  # noqa: E402
 from tests.data.data_creator import (  # noqa: E402
     create_basic_driver_dataset,
     create_document_dataset,
 )
-from tests.integration.feature_repos.integration_test_repo_config import (  # noqa: E402
-    IntegrationTestRepoConfig,
+from tests.integration.feature_repos.integration_test_repo_config import (
+    IntegrationTestRepoConfig,  # noqa: E402
 )
 from tests.integration.feature_repos.repo_configuration import (  # noqa: E402
     AVAILABLE_OFFLINE_STORES,
@@ -43,8 +46,8 @@ from tests.integration.feature_repos.repo_configuration import (  # noqa: E402
     construct_universal_feature_views,
     construct_universal_test_data,
 )
-from tests.integration.feature_repos.universal.data_sources.file import (  # noqa: E402
-    FileDataSourceCreator,
+from tests.integration.feature_repos.universal.data_sources.file import (
+    FileDataSourceCreator,  # noqa: E402
 )
 from tests.integration.feature_repos.universal.entities import (  # noqa: E402
     customer,
@@ -131,7 +134,7 @@ def pytest_collection_modifyitems(config, items: List[Item]):
 
 @pytest.fixture
 def simple_dataset_1() -> pd.DataFrame:
-    now = datetime.utcnow()
+    now = _utc_now()
     ts = pd.Timestamp(now).round("ms")
     data = {
         "id_join_key": [1, 2, 1, 3, 3],
@@ -151,7 +154,7 @@ def simple_dataset_1() -> pd.DataFrame:
 
 @pytest.fixture
 def simple_dataset_2() -> pd.DataFrame:
-    now = datetime.utcnow()
+    now = _utc_now()
     ts = pd.Timestamp(now).round("ms")
     data = {
         "id_join_key": ["a", "b", "c", "d", "e"],
@@ -171,7 +174,7 @@ def simple_dataset_2() -> pd.DataFrame:
 
 def start_test_local_server(repo_path: str, port: int):
     fs = FeatureStore(repo_path)
-    fs.serve("localhost", port, no_access_log=True)
+    fs.serve(host="localhost", port=port)
 
 
 @pytest.fixture
@@ -180,12 +183,15 @@ def environment(request, worker_id):
         request.param, worker_id=worker_id, fixture_request=request
     )
 
-    yield e
+    e.setup()
 
-    e.feature_store.teardown()
-    e.data_source_creator.teardown()
-    if e.online_store_creator:
-        e.online_store_creator.teardown()
+    if hasattr(e.data_source_creator, "mock_environ"):
+        with mock.patch.dict(os.environ, e.data_source_creator.mock_environ):
+            yield e
+    else:
+        yield e
+
+    e.teardown()
 
 
 _config_cache: Any = {}
@@ -252,12 +258,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
         extra_dimensions: List[Dict[str, Any]] = [{}]
 
         if "python_server" in metafunc.fixturenames:
-            extra_dimensions.extend(
-                [
-                    {"python_feature_server": True},
-                    {"python_feature_server": True, "provider": "aws"},
-                ]
-            )
+            extra_dimensions.extend([{"python_feature_server": True}])
 
         configs = []
         if offline_stores:
@@ -271,17 +272,6 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
                             "online_store_creator": online_store_creator,
                             **dim,
                         }
-
-                        # aws lambda works only with dynamo
-                        if (
-                            config.get("python_feature_server")
-                            and config.get("provider") == "aws"
-                            and (
-                                not isinstance(online_store, dict)
-                                or online_store["type"] != "dynamodb"
-                            )
-                        ):
-                            continue
 
                         c = IntegrationTestRepoConfig(**config)
 
@@ -300,10 +290,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
 
 @pytest.fixture
 def feature_server_endpoint(environment):
-    if (
-        not environment.python_feature_server
-        or environment.test_repo_config.provider != "local"
-    ):
+    if not environment.python_feature_server or environment.provider != "local":
         yield environment.feature_store.get_feature_server_endpoint()
         return
 
@@ -405,8 +392,8 @@ def fake_ingest_data():
         "conv_rate": [0.5],
         "acc_rate": [0.6],
         "avg_daily_trips": [4],
-        "event_timestamp": [pd.Timestamp(datetime.utcnow()).round("ms")],
-        "created": [pd.Timestamp(datetime.utcnow()).round("ms")],
+        "event_timestamp": [pd.Timestamp(_utc_now()).round("ms")],
+        "created": [pd.Timestamp(_utc_now()).round("ms")],
     }
     return pd.DataFrame(data)
 

@@ -1,30 +1,33 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import pyarrow
 from tqdm import tqdm
 
 from feast import FeatureService, errors
+from feast.data_source import DataSource
 from feast.entity import Entity
 from feast.feature_view import FeatureView
 from feast.importer import import_class
 from feast.infra.infra_object import Infra
 from feast.infra.offline_stores.offline_store import RetrievalJob
 from feast.infra.registry.base_registry import BaseRegistry
+from feast.online_response import OnlineResponse
 from feast.protos.feast.core.Registry_pb2 import Registry as RegistryProto
 from feast.protos.feast.types.EntityKey_pb2 import EntityKey as EntityKeyProto
+from feast.protos.feast.types.Value_pb2 import RepeatedValue
 from feast.protos.feast.types.Value_pb2 import Value as ValueProto
 from feast.repo_config import RepoConfig
 from feast.saved_dataset import SavedDataset
 
 PROVIDERS_CLASS_FOR_TYPE = {
-    "gcp": "feast.infra.gcp.GcpProvider",
-    "aws": "feast.infra.aws.AwsProvider",
-    "local": "feast.infra.local.LocalProvider",
-    "azure": "feast.infra.contrib.azure_provider.AzureProvider",
+    "gcp": "feast.infra.passthrough_provider.PassthroughProvider",
+    "aws": "feast.infra.passthrough_provider.PassthroughProvider",
+    "local": "feast.infra.passthrough_provider.PassthroughProvider",
+    "azure": "feast.infra.passthrough_provider.PassthroughProvider",
 }
 
 
@@ -230,6 +233,60 @@ class Provider(ABC):
         pass
 
     @abstractmethod
+    def get_online_features(
+        self,
+        config: RepoConfig,
+        features: Union[List[str], FeatureService],
+        entity_rows: Union[
+            List[Dict[str, Any]],
+            Mapping[str, Union[Sequence[Any], Sequence[ValueProto], RepeatedValue]],
+        ],
+        registry: BaseRegistry,
+        project: str,
+        full_feature_names: bool = False,
+    ) -> OnlineResponse:
+        pass
+
+    @abstractmethod
+    async def get_online_features_async(
+        self,
+        config: RepoConfig,
+        features: Union[List[str], FeatureService],
+        entity_rows: Union[
+            List[Dict[str, Any]],
+            Mapping[str, Union[Sequence[Any], Sequence[ValueProto], RepeatedValue]],
+        ],
+        registry: BaseRegistry,
+        project: str,
+        full_feature_names: bool = False,
+    ) -> OnlineResponse:
+        pass
+
+    @abstractmethod
+    async def online_read_async(
+        self,
+        config: RepoConfig,
+        table: FeatureView,
+        entity_keys: List[EntityKeyProto],
+        requested_features: Optional[List[str]] = None,
+    ) -> List[Tuple[Optional[datetime], Optional[Dict[str, ValueProto]]]]:
+        """
+        Reads features values for the given entity keys asynchronously.
+
+        Args:
+            config: The config for the current feature store.
+            table: The feature view whose feature values should be read.
+            entity_keys: The list of entity keys for which feature values should be read.
+            requested_features: The list of features that should be read.
+
+        Returns:
+            A list of the same length as entity_keys. Each item in the list is a tuple where the first
+            item is the event timestamp for the row, and the second item is a dict mapping feature names
+            to values, which are returned in proto format.
+        """
+        pass
+
+    @abstractmethod
     def retrieve_saved_dataset(
         self, config: RepoConfig, dataset: SavedDataset
     ) -> RetrievalJob:
@@ -303,7 +360,7 @@ class Provider(ABC):
         requested_feature: str,
         query: List[float],
         top_k: int,
-        distance_metric: str = "L2",
+        distance_metric: Optional[str] = None,
     ) -> List[
         Tuple[
             Optional[datetime],
@@ -316,6 +373,7 @@ class Provider(ABC):
         Searches for the top-k most similar documents in the online document store.
 
         Args:
+            distance_metric: distance metric to use for the search.
             config: The config for the current feature store.
             table: The feature view whose embeddings should be searched.
             requested_feature: the requested document feature name.
@@ -324,6 +382,21 @@ class Provider(ABC):
 
         Returns:
             A list of dictionaries, where each dictionary contains the document feature.
+        """
+        pass
+
+    @abstractmethod
+    def validate_data_source(
+        self,
+        config: RepoConfig,
+        data_source: DataSource,
+    ):
+        """
+        Validates the underlying data source.
+
+        Args:
+            config: Configuration object used to configure a feature store.
+            data_source: DataSource object that needs to be validated
         """
         pass
 

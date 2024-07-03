@@ -2,7 +2,7 @@ import json
 import sys
 import threading
 import traceback
-import warnings
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 import pandas as pd
@@ -50,15 +50,16 @@ def get_app(
     registry_ttl_sec: int = DEFAULT_FEATURE_SERVER_REGISTRY_TTL,
 ):
     proto_json.patch()
-
-    app = FastAPI()
     # Asynchronously refresh registry, notifying shutdown and canceling the active timer if the app is shutting down
     registry_proto = None
     shutting_down = False
     active_timer: Optional[threading.Timer] = None
 
-    async def get_body(request: Request):
-        return await request.body()
+    def stop_refresh():
+        nonlocal shutting_down
+        shutting_down = True
+        if active_timer:
+            active_timer.cancel()
 
     def async_refresh():
         store.refresh_registry()
@@ -70,14 +71,16 @@ def get_app(
         active_timer = threading.Timer(registry_ttl_sec, async_refresh)
         active_timer.start()
 
-    @app.on_event("shutdown")
-    def shutdown_event():
-        nonlocal shutting_down
-        shutting_down = True
-        if active_timer:
-            active_timer.cancel()
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        async_refresh()
+        yield
+        stop_refresh()
 
-    async_refresh()
+    app = FastAPI(lifespan=lifespan)
+
+    async def get_body(request: Request):
+        return await request.body()
 
     @app.post("/get-online-features")
     def get_online_features(body=Depends(get_body)):
@@ -93,9 +96,9 @@ def get_app(
 
             full_feature_names = body.get("full_feature_names", False)
 
-            response_proto = store._get_online_features(
+            response_proto = store.get_online_features(
                 features=features,
-                entity_values=body["entities"],
+                entity_rows=body["entities"],
                 full_feature_names=full_feature_names,
             ).proto
 
@@ -143,10 +146,6 @@ def get_app(
 
     @app.post("/write-to-online-store")
     def write_to_online_store(body=Depends(get_body)):
-        warnings.warn(
-            "write_to_online_store is deprecated. Please consider using /push instead",
-            RuntimeWarning,
-        )
         try:
             request = WriteToFeatureStoreRequest(**json.loads(body))
             df = pd.DataFrame(request.df)
