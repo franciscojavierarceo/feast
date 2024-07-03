@@ -284,6 +284,10 @@ class BuildPythonProtosCommand(Command):
         proto_files = glob.glob(os.path.join(self.proto_folder, path))
         Path(self.python_folder).mkdir(parents=True, exist_ok=True)
         print(f"Current PATH: {os.environ['PATH']}")
+        print(f"Python Executable: {sys.executable}")
+        print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
+        env = os.environ.copy()
+        env["PATH"] = f"/home/ubuntu/feast/venv/bin:" + env["PATH"]
         subprocess.check_call(
             self.python_protoc
             + [
@@ -297,7 +301,7 @@ class BuildPythonProtosCommand(Command):
                 self.python_folder,
             ]
             + proto_files,
-            env=os.environ
+            env=env
         )
 
     def run(self):

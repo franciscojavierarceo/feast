@@ -60,8 +60,8 @@ compile-protos-python:
 	python setup.py build_python_protos --inplace
 
 install-python:
-	. venv/bin/activate && python -m piptools sync sdk/python/requirements/py3.10-requirements.txt
-	. venv/bin/activate && python setup.py develop
+	@echo "Before activation: PATH=$$PATH"
+	( . venv/bin/activate && echo "After activation: PATH=$$PATH" && python -m piptools sync sdk/python/requirements/py3.10-requirements.txt && python setup.py develop )
 
 lock-python-dependencies:
 	uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
