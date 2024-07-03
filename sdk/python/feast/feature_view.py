@@ -1,21 +1,19 @@
-# Copyright 2019 The Feast Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import functools
 import inspect
 from typing import Callable, Dict, Any
 
 def transform(sources=None, schema=None, mode="python"):
+    """
+    A decorator to define a transformation function for a FeatureView.
+
+    Args:
+        sources: A list of source FeatureViews that provide input data for the transformation.
+        schema: A list of Fields defining the schema of the transformed output.
+        mode: The mode of the transformation, e.g., "python".
+
+    Returns:
+        A decorator function that wraps the transformation function with metadata.
+    """
     def decorator(func: Callable[[Dict[str, Any]], Dict[str, Any]]):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -125,6 +123,7 @@ class FeatureView(BaseFeatureView):
         tags: A dictionary of key-value pairs to store arbitrary metadata.
         owner: The owner of the feature view, typically the email of the primary
             maintainer.
+        transformation_metadata: Metadata for feature transformations, including the transformation function.
     """
 
     name: str
@@ -175,6 +174,7 @@ class FeatureView(BaseFeatureView):
             tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
             owner (optional): The owner of the feature view, typically the email of the
                 primary maintainer.
+            transformation_metadata (optional): Metadata for feature transformations, including the transformation function.
 
         Raises:
             ValueError: A field mapping conflicts with an Entity or a Feature.

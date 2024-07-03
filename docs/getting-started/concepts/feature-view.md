@@ -20,6 +20,39 @@ Feature views consist of:
 
 Feature views allow Feast to model your existing feature data in a consistent way in both an offline (training) and online (serving) environment. Feature views generally contain features that are properties of a specific object, in which case that object is defined as an entity and included in the feature view.
 
+## Feature transformations
+
+Feature views now support feature transformations using the `@transform` decorator. This allows you to define transformation functions that are applied during materialization. The transformation functions can be defined using Python and can operate on the input data from the source FeatureViews.
+
+Example transformation function:
+
+```python
+@transform(
+    sources=[driver_hourly_stats_view],
+    schema=[
+        Field(name='conv_rate_plus_val1_python', dtype=Float64),
+        Field(name='conv_rate_plus_val2_python', dtype=Float64),
+    ],
+    mode="python",
+)
+def transformed_conv_rate_python(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    output: Dict[str, Any] = {
+        "conv_rate_plus_val1_python": [
+            conv_rate + val_to_add
+            for conv_rate, val_to_add in zip(
+                inputs["conv_rate"], inputs["val_to_add"]
+            )
+        ],
+        "conv_rate_plus_val2_python": [
+            conv_rate + val_to_add
+            for conv_rate, val_to_add in zip(
+                inputs["conv_rate"], inputs["val_to_add_2"]
+            )
+        ]
+    }
+    return output
+```
+
 {% tabs %}
 {% tab title="driver_trips_feature_view.py" %}
 ```python
