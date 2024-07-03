@@ -97,7 +97,7 @@ SPARK_REQUIRED = [
 ]
 
 SQLITE_VEC_REQUIRED = [
-    "sqlite-vec==v0.0.1-alpha.10",
+    "sqlite-vec==0.0.1a19",
 ]
 TRINO_REQUIRED = ["trino>=0.305.0,<0.400.0", "regex"]
 
