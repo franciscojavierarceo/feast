@@ -203,3 +203,43 @@ def test_feature_view_transformation():
 
     # Assert the transformation output
     assert transformed_data == {"output": [2, 3, 4]}
+
+
+def test_feature_view_ibis_transformation():
+    from feast.protos.feast.core.Transformation_pb2 import FeatureTransformationV2, SubstraitTransformation
+    import ibis
+    import pandas as pd
+
+    # Define a simple Ibis transformation expression
+    def add_one(table):
+        return table.mutate(output=table["input"] + 1)
+
+    # Create a DataFrame and convert it to an Ibis table
+    df = pd.DataFrame({"input": [1, 2, 3]})
+    ibis_table = ibis.pandas.connect({"table": df}).table("table")
+
+    # Serialize the Ibis expression
+    serialized_expr = ibis_table.compile().to_bytes()
+
+    # Create a SubstraitTransformation message with the serialized expression
+    transformation_metadata = FeatureTransformationV2(
+        substrait=SubstraitTransformation(
+            ibis_expr=serialized_expr
+        )
+    )
+
+    # Create a FeatureView with the transformation metadata
+    feature_view = FeatureView(
+        name="test_feature_view_ibis",
+        entities=[],
+        schema=[Field(name="input", dtype=Float32)],
+        source=FileSource(path="some path"),
+        transformation_metadata=transformation_metadata,
+    )
+
+    # Apply the transformation
+    input_data = {"input": [1, 2, 3]}
+    transformed_data = feature_view.materialize(input_data)
+
+    # Assert the transformation output
+    assert transformed_data == {"output": [2, 3, 4]}
