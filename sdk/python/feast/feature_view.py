@@ -405,6 +405,15 @@ class FeatureView(BaseFeatureView):
             stream_source_proto = self.stream_source.to_proto()
             stream_source_proto.data_source_class_type = f"{self.stream_source.__class__.__module__}.{self.stream_source.__class__.__name__}"
 
+        # Serialize transformation function using dill
+        transformation_proto = None
+        if self.transformation:
+            transformation_proto = FeatureTransformationV2(
+                user_defined_function=FeatureTransformationV2.UserDefinedFunction(
+                    body=dill.dumps(self.transformation)
+                )
+            )
+
         spec = FeatureViewSpecProto(
             name=self.name,
             entities=self.entities,
@@ -417,7 +426,7 @@ class FeatureView(BaseFeatureView):
             online=self.online,
             batch_source=batch_source_proto,
             stream_source=stream_source_proto,
-            feature_transformation=self.transformation,  # Serialize transformation metadata
+            feature_transformation=transformation_proto,  # Serialize transformation metadata
         )
 
         return FeatureViewProto(spec=spec, meta=meta)
@@ -471,7 +480,11 @@ class FeatureView(BaseFeatureView):
                 else feature_view_proto.spec.ttl.ToTimedelta()
             ),
             source=batch_source,
-            transformation=feature_view_proto.spec.feature_transformation,  # Deserialize transformation metadata
+            transformation=FeatureTransformationV2(
+                user_defined_function=FeatureTransformationV2.UserDefinedFunction(
+                    body=dill.loads(feature_view_proto.spec.feature_transformation.user_defined_function.body)
+                )
+            ) if feature_view_proto.spec.HasField("feature_transformation") else None,
         )
         if stream_source:
             feature_view.stream_source = stream_source
