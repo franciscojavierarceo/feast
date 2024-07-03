@@ -288,9 +288,8 @@ class BuildPythonProtosCommand(Command):
         print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
         env = os.environ.copy()
         env["PATH"] = f"/home/ubuntu/feast/venv/bin:" + env["PATH"]
-        grpc_tools_protoc_path = os.path.join(env["PATH"].split(":")[0], "grpc_tools", "protoc")
         subprocess.check_call(
-            [grpc_tools_protoc_path]
+            self.python_protoc
             + [
                 "-I",
                 self.proto_folder,
