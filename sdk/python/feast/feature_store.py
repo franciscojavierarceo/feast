@@ -505,6 +505,68 @@ class FeatureStore:
             name, allow_registry_cache=allow_registry_cache
         )
 
+    def write_to_online_store(
+        self,
+        feature_view_name: str,
+        df: pd.DataFrame,
+        allow_registry_cache: bool = False,
+    ):
+        """
+        Writes feature data to the online store.
+
+        Args:
+            feature_view_name: The name of the feature view.
+            df: The feature data to write.
+            allow_registry_cache: Whether to allow using the registry cache.
+        """
+        feature_view = self.get_feature_view(
+            feature_view_name, allow_registry_cache=allow_registry_cache
+        )
+
+        # Apply transformation if present
+        if feature_view.transformation_metadata and feature_view.transformation_metadata.HasField("user_defined_function"):
+            transform_func = dill.loads(feature_view.transformation_metadata.user_defined_function.body)
+            df = transform_func(df)
+
+        self._get_provider().update_infra(
+            project=self.project,
+            tables_to_keep=[feature_view],
+            tables_to_delete=[],
+            entities_to_keep=[],
+            entities_to_delete=[],
+            partial=True,
+        )
+        self._get_provider().write_to_online_store(
+            self.config, feature_view, df, self._registry, self.project
+        )
+
+    def write_to_offline_store(
+        self,
+        feature_view_name: str,
+        df: pd.DataFrame,
+        allow_registry_cache: bool = False,
+    ):
+        """
+        Writes feature data to the offline store.
+
+        Args:
+            feature_view_name: The name of the feature view.
+            df: The feature data to write.
+            allow_registry_cache: Whether to allow using the registry cache.
+        """
+        feature_view = self.get_feature_view(
+            feature_view_name, allow_registry_cache=allow_registry_cache
+        )
+
+        # Apply transformation if present
+        if feature_view.transformation_metadata and feature_view.transformation_metadata.HasField("user_defined_function"):
+            transform_func = dill.loads(feature_view.transformation_metadata.user_defined_function.body)
+            df = transform_func(df)
+
+        self._get_provider().write_to_offline_store(
+            self.config, feature_view, df, self._registry, self.project
+        )
+
     def _get_stream_feature_view(
         self,
         name: str,

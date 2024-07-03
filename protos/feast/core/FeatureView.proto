@@ -14,7 +14,6 @@
 // limitations under the License.
 //
 
-
 syntax = "proto3";
 package feast.core;
 
@@ -26,6 +25,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "feast/core/DataSource.proto";
 import "feast/core/Feature.proto";
+import "feast/core/Transformation.proto";
 
 message FeatureView {
     // User-specified specifications of this feature view.
@@ -35,7 +35,7 @@ message FeatureView {
     FeatureViewMeta meta = 2;
 }
 
-// Next available id: 13
+// Next available id: 14
 // TODO(adchia): refactor common fields from this and ODFV into separate metadata proto
 message FeatureViewSpec {
     // Name of the feature view. Must be unique. Not updated.
@@ -75,6 +75,9 @@ message FeatureViewSpec {
 
     // Whether these features should be served online or not
     bool online = 8;
+
+    // Transformation metadata for feature transformations
+    FeatureTransformationV2 feature_transformation = 14;
 }
 
 message FeatureViewMeta {

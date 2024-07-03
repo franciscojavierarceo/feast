@@ -1,4 +1,204 @@
+import functools
+import inspect
+from typing import Callable, Dict, Any
+import dill
+from ibis.expr.types import Table
+from feast.protos.feast.core.Transformation_pb2 import SubstraitTransformationV2
+
+def transform(sources=None, schema=None, mode="python"):
+    """
+    A decorator to define a transformation function for a FeatureView.
+
+    Args:
+        sources: A list of source FeatureViews that provide input data for the transformation.
+        schema: A list of Fields defining the schema of the transformed output.
+        mode: The mode of the transformation, e.g., "python" or "ibis".
+
+    Returns:
+        A decorator function that wraps the transformation function with metadata.
+    """
+    def decorator(func: Callable[[Dict[str, Any]], Dict[str, Any]]):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        wrapper._transform_metadata = {
+            "sources": sources,
+            "schema": schema,
+            "mode": mode,
+            "function": func,
+        }
+        return wrapper
+    return decorator
+
+def __init__(
+    self,
+    *,
+    name: str,
+    source: DataSource,
+    schema: Optional[List[Field]] = None,
+    entities: Optional[List[Entity]] = None,
+    ttl: Optional[timedelta] = timedelta(days=0),
+    online: bool = True,
+    description: str = "",
+    tags: Optional[Dict[str, str]] = None,
+    owner: str = "",
+    transformation: Optional[FeatureTransformationV2] = None,
+):
+    """
+    Creates a FeatureView object.
+
+    Args:
+        name: The unique name of the feature view.
+        source: The source of data for this group of features. May be a stream source, or a batch source.
+            If a stream source, the source should contain a batch_source for backfills & batch materialization.
+        schema (optional): The schema of the feature view, including feature, timestamp,
+            and entity columns.
+        # TODO: clarify that schema is only useful here...
+        entities (optional): The list of entities with which this group of features is associated.
+        ttl (optional): The amount of time this group of features lives. A ttl of 0 indicates that
+            this group of features lives forever. Note that large ttl's or a ttl of 0
+            can result in extremely computationally intensive queries.
+        online (optional): A boolean indicating whether online retrieval is enabled for
+            this feature view.
+        description (optional): A human-readable description.
+        tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
+        owner (optional): The owner of the feature view, typically the email of the
+            primary maintainer.
+        transformation (optional): Metadata for feature transformations, including the transformation function.
+
+    Raises:
+        ValueError: A field mapping conflicts with an Entity or a Feature.
+    """
+    self.name = name
+    self.entities = [e.name for e in entities] if entities else [DUMMY_ENTITY_NAME]
+    self.ttl = ttl
+    schema = schema or []
+
+    # Initialize data sources.
+    if (
+        isinstance(source, PushSource)
+        or isinstance(source, KafkaSource)
+        or isinstance(source, KinesisSource)
+    ):
+        self.stream_source = source
+        if not source.batch_source:
+            raise ValueError(
+                f"A batch_source needs to be specified for stream source `{source.name}`"
+            )
+        else:
+            self.batch_source = source.batch_source
+    else:
+        self.stream_source = None
+        self.batch_source = source
+
+    # Initialize features and entity columns.
+    features: List[Field] = []
+    self.entity_columns = []
+
+    join_keys: List[str] = []
+    if entities:
+        for entity in entities:
+            join_keys.append(entity.join_key)
+
+    # Ensure that entities have unique join keys.
+    if len(set(join_keys)) < len(join_keys):
+        raise ValueError(
+            "A feature view should not have entities that share a join key."
+        )
+
+    for field in schema:
+        if field.name in join_keys:
+            self.entity_columns.append(field)
+
+            # Confirm that the inferred type matches the specified entity type, if it exists.
+            matching_entities = (
+                [e for e in entities if e.join_key == field.name]
+                if entities
+                else []
+            )
+            assert len(matching_entities) == 1
+            entity = matching_entities[0]
+            if entity.value_type != ValueType.UNKNOWN:
+                if from_value_type(entity.value_type) != field.dtype:
+                    raise ValueError(
+                        f"Entity {entity.name} has type {entity.value_type}, which does not match the inferred type {field.dtype}."
+                    )
+        else:
+            features.append(field)
+
+    # TODO(felixwang9817): Add more robust validation of features.
+    cols = [field.name for field in schema]
+    for col in cols:
+        if (
+            self.batch_source.field_mapping is not None
+            and col in self.batch_source.field_mapping.keys()
+        ):
+            raise ValueError(
+                f"The field {col} is mapped to {self.batch_source.field_mapping[col]} for this data source. "
+                f"Please either remove this field mapping or use {self.batch_source.field_mapping[col]} as the "
+                f"Entity or Feature name."
+            )
+
+    super().__init__(
+        name=name,
+        features=features,
+        description=description,
+        tags=tags,
+        owner=owner,
+    )
+    self.online = online
+    self.materialization_intervals = []
+    self.transformation = transformation
+
+def materialize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Materializes the feature data by applying the transformation function if present.
+
+    Args:
+        data: The input feature data.
+
+    Returns:
+        The transformed feature data.
+    """
+    if self.transformation and self.transformation.HasField("user_defined_function"):
+        transform_func = dill.loads(self.transformation.user_defined_function.body)
+        data = transform_func(data)
+    return data
+
+def to_proto(self) -> FeatureViewProto:
+    """
+    Converts a feature view object to its protobuf representation.
+
+    Returns:
+        A FeatureViewProto protobuf.
+    """
+    meta = self.to_proto_meta()
+    ttl_duration = self.get_ttl_duration()
+
+    batch_source_proto = self.batch_source.to_proto()
+    batch_source_proto.data_source_class_type = f"{self.batch_source.__class__.__module__}.{self.batch_source.__class__.__name__}"
+
+    stream_source_proto = None
+    if self.stream_source:
+        stream_source_proto = self.stream_source.to_proto()
+        stream_source_proto.data_source_class_type = f"{self.stream_source.__class__.__module__}.{self.stream_source.__class__.__name__}"
+
 # Copyright 2019 The Feast Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# Copyright 2019 The Feast Authors
+import functools
+import inspect
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +238,7 @@ from feast.protos.feast.core.FeatureView_pb2 import (
 )
 from feast.types import from_value_type
 from feast.value_type import ValueType
+from feast.protos.feast.core.Transformation_pb2 import FeatureTransformationV2
 
 warnings.simplefilter("once", DeprecationWarning)
 
@@ -78,6 +279,7 @@ class FeatureView(BaseFeatureView):
         tags: A dictionary of key-value pairs to store arbitrary metadata.
         owner: The owner of the feature view, typically the email of the primary
             maintainer.
+        transformation_metadata: Metadata for feature transformations, including the transformation function.
     """
 
     name: str
@@ -105,6 +307,7 @@ class FeatureView(BaseFeatureView):
         description: str = "",
         tags: Optional[Dict[str, str]] = None,
         owner: str = "",
+        transformation: Optional[FeatureTransformationV2] = None,
     ):
         """
         Creates a FeatureView object.
@@ -126,6 +329,7 @@ class FeatureView(BaseFeatureView):
             tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
             owner (optional): The owner of the feature view, typically the email of the
                 primary maintainer.
+            transformation (optional): Metadata for feature transformations, including the transformation function.
 
         Raises:
             ValueError: A field mapping conflicts with an Entity or a Feature.
@@ -209,9 +413,50 @@ class FeatureView(BaseFeatureView):
         )
         self.online = online
         self.materialization_intervals = []
+        self.transformation = transformation
 
     def __hash__(self):
         return super().__hash__()
+
+    def materialize(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Materializes the feature data by applying the transformation function if present.
+
+        Args:
+            data: The input feature data.
+
+        Returns:
+            The transformed feature data.
+        """
+        if self.transformation:
+            if self.transformation.HasField("user_defined_function"):
+                transform_func = dill.loads(self.transformation.user_defined_function.body)
+                data = transform_func(data)
+            elif self.transformation.HasField("substrait"):
+                data = self.apply_ibis_transformation(data)
+        return data
+
+    def apply_ibis_transformation(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Applies the Ibis transformation to the input feature data.
+
+        Args:
+            data: The input feature data.
+
+        Returns:
+            The transformed feature data.
+        """
+        # Extract the Ibis expression from the transformation attribute
+        ibis_expr = self.transformation.substrait.ibis_expr
+
+        # Apply the Ibis expression to the input data
+        table = Table(data)
+        transformed_table = ibis_expr(table)
+
+        # Convert the transformed table back to a dictionary
+        transformed_data = transformed_table.execute().to_dict(orient="list")
+
+        return transformed_data
 
     def __copy__(self):
         fv = FeatureView(
@@ -221,6 +466,7 @@ class FeatureView(BaseFeatureView):
             schema=self.schema,
             tags=self.tags,
             online=self.online,
+            transformation_metadata=self.transformation_metadata,
         )
 
         # This is deliberately set outside of the FV initialization as we do not have the Entity objects.
@@ -339,6 +585,15 @@ class FeatureView(BaseFeatureView):
             stream_source_proto = self.stream_source.to_proto()
             stream_source_proto.data_source_class_type = f"{self.stream_source.__class__.__module__}.{self.stream_source.__class__.__name__}"
 
+        # Serialize transformation function using dill
+        transformation_proto = None
+        if self.transformation:
+            transformation_proto = FeatureTransformationV2(
+                user_defined_function=FeatureTransformationV2.UserDefinedFunction(
+                    body=dill.dumps(self.transformation)
+                )
+            )
+
         spec = FeatureViewSpecProto(
             name=self.name,
             entities=self.entities,
@@ -351,6 +606,7 @@ class FeatureView(BaseFeatureView):
             online=self.online,
             batch_source=batch_source_proto,
             stream_source=stream_source_proto,
+            feature_transformation=transformation_proto,  # Serialize transformation metadata
         )
 
         return FeatureViewProto(spec=spec, meta=meta)
@@ -404,6 +660,11 @@ class FeatureView(BaseFeatureView):
                 else feature_view_proto.spec.ttl.ToTimedelta()
             ),
             source=batch_source,
+            transformation=FeatureTransformationV2(
+                user_defined_function=FeatureTransformationV2.UserDefinedFunction(
+                    body=dill.loads(feature_view_proto.spec.feature_transformation.user_defined_function.body)
+                )
+            ) if feature_view_proto.spec.HasField("feature_transformation") else None,
         )
         if stream_source:
             feature_view.stream_source = stream_source
