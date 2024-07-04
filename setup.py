@@ -259,7 +259,7 @@ class BuildPythonProtosCommand(Command):
 
     def initialize_options(self):
         self.python_protoc = [
-            sys.executable,
+            os.path.join(repo_root, "venv/bin/python"),
             "-m",
             "grpc_tools.protoc",
         ]  # find_executable("protoc")
@@ -288,25 +288,27 @@ class BuildPythonProtosCommand(Command):
         print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', '')}")
         print(f"sys.path: {sys.path}")
         env = os.environ.copy()
-        env["PATH"] = f"/home/ubuntu/feast/venv/bin:" + env["PATH"]
-        env["PYTHONPATH"] = f"/home/ubuntu/feast/venv/lib/python3.10/site-packages"
+        env["PATH"] = f"{repo_root}/venv/bin:" + env["PATH"]
+        env["PYTHONPATH"] = f"/home/ubuntu/anaconda3/envs/feast/lib/python3.9/site-packages:" + env.get("PYTHONPATH", "")
         print(f"Subprocess PATH: {env['PATH']}")
         print(f"Subprocess PYTHONPATH: {env['PYTHONPATH']}")
-        subprocess.check_call(
-            ["/home/ubuntu/feast/venv/bin/python", "-m", "grpc_tools.protoc"]
-            + [
-                "-I",
-                self.proto_folder,
-                "--python_out",
-                self.python_folder,
-                "--grpc_python_out",
-                self.python_folder,
-                "--mypy_out",
-                self.python_folder,
-            ]
-            + proto_files,
-            env=env
-        )
+        command = [
+            "/home/ubuntu/anaconda3/envs/feast/bin/python",
+            "-m",
+            "grpc_tools.protoc",
+            f"-I={self.proto_folder}",
+            f"--python_out={self.python_folder}",
+            f"--grpc_python_out={self.python_folder}",
+            f"--mypy_out={self.python_folder}",
+            *proto_files
+        ]
+        print(f"Subprocess command: {command}")
+        try:
+            print(f"Executing subprocess command: {command}")
+            subprocess.check_call(command, env=env)
+        except subprocess.CalledProcessError as e:
+            print(f"Subprocess call failed with error: {e}")
+            raise
 
     def run(self):
         for sub_folder in self.sub_folders:
