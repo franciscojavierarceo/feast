@@ -16,6 +16,8 @@ import logging
 import os
 import sqlite3
 import struct
+import sys
+import platform
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
@@ -64,6 +66,10 @@ class SqliteOnlineStore(OnlineStore):
         _conn: SQLite connection.
     """
 
+    @staticmethod
+    def is_macos_python311():
+        return sys.version_info[:2] == (3, 11) and platform.system() == "Darwin"
+
     _conn: Optional[sqlite3.Connection] = None
 
     @staticmethod
@@ -86,9 +92,11 @@ class SqliteOnlineStore(OnlineStore):
             if config.online_store.vec_enabled:
                 try:
                     import sqlite_vec
-
-                    self._conn.enable_load_extension(True)
-                    sqlite_vec.load(self._conn)
+                    if not SqliteOnlineStore.is_macos_python311():
+                        self._conn.enable_load_extension(True)
+                        sqlite_vec.load(self._conn)
+                    else:
+                        logging.warning("SQLite extension loading is not supported on macOS with Python 3.11")
                 except (sqlite3.OperationalError, ModuleNotFoundError) as e:
                     logging.warning(
                         f"Cannot use sqlite_vec for vector search: {str(e)}"
@@ -493,9 +501,11 @@ class SqliteTable(InfraObject):
     def update(self):
         try:
             import sqlite_vec
-
-            self.conn.enable_load_extension(True)
-            sqlite_vec.load(self.conn)
+            if not SqliteOnlineStore.is_macos_python311():
+                self.conn.enable_load_extension(True)
+                sqlite_vec.load(self.conn)
+            else:
+                logging.warning("SQLite extension loading is not supported on macOS with Python 3.11")
         except (sqlite3.OperationalError, ModuleNotFoundError) as e:
             logging.warning(f"Cannot use sqlite_vec for vector search: {str(e)}")
         self.conn.execute(
