@@ -109,6 +109,11 @@ class SqliteOnlineStore(OnlineStore):
 
         project = config.project
 
+        def adapt_datetime(dt):
+            return dt.isoformat()
+
+        sqlite3.register_adapter(datetime, adapt_datetime)
+
         with conn:
             for entity_key, values, timestamp, created_ts in data:
                 entity_key_bin = serialize_entity_key(
@@ -199,6 +204,11 @@ class SqliteOnlineStore(OnlineStore):
     ) -> List[Tuple[Optional[datetime], Optional[Dict[str, ValueProto]]]]:
         conn = self._get_conn(config)
         cur = conn.cursor()
+
+        def convert_timestamp(ts_str):
+            return datetime.fromisoformat(ts_str)
+
+        sqlite3.register_converter("timestamp", convert_timestamp)
 
         result: List[Tuple[Optional[datetime], Optional[Dict[str, ValueProto]]]] = []
 
