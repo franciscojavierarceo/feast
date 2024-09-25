@@ -206,7 +206,7 @@ class SqliteOnlineStore(OnlineStore):
         cur = conn.cursor()
 
         def convert_timestamp(ts_str):
-            return datetime.fromisoformat(ts_str)
+            return datetime.fromisoformat(ts_str.decode('utf-8') if isinstance(ts_str, bytes) else ts_str)
 
         sqlite3.register_converter("timestamp", convert_timestamp)
 
