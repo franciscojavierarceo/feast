@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 from binascii import hexlify
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from threading import Lock
 from typing import Any, Callable, List, Literal, Optional, Set, Union
@@ -161,7 +161,7 @@ class SnowflakeRegistry(BaseRegistry):
                 self.cached_registry_proto_ttl.total_seconds()
                 > 0  # 0 ttl means infinity
                 and (
-                    datetime.utcnow()
+                    datetime.now(timezone.utc)
                     > (
                         self.cached_registry_proto_created
                         + self.cached_registry_proto_ttl

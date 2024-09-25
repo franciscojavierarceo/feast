@@ -22,7 +22,7 @@ import platform
 import sys
 import typing
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from os.path import expanduser, join
 from pathlib import Path
@@ -141,19 +141,19 @@ _context = contextvars.ContextVar("usage_context", default=UsageContext())
 def _set_installation_id():
     if os.getenv("FEAST_FORCE_USAGE_UUID"):
         _constant_attributes["installation_id"] = os.getenv("FEAST_FORCE_USAGE_UUID")
-        _constant_attributes["installation_ts"] = datetime.utcnow().isoformat()
+        _constant_attributes["installation_ts"] = datetime.now(timezone.utc).isoformat()
         return
 
     feast_home_dir = join(expanduser("~"), ".feast")
-    installation_timestamp = datetime.utcnow()
+    installation_timestamp = datetime.now(timezone.utc)
 
     try:
         Path(feast_home_dir).mkdir(exist_ok=True)
         usage_filepath = join(feast_home_dir, "usage")
 
         if os.path.exists(usage_filepath):
-            installation_timestamp = datetime.utcfromtimestamp(
-                os.path.getmtime(usage_filepath)
+            installation_timestamp = datetime.fromtimestamp(
+                os.path.getmtime(usage_filepath), tz=timezone.utc
             )
             with open(usage_filepath, "r") as f:
                 installation_id = f.read()

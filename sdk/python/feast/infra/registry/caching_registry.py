@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import List, Optional
 
@@ -28,7 +28,7 @@ class CachingRegistry(BaseRegistry):
     ):
         self.cached_registry_proto = self.proto()
         proto_registry_utils.init_project_metadata(self.cached_registry_proto, project)
-        self.cached_registry_proto_created = datetime.utcnow()
+        self.cached_registry_proto_created = datetime.now(timezone.utc)
         self._refresh_lock = Lock()
         self.cached_registry_proto_ttl = timedelta(
             seconds=cache_ttl_seconds if cache_ttl_seconds is not None else 0
@@ -289,7 +289,7 @@ class CachingRegistry(BaseRegistry):
                     self.cached_registry_proto, project
                 )
         self.cached_registry_proto = self.proto()
-        self.cached_registry_proto_created = datetime.utcnow()
+        self.cached_registry_proto_created = datetime.now(timezone.utc)
 
     def _refresh_cached_registry_if_necessary(self):
         with self._refresh_lock:
@@ -300,7 +300,7 @@ class CachingRegistry(BaseRegistry):
                 self.cached_registry_proto_ttl.total_seconds()
                 > 0  # 0 ttl means infinity
                 and (
-                    datetime.utcnow()
+                    datetime.now(timezone.utc)
                     > (
                         self.cached_registry_proto_created
                         + self.cached_registry_proto_ttl

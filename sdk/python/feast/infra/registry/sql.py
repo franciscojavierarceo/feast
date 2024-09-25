@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Union
@@ -566,7 +566,7 @@ class SqlRegistry(CachingRegistry):
                 table.c.project_id == project,
             )
             row = conn.execute(stmt).first()
-            update_datetime = datetime.utcnow()
+            update_datetime = datetime.now(timezone.utc)
             update_time = int(update_datetime.timestamp())
             if row:
                 values = {
@@ -678,7 +678,7 @@ class SqlRegistry(CachingRegistry):
         assert name, f"name needs to be provided for {obj}"
 
         with self.engine.begin() as conn:
-            update_datetime = datetime.utcnow()
+            update_datetime = datetime.now(timezone.utc)
             update_time = int(update_datetime.timestamp())
             stmt = select(table).where(
                 getattr(table.c, id_field_name) == name, table.c.project_id == project
@@ -860,7 +860,7 @@ class SqlRegistry(CachingRegistry):
                 return None
             update_time = int(row._mapping["last_updated_timestamp"])
 
-            return datetime.utcfromtimestamp(update_time)
+            return datetime.fromtimestamp(update_time, timezone.utc)
 
     def _get_all_projects(self) -> Set[str]:
         projects = set()
