@@ -426,36 +426,9 @@ class CachingRegistry(BaseRegistry):
 
     def refresh(self, project: Optional[str] = None):
         self.cached_registry_proto = self.proto()
-<<<<<<< HEAD
         self.cached_registry_proto_created = _utc_now()
 
     def _refresh_cached_registry_if_necessary(self):
-        with self._refresh_lock:
-            expired = (
-                self.cached_registry_proto is None
-                or self.cached_registry_proto_created is None
-            ) or (
-                self.cached_registry_proto_ttl.total_seconds()
-                > 0  # 0 ttl means infinity
-                and (
-                    datetime.now(timezone.utc)
-                    > (
-                        self.cached_registry_proto_created
-                        + self.cached_registry_proto_ttl
-||||||| 93ddb11b
-        with self._refresh_lock:
-            expired = (
-                self.cached_registry_proto is None
-                or self.cached_registry_proto_created is None
-            ) or (
-                self.cached_registry_proto_ttl.total_seconds()
-                > 0  # 0 ttl means infinity
-                and (
-                    datetime.utcnow()
-                    > (
-                        self.cached_registry_proto_created
-                        + self.cached_registry_proto_ttl
-=======
         if self.cache_mode == "sync":
             with self._refresh_lock:
                 if self.cached_registry_proto == RegistryProto():
@@ -477,7 +450,6 @@ class CachingRegistry(BaseRegistry):
                                 + self.cached_registry_proto_ttl
                             )
                         )
->>>>>>> upstream/master
                     )
                 if expired:
                     logger.info("Registry cache expired, so refreshing")
