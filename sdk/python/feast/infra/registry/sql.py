@@ -1133,13 +1133,7 @@ class SqlRegistry(CachingRegistry):
                 return None
             update_time = int(row._mapping["last_updated_timestamp"])
 
-<<<<<<< HEAD
-            return datetime.fromtimestamp(update_time, timezone.utc)
-||||||| 93ddb11b
-            return datetime.utcfromtimestamp(update_time)
-=======
             return datetime.fromtimestamp(update_time, tz=timezone.utc)
->>>>>>> upstream/master
 
     def _get_permission(self, name: str, project: str) -> Permission:
         return self._get_object(
