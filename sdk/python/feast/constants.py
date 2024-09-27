@@ -43,3 +43,9 @@ DEFAULT_OFFLINE_SERVER_PORT = 8815
 
 # Default feature server registry ttl (seconds)
 DEFAULT_FEATURE_SERVER_REGISTRY_TTL = 5
+
+# Feast usage environment variable
+FEAST_USAGE: str = "FEAST_USAGE"
+
+# Feast usage endpoint environment variable
+FEAST_USAGE_ENDPOINT: str = "FEAST_USAGE_ENDPOINT"
