@@ -427,15 +427,9 @@ class CachingRegistry(BaseRegistry):
     def refresh(self, project: Optional[str] = None):
         self.cached_registry_proto = self.proto()
 <<<<<<< HEAD
-        self.cached_registry_proto_created = datetime.now(timezone.utc)
-||||||| 93ddb11b
-        self.cached_registry_proto_created = datetime.utcnow()
-=======
         self.cached_registry_proto_created = _utc_now()
->>>>>>> upstream/master
 
     def _refresh_cached_registry_if_necessary(self):
-<<<<<<< HEAD
         with self._refresh_lock:
             expired = (
                 self.cached_registry_proto is None
