@@ -23,7 +23,6 @@ import threading
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple
 
-import pytz
 from hazelcast.client import HazelcastClient
 from hazelcast.core import HazelcastJsonValue
 from hazelcast.discovery import HazelcastCloudDiscovery
@@ -35,7 +34,6 @@ from feast.infra.online_stores.online_store import OnlineStore
 from feast.protos.feast.types.EntityKey_pb2 import EntityKey as EntityKeyProto
 from feast.protos.feast.types.Value_pb2 import Value as ValueProto
 from feast.repo_config import FeastConfigBaseModel
-from feast.usage import log_exceptions_and_usage
 
 # Exception messages
 EXCEPTION_HAZELCAST_UNEXPECTED_CONFIGURATION_CLASS = (
@@ -143,7 +141,6 @@ class HazelcastOnlineStore(OnlineStore):
                         )
         return self._client
 
-    @log_exceptions_and_usage(online_store="hazelcast")
     def online_write_batch(
         self,
         config: RepoConfig,
@@ -169,10 +166,10 @@ class HazelcastOnlineStore(OnlineStore):
                     entity_key_serialization_version=2,
                 )
             ).decode("utf-8")
-            event_ts_utc = pytz.utc.localize(event_ts, is_dst=None).timestamp()
+            event_ts_utc = event_ts.astimezone(tz=timezone.utc).timestamp()
             created_ts_utc = 0.0
             if created_ts is not None:
-                created_ts_utc = pytz.utc.localize(created_ts, is_dst=None).timestamp()
+                created_ts_utc = created_ts.astimezone(tz=timezone.utc).timestamp()
             for feature_name, value in values.items():
                 feature_value = base64.b64encode(value.SerializeToString()).decode(
                     "utf-8"

@@ -1,6 +1,6 @@
 import contextlib
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import (
     Any,
@@ -21,7 +21,6 @@ import pyarrow
 import pyarrow as pa
 from dateutil import parser
 from pydantic import StrictStr, model_validator
-from pytz import utc
 
 from feast import OnDemandFeatureView, RedshiftSource
 from feast.data_source import DataSource
@@ -42,7 +41,6 @@ from feast.infra.registry.base_registry import BaseRegistry
 from feast.infra.utils import aws_utils
 from feast.repo_config import FeastConfigBaseModel, RepoConfig
 from feast.saved_dataset import SavedDatasetStorage
-from feast.usage import log_exceptions_and_usage
 
 
 class RedshiftOfflineStoreConfig(FeastConfigBaseModel):
@@ -95,7 +93,6 @@ class RedshiftOfflineStoreConfig(FeastConfigBaseModel):
 
 class RedshiftOfflineStore(OfflineStore):
     @staticmethod
-    @log_exceptions_and_usage(offline_store="redshift")
     def pull_latest_from_table_or_query(
         config: RepoConfig,
         data_source: DataSource,
@@ -129,8 +126,8 @@ class RedshiftOfflineStore(OfflineStore):
         )
         s3_resource = aws_utils.get_s3_resource(config.offline_store.region)
 
-        start_date = start_date.astimezone(tz=utc)
-        end_date = end_date.astimezone(tz=utc)
+        start_date = start_date.astimezone(tz=timezone.utc)
+        end_date = end_date.astimezone(tz=timezone.utc)
 
         query = f"""
             SELECT
@@ -154,7 +151,6 @@ class RedshiftOfflineStore(OfflineStore):
         )
 
     @staticmethod
-    @log_exceptions_and_usage(offline_store="redshift")
     def pull_all_from_table_or_query(
         config: RepoConfig,
         data_source: DataSource,
@@ -177,8 +173,8 @@ class RedshiftOfflineStore(OfflineStore):
         )
         s3_resource = aws_utils.get_s3_resource(config.offline_store.region)
 
-        start_date = start_date.astimezone(tz=utc)
-        end_date = end_date.astimezone(tz=utc)
+        start_date = start_date.astimezone(tz=timezone.utc)
+        end_date = end_date.astimezone(tz=timezone.utc)
 
         query = f"""
             SELECT {field_string}
@@ -195,7 +191,6 @@ class RedshiftOfflineStore(OfflineStore):
         )
 
     @staticmethod
-    @log_exceptions_and_usage(offline_store="redshift")
     def get_historical_features(
         config: RepoConfig,
         feature_views: List[FeatureView],
@@ -426,7 +421,6 @@ class RedshiftRetrievalJob(RetrievalJob):
     def on_demand_feature_views(self) -> List[OnDemandFeatureView]:
         return self._on_demand_feature_views
 
-    @log_exceptions_and_usage
     def _to_df_internal(self, timeout: Optional[int] = None) -> pd.DataFrame:
         with self._query_generator() as query:
             return aws_utils.unload_redshift_query_to_df(
@@ -441,7 +435,6 @@ class RedshiftRetrievalJob(RetrievalJob):
                 query,
             )
 
-    @log_exceptions_and_usage
     def _to_arrow_internal(self, timeout: Optional[int] = None) -> pa.Table:
         with self._query_generator() as query:
             return aws_utils.unload_redshift_query_to_pa(
@@ -456,7 +449,6 @@ class RedshiftRetrievalJob(RetrievalJob):
                 query,
             )
 
-    @log_exceptions_and_usage
     def to_s3(self) -> str:
         """Export dataset to S3 in Parquet format and return path"""
         if self.on_demand_feature_views:
@@ -477,7 +469,6 @@ class RedshiftRetrievalJob(RetrievalJob):
             )
             return self._s3_path
 
-    @log_exceptions_and_usage
     def to_redshift(self, table_name: str) -> None:
         """Save dataset as a new Redshift table"""
         if self.on_demand_feature_views:

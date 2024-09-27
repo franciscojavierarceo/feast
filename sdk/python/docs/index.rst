@@ -182,12 +182,6 @@ S3 Registry Store
 .. autoclass:: feast.infra.registry.s3.S3RegistryStore
     :members:
 
-PostgreSQL Registry Store
------------------------
-
-.. autoclass:: feast.infra.registry.contrib.postgres.postgres_registry_store.PostgreSQLRegistryStore
-    :members:
-
 Provider
 ==================
 
@@ -459,4 +453,60 @@ Snowflake Engine
     :members:
 
 .. autoclass:: feast.infra.materialization.contrib.spark.spark_materialization_engine.SparkMaterializationJob
+    :members:
+
+Permission
+============================
+
+.. autoclass:: feast.permissions.permission.Permission
+    :members:
+
+.. autoclass:: feast.permissions.action.AuthzedAction
+    :members:
+
+.. autoclass:: feast.permissions.policy.Policy
+    :members:
+
+.. autofunction:: feast.permissions.enforcer.enforce_policy
+
+Auth Config
+---------------------------
+
+.. autoclass:: feast.permissions.auth_model.AuthConfig
+    :members:
+
+.. autoclass:: feast.permissions.auth_model.KubernetesAuthConfig
+    :members:
+
+.. autoclass:: feast.permissions.auth_model.OidcAuthConfig
+    :members:
+
+Auth Manager
+---------------------------
+
+.. autoclass:: feast.permissions.auth.AuthManager
+    :members:
+
+.. autoclass:: feast.permissions.auth.token_parser.TokenParser
+    :members:
+
+.. autoclass:: feast.permissions.auth.token_extractor.TokenExtractor
+    :members:
+
+.. autoclass:: feast.permissions.auth.kubernetes_token_parser.KubernetesTokenParser
+    :members:
+
+.. autoclass:: feast.permissions.auth.oidc_token_parser.OidcTokenParser
+    :members:
+
+Auth Client Manager
+---------------------------
+
+.. autoclass:: feast.permissions.client.auth_client_manager.AuthenticationClientManager
+    :members:
+
+.. autoclass:: feast.permissions.client.kubernetes_auth_client_manager.KubernetesAuthClientManager
+    :members:
+
+.. autoclass:: feast.permissions.client.oidc_authentication_client_manager.OidcAuthClientManager
     :members:

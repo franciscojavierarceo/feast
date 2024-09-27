@@ -4,19 +4,24 @@ from tempfile import mkstemp
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from feast import BatchFeatureView
+from feast import BatchFeatureView, utils
 from feast.aggregation import Aggregation
 from feast.data_format import AvroFormat, ParquetFormat
 from feast.data_source import KafkaSource
 from feast.entity import Entity
+from feast.feast_object import ALL_RESOURCE_TYPES
 from feast.feature_store import FeatureStore
-from feast.feature_view import FeatureView
+from feast.feature_view import DUMMY_ENTITY_ID, FeatureView
 from feast.field import Field
 from feast.infra.offline_stores.file_source import FileSource
 from feast.infra.online_stores.sqlite import SqliteOnlineStoreConfig
+from feast.permissions.action import AuthzedAction
+from feast.permissions.permission import Permission
+from feast.permissions.policy import RoleBasedPolicy
 from feast.repo_config import RepoConfig
 from feast.stream_feature_view import stream_feature_view
 from feast.types import Array, Bytes, Float32, Int64, String
+from tests.integration.feature_repos.universal.feature_views import TAGS
 from tests.utils.cli_repo_creator import CliRunner, get_example_repo
 from tests.utils.data_source_test_creator import prep_file_source
 
@@ -89,7 +94,7 @@ def test_apply_feature_view(test_feature_store):
             Field(name="entity_id", dtype=Int64),
         ],
         entities=[entity],
-        tags={"team": "matchmaking"},
+        tags={"team": "matchmaking", "tag": "two"},
         source=batch_source,
         ttl=timedelta(minutes=5),
     )
@@ -97,9 +102,9 @@ def test_apply_feature_view(test_feature_store):
     # Register Feature View
     test_feature_store.apply([entity, fv1, bfv])
 
-    feature_views = test_feature_store.list_feature_views()
-
     # List Feature Views
+    assert len(test_feature_store.list_batch_feature_views({})) == 2
+    feature_views = test_feature_store.list_batch_feature_views()
     assert (
         len(feature_views) == 2
         and feature_views[0].name == "my_feature_view_1"
@@ -113,6 +118,73 @@ def test_apply_feature_view(test_feature_store):
         and feature_views[0].features[3].dtype == Array(Bytes)
         and feature_views[0].entities[0] == "fs1_my_entity_1"
     )
+
+    assert utils.tags_str_to_dict() == {}
+    assert utils.tags_list_to_dict() is None
+    assert utils.tags_list_to_dict([]) is None
+    assert utils.tags_list_to_dict([""]) == {}
+    assert utils.tags_list_to_dict(
+        (
+            "team : driver_performance, other:tag",
+            "blanktag:",
+            "other:two",
+            "other:3",
+            "missing",
+        )
+    ) == {"team": "driver_performance", "other": "3", "blanktag": ""}
+    assert utils.has_all_tags({})
+
+    tags_dict = {"team": "matchmaking"}
+    tags_filter = utils.tags_str_to_dict("('team:matchmaking',)")
+    assert tags_filter == tags_dict
+    tags_filter = utils.tags_list_to_dict(("team:matchmaking", "test"))
+    assert tags_filter == tags_dict
+
+    # List Feature Views
+    feature_views = test_feature_store.list_batch_feature_views(tags=tags_filter)
+    assert (
+        len(feature_views) == 2
+        and utils.has_all_tags(feature_views[0].tags, tags_filter)
+        and utils.has_all_tags(feature_views[1].tags, tags_filter)
+        and feature_views[0].name == "my_feature_view_1"
+        and feature_views[0].features[0].name == "fs1_my_feature_1"
+        and feature_views[0].features[0].dtype == Int64
+        and feature_views[0].features[1].name == "fs1_my_feature_2"
+        and feature_views[0].features[1].dtype == String
+        and feature_views[0].features[2].name == "fs1_my_feature_3"
+        and feature_views[0].features[2].dtype == Array(String)
+        and feature_views[0].features[3].name == "fs1_my_feature_4"
+        and feature_views[0].features[3].dtype == Array(Bytes)
+        and feature_views[0].entities[0] == "fs1_my_entity_1"
+    )
+
+    tags_dict = {"team": "matchmaking", "tag": "two"}
+    tags_filter = utils.tags_list_to_dict((" team :matchmaking, tag: two ",))
+    assert tags_filter == tags_dict
+
+    # List Feature Views
+    feature_views = test_feature_store.list_batch_feature_views(tags=tags_filter)
+    assert (
+        len(feature_views) == 1
+        and utils.has_all_tags(feature_views[0].tags, tags_filter)
+        and feature_views[0].name == "batch_feature_view"
+        and feature_views[0].features[0].name == "fs1_my_feature_1"
+        and feature_views[0].features[0].dtype == Int64
+        and feature_views[0].features[1].name == "fs1_my_feature_2"
+        and feature_views[0].features[1].dtype == String
+        and feature_views[0].features[2].name == "fs1_my_feature_3"
+        and feature_views[0].features[2].dtype == Array(String)
+        and feature_views[0].features[3].name == "fs1_my_feature_4"
+        and feature_views[0].features[3].dtype == Array(Bytes)
+        and feature_views[0].entities[0] == "fs1_my_entity_1"
+    )
+
+    tags_dict = {"missing": "tag"}
+    tags_filter = utils.tags_list_to_dict(("missing:tag,fdsa", "fdas"))
+    assert tags_filter == tags_dict
+
+    # List Feature Views
+    assert len(test_feature_store.list_batch_feature_views(tags=tags_filter)) == 0
 
     test_feature_store.teardown()
 
@@ -136,9 +208,10 @@ def test_apply_feature_view_with_inline_batch_source(
 
         test_feature_store.apply([entity, driver_fv])
 
-        fvs = test_feature_store.list_feature_views()
+        fvs = test_feature_store.list_batch_feature_views()
+        dfv = fvs[0]
         assert len(fvs) == 1
-        assert fvs[0] == driver_fv
+        assert dfv == driver_fv
 
         ds = test_feature_store.list_data_sources()
         assert len(ds) == 1
@@ -185,7 +258,7 @@ def test_apply_feature_view_with_inline_stream_source(
 
         test_feature_store.apply([entity, driver_fv])
 
-        fvs = test_feature_store.list_feature_views()
+        fvs = test_feature_store.list_batch_feature_views()
         assert len(fvs) == 1
         assert fvs[0] == driver_fv
 
@@ -274,6 +347,81 @@ def test_apply_entities_and_feature_views(test_feature_store):
     "test_feature_store",
     [lazy_fixture("feature_store_with_local_registry")],
 )
+def test_apply_dummuy_entity_and_feature_view_columns(test_feature_store):
+    assert isinstance(test_feature_store, FeatureStore)
+    # Create Feature Views
+    batch_source = FileSource(
+        file_format=ParquetFormat(),
+        path="file://feast/*",
+        timestamp_field="ts_col",
+        created_timestamp_column="timestamp",
+    )
+
+    e1 = Entity(name="fs1_my_entity_1", description="something")
+
+    fv = FeatureView(
+        name="my_feature_view_no_entity",
+        schema=[
+            Field(name="fs1_my_feature_1", dtype=Int64),
+            Field(name="fs1_my_feature_2", dtype=String),
+            Field(name="fs1_my_feature_3", dtype=Array(String)),
+            Field(name="fs1_my_feature_4", dtype=Array(Bytes)),
+            Field(name="fs1_my_entity_2", dtype=Int64),
+        ],
+        entities=[],
+        tags={"team": "matchmaking"},
+        source=batch_source,
+        ttl=timedelta(minutes=5),
+    )
+
+    # Check that the entity_columns are empty before applying
+    assert fv.entity_columns == []
+
+    # Register Feature View
+    test_feature_store.apply([fv, e1])
+    fv_actual = test_feature_store.get_feature_view("my_feature_view_no_entity")
+
+    # Note that after the apply() the feature_view serializes the Dummy Entity ID
+    assert fv.entity_columns[0].name == DUMMY_ENTITY_ID
+    assert fv_actual.entity_columns[0].name == DUMMY_ENTITY_ID
+
+    test_feature_store.teardown()
+
+
+@pytest.mark.parametrize(
+    "test_feature_store",
+    [lazy_fixture("feature_store_with_local_registry")],
+)
+def test_apply_permissions(test_feature_store):
+    assert isinstance(test_feature_store, FeatureStore)
+
+    permission = Permission(
+        name="reader",
+        types=ALL_RESOURCE_TYPES,
+        policy=RoleBasedPolicy(roles=["reader"]),
+        actions=[AuthzedAction.DESCRIBE],
+    )
+
+    # Register Permission
+    test_feature_store.apply([permission])
+
+    permissions = test_feature_store.list_permissions()
+    assert len(permissions) == 1
+    assert permissions[0] == permission
+
+    # delete Permission
+    test_feature_store.apply(objects=[], objects_to_delete=[permission], partial=False)
+
+    permissions = test_feature_store.list_permissions()
+    assert len(permissions) == 0
+
+    test_feature_store.teardown()
+
+
+@pytest.mark.parametrize(
+    "test_feature_store",
+    [lazy_fixture("feature_store_with_local_registry")],
+)
 @pytest.mark.parametrize("dataframe_source", [lazy_fixture("simple_dataset_1")])
 def test_reapply_feature_view(test_feature_store, dataframe_source):
     with prep_file_source(df=dataframe_source, timestamp_field="ts_1") as file_source:
@@ -321,6 +469,20 @@ def test_reapply_feature_view(test_feature_store, dataframe_source):
 
         # Check Feature View
         fv_stored = test_feature_store.get_feature_view(fv1.name)
+        assert len(fv_stored.materialization_intervals) == 1
+
+        # Change and apply Feature View, this time, only the name
+        fv2 = FeatureView(
+            name="my_feature_view_2",
+            schema=[Field(name="int64_col", dtype=Int64)],
+            entities=[e],
+            source=file_source,
+            ttl=timedelta(minutes=5),
+        )
+        test_feature_store.apply([fv2])
+
+        # Check Feature View
+        fv_stored = test_feature_store.get_feature_view(fv2.name)
         assert len(fv_stored.materialization_intervals) == 0
 
         test_feature_store.teardown()
@@ -525,10 +687,12 @@ def test_apply_stream_source(test_feature_store, simple_dataset_1) -> None:
             topic="topic",
             batch_source=file_source,
             watermark_delay_threshold=timedelta(days=1),
+            tags=TAGS,
         )
 
         test_feature_store.apply([stream_source])
 
+        assert len(test_feature_store.list_data_sources(tags=TAGS)) == 1
         ds = test_feature_store.list_data_sources()
         assert len(ds) == 2
         if isinstance(ds[0], FileSource):

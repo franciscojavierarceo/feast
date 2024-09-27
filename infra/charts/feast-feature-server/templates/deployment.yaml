@@ -14,10 +14,14 @@ spec:
     {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
+        {{- if .Values.metrics.enabled }}
+        instrumentation.opentelemetry.io/inject-python: "true"
+        {{- end }}
     {{- end }}
       labels:
         {{- include "feast-feature-server.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name | default "default" }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -33,19 +37,64 @@ spec:
           env:
             - name: FEATURE_STORE_YAML_BASE64
               value: {{ .Values.feature_store_yaml_base64 }}
-          command: ["feast", "serve", "-h", "0.0.0.0"]
+            - name: INTRA_COMMUNICATION_BASE64
+              value: {{ "intra-server-communication" | b64enc }}
+          command:
+            {{- if eq .Values.feast_mode "offline" }}
+            - "feast"
+            - "--log-level"
+            - "{{ .Values.logLevel }}"
+            - "serve_offline"
+            - "-h"
+            - "0.0.0.0"
+            {{- else if eq .Values.feast_mode "ui" }}
+            - "feast"
+            - "--log-level"
+            - "{{ .Values.logLevel }}"
+            - "ui"
+            - "-h"
+            - "0.0.0.0"
+            {{- else if eq .Values.feast_mode "registry" }}
+            - "feast"
+            - "--log-level"
+            - "{{ .Values.logLevel }}"
+            - "serve_registry"
+            {{- else }}
+            {{- if .Values.metrics.enlabled }}
+            - "feast"
+            - "--log-level"
+            - "{{ .Values.logLevel }}"
+            - "serve"
+            - "--metrics"
+            - "-h"
+            - "0.0.0.0"
+            {{- else }}
+            - "feast"
+            - "serve"
+            - "-h"
+            - "0.0.0.0"
+            {{- end }}
+            {{- end }}
           ports:
-            - name: http
+            - name: {{ .Values.feast_mode }}
+              {{- if eq .Values.feast_mode "offline" }}
+              containerPort: 8815
+              {{- else if eq .Values.feast_mode "ui" }}
+              containerPort: 8888
+              {{- else if eq .Values.feast_mode "registry" }}
+              containerPort: 6570
+              {{- else }}
               containerPort: 6566
+              {{- end }}
               protocol: TCP
           livenessProbe:
             tcpSocket:
-              port: http
+              port: {{ .Values.feast_mode }}
             initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
           readinessProbe:
             tcpSocket:
-              port: http
+              port: {{ .Values.feast_mode }}
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           resources:

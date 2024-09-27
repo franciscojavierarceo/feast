@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.11
 
 RUN apt update && \
         apt install -y \
@@ -7,7 +7,7 @@ RUN apt update && \
         build-essential
 
 RUN pip install pip --upgrade
-RUN pip install "feast[aws,gcp,snowflake,redis,go,mysql,postgres]"
+RUN pip install "feast[aws,gcp,snowflake,redis,go,mysql,postgres,opentelemetry]"
 
 
 RUN apt update
@@ -16,4 +16,6 @@ RUN wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | 
 RUN apt install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
 RUN apt update
 RUN apt -y install libarrow-dev
+# modify permissions to support running with a random uid
 RUN mkdir -m 775 /.cache
+RUN chmod g+w $(python -c "import feast.ui as _; print(_.__path__)" | tr -d "[']")/build/projects-list.json

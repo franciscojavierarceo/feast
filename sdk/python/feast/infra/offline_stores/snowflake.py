@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import reduce
 from pathlib import Path
 from typing import (
@@ -25,7 +25,6 @@ import numpy as np
 import pandas as pd
 import pyarrow
 from pydantic import ConfigDict, Field, StrictStr
-from pytz import utc
 
 from feast import OnDemandFeatureView
 from feast.data_source import DataSource
@@ -63,7 +62,6 @@ from feast.types import (
     String,
     UnixTimestamp,
 )
-from feast.usage import log_exceptions_and_usage
 
 try:
     from snowflake.connector import SnowflakeConnection
@@ -105,6 +103,15 @@ class SnowflakeOfflineStoreConfig(FeastConfigBaseModel):
     authenticator: Optional[str] = None
     """ Snowflake authenticator name """
 
+    private_key: Optional[str] = None
+    """ Snowflake private key file path"""
+
+    private_key_content: Optional[bytes] = None
+    """ Snowflake private key stored as bytes"""
+
+    private_key_passphrase: Optional[str] = None
+    """ Snowflake private key file passphrase"""
+
     database: StrictStr
     """ Snowflake database name """
 
@@ -124,7 +131,6 @@ class SnowflakeOfflineStoreConfig(FeastConfigBaseModel):
 
 class SnowflakeOfflineStore(OfflineStore):
     @staticmethod
-    @log_exceptions_and_usage(offline_store="snowflake")
     def pull_latest_from_table_or_query(
         config: RepoConfig,
         data_source: DataSource,
@@ -139,8 +145,10 @@ class SnowflakeOfflineStore(OfflineStore):
         assert isinstance(data_source, SnowflakeSource)
 
         from_expression = data_source.get_table_query_string()
-        if not data_source.database and data_source.table:
+        if not data_source.database and not data_source.schema and data_source.table:
             from_expression = f'"{config.offline_store.database}"."{config.offline_store.schema_}".{from_expression}'
+        if not data_source.database and data_source.schema and data_source.table:
+            from_expression = f'"{config.offline_store.database}".{from_expression}'
 
         if join_key_columns:
             partition_by_join_key_string = '"' + '", "'.join(join_key_columns) + '"'
@@ -187,8 +195,8 @@ class SnowflakeOfflineStore(OfflineStore):
         with GetSnowflakeConnection(config.offline_store) as conn:
             snowflake_conn = conn
 
-        start_date = start_date.astimezone(tz=utc)
-        end_date = end_date.astimezone(tz=utc)
+        start_date = start_date.astimezone(tz=timezone.utc)
+        end_date = end_date.astimezone(tz=timezone.utc)
 
         query = f"""
             SELECT
@@ -212,7 +220,6 @@ class SnowflakeOfflineStore(OfflineStore):
         )
 
     @staticmethod
-    @log_exceptions_and_usage(offline_store="snowflake")
     def pull_all_from_table_or_query(
         config: RepoConfig,
         data_source: DataSource,
@@ -226,8 +233,10 @@ class SnowflakeOfflineStore(OfflineStore):
         assert isinstance(data_source, SnowflakeSource)
 
         from_expression = data_source.get_table_query_string()
-        if not data_source.database and data_source.table:
+        if not data_source.database and not data_source.schema and data_source.table:
             from_expression = f'"{config.offline_store.database}"."{config.offline_store.schema_}".{from_expression}'
+        if not data_source.database and data_source.schema and data_source.table:
+            from_expression = f'"{config.offline_store.database}".{from_expression}'
 
         field_string = (
             '"'
@@ -238,8 +247,8 @@ class SnowflakeOfflineStore(OfflineStore):
         with GetSnowflakeConnection(config.offline_store) as conn:
             snowflake_conn = conn
 
-        start_date = start_date.astimezone(tz=utc)
-        end_date = end_date.astimezone(tz=utc)
+        start_date = start_date.astimezone(tz=timezone.utc)
+        end_date = end_date.astimezone(tz=timezone.utc)
 
         query = f"""
             SELECT {field_string}
@@ -255,7 +264,6 @@ class SnowflakeOfflineStore(OfflineStore):
         )
 
     @staticmethod
-    @log_exceptions_and_usage(offline_store="snowflake")
     def get_historical_features(
         config: RepoConfig,
         feature_views: List[FeatureView],

@@ -2,9 +2,8 @@ import copy
 import functools
 import inspect
 import warnings
-from datetime import datetime
 from types import FunctionType
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, List, Optional, Union, get_type_hints
 
 import dill
 import pandas as pd
@@ -13,8 +12,9 @@ from typeguard import typechecked
 
 from feast.base_feature_view import BaseFeatureView
 from feast.data_source import RequestSource
+from feast.entity import Entity
 from feast.errors import RegistryInferenceFailure, SpecifiedFeaturesNotPresentError
-from feast.feature_view import FeatureView
+from feast.feature_view import DUMMY_ENTITY_NAME, FeatureView
 from feast.feature_view_projection import FeatureViewProjection
 from feast.field import Field, from_value_type
 from feast.protos.feast.core.OnDemandFeatureView_pb2 import (
@@ -34,7 +34,7 @@ from feast.protos.feast.core.Transformation_pb2 import (
 from feast.transformation.pandas_transformation import PandasTransformation
 from feast.transformation.python_transformation import PythonTransformation
 from feast.transformation.substrait_transformation import SubstraitTransformation
-from feast.usage import log_exceptions
+from feast.utils import _utc_now
 from feast.value_type import ValueType
 
 warnings.simplefilter("once", DeprecationWarning)
@@ -62,23 +62,25 @@ class OnDemandFeatureView(BaseFeatureView):
     """
 
     name: str
+    entities: Optional[List[str]]
     features: List[Field]
-    source_feature_view_projections: Dict[str, FeatureViewProjection]
-    source_request_sources: Dict[str, RequestSource]
+    source_feature_view_projections: dict[str, FeatureViewProjection]
+    source_request_sources: dict[str, RequestSource]
     feature_transformation: Union[
         PandasTransformation, PythonTransformation, SubstraitTransformation
     ]
     mode: str
     description: str
-    tags: Dict[str, str]
+    tags: dict[str, str]
     owner: str
+    write_to_online_store: bool
 
-    @log_exceptions  # noqa: C901
     def __init__(  # noqa: C901
         self,
         *,
         name: str,
-        schema: List[Field],
+        entities: Optional[List[Entity]] = None,
+        schema: Optional[List[Field]] = None,
         sources: List[
             Union[
                 FeatureView,
@@ -93,14 +95,16 @@ class OnDemandFeatureView(BaseFeatureView):
         ],
         mode: str = "pandas",
         description: str = "",
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         owner: str = "",
+        write_to_online_store: bool = False,
     ):
         """
         Creates an OnDemandFeatureView object.
 
         Args:
             name: The unique name of the on demand feature view.
+            entities (optional): The list of names of entities that this feature view is associated with.
             schema: The list of features in the output of the on demand feature view, after
                 the transformation has been applied.
             sources: A map from input source names to the actual input sources, which may be
@@ -115,6 +119,8 @@ class OnDemandFeatureView(BaseFeatureView):
             tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
             owner (optional): The owner of the on demand feature view, typically the email
                 of the primary maintainer.
+            write_to_online_store (optional): A boolean that indicates whether to write the on demand feature view to
+            the online store for faster retrieval.
         """
         super().__init__(
             name=name,
@@ -124,12 +130,15 @@ class OnDemandFeatureView(BaseFeatureView):
             owner=owner,
         )
 
-        if mode not in {"python", "pandas", "substrait"}:
-            raise Exception(
-                f"Unknown mode {mode}. OnDemandFeatureView only supports python or pandas UDFs and substrait."
+        schema = schema or []
+        self.entities = [e.name for e in entities] if entities else [DUMMY_ENTITY_NAME]
+        self.mode = mode.lower()
+
+        if self.mode not in {"python", "pandas", "substrait"}:
+            raise ValueError(
+                f"Unknown mode {self.mode}. OnDemandFeatureView only supports python or pandas UDFs and substrait."
             )
-        else:
-            self.mode = mode
+
         if not feature_transformation:
             if udf:
                 warnings.warn(
@@ -137,33 +146,67 @@ class OnDemandFeatureView(BaseFeatureView):
                     DeprecationWarning,
                 )
                 # Note inspecting the return signature won't work with isinstance so this is the best alternative
-                if mode == "pandas":
+                if self.mode == "pandas":
                     feature_transformation = PandasTransformation(udf, udf_string)
-                elif mode == "python":
+                elif self.mode == "python":
                     feature_transformation = PythonTransformation(udf, udf_string)
-                else:
-                    pass
             else:
-                raise Exception(
+                raise ValueError(
                     "OnDemandFeatureView needs to be initialized with either feature_transformation or udf arguments"
                 )
 
-        self.source_feature_view_projections: Dict[str, FeatureViewProjection] = {}
-        self.source_request_sources: Dict[str, RequestSource] = {}
+        self.source_feature_view_projections: dict[str, FeatureViewProjection] = {}
+        self.source_request_sources: dict[str, RequestSource] = {}
         for odfv_source in sources:
             if isinstance(odfv_source, RequestSource):
                 self.source_request_sources[odfv_source.name] = odfv_source
             elif isinstance(odfv_source, FeatureViewProjection):
                 self.source_feature_view_projections[odfv_source.name] = odfv_source
+
             else:
                 self.source_feature_view_projections[odfv_source.name] = (
                     odfv_source.projection
                 )
 
+        features: List[Field] = []
+        self.entity_columns = []
+
+        join_keys: List[str] = []
+        if entities:
+            for entity in entities:
+                join_keys.append(entity.join_key)
+        # Ensure that entities have unique join keys.
+        if len(set(join_keys)) < len(join_keys):
+            raise ValueError(
+                "A feature view should not have entities that share a join key."
+            )
+
+        for field in schema:
+            if field.name in join_keys:
+                self.entity_columns.append(field)
+
+                # Confirm that the inferred type matches the specified entity type, if it exists.
+                matching_entities = (
+                    [e for e in entities if e.join_key == field.name]
+                    if entities
+                    else []
+                )
+                assert len(matching_entities) == 1
+                entity = matching_entities[0]
+                if entity.value_type != ValueType.UNKNOWN:
+                    if from_value_type(entity.value_type) != field.dtype:
+                        raise ValueError(
+                            f"Entity {entity.name} has type {entity.value_type}, which does not match the inferred type {field.dtype}."
+                        )
+            else:
+                features.append(field)
+
+        self.features = features
         self.feature_transformation = feature_transformation
+        self.write_to_online_store = write_to_online_store
 
     @property
-    def proto_class(self) -> Type[OnDemandFeatureViewProto]:
+    def proto_class(self) -> type[OnDemandFeatureViewProto]:
         return OnDemandFeatureViewProto
 
     def __copy__(self):
@@ -177,8 +220,13 @@ class OnDemandFeatureView(BaseFeatureView):
             description=self.description,
             tags=self.tags,
             owner=self.owner,
+            write_to_online_store=self.write_to_online_store,
         )
+        fv.entities = self.entities
+        fv.features = self.features
         fv.projection = copy.copy(self.projection)
+        fv.entity_columns = copy.copy(self.entity_columns)
+
         return fv
 
     def __eq__(self, other):
@@ -187,19 +235,45 @@ class OnDemandFeatureView(BaseFeatureView):
                 "Comparisons should only involve OnDemandFeatureView class objects."
             )
 
-        if not super().__eq__(other):
-            return False
-
+        # Note, no longer evaluating the base feature view layer as ODFVs can have
+        # multiple datasources and a base_feature_view only has one source
+        # though maybe that shouldn't be true
         if (
             self.source_feature_view_projections
             != other.source_feature_view_projections
+            or self.description != other.description
             or self.source_request_sources != other.source_request_sources
             or self.mode != other.mode
             or self.feature_transformation != other.feature_transformation
+            or self.write_to_online_store != other.write_to_online_store
+            or sorted(self.entity_columns) != sorted(other.entity_columns)
         ):
             return False
 
         return True
+
+    @property
+    def join_keys(self) -> List[str]:
+        """Returns a list of all the join keys."""
+        return [entity.name for entity in self.entity_columns]
+
+    @property
+    def schema(self) -> List[Field]:
+        return list(set(self.entity_columns + self.features))
+
+    def ensure_valid(self):
+        """
+        Validates the state of this feature view locally.
+
+        Raises:
+            ValueError: The On Demand feature view does not have an entity when trying to use write_to_online_store.
+        """
+        super().ensure_valid()
+
+        if self.write_to_online_store and not self.entities:
+            raise ValueError(
+                "On Demand Feature views require an entity if write_to_online_store=True"
+            )
 
     def __hash__(self):
         return super().__hash__()
@@ -219,7 +293,7 @@ class OnDemandFeatureView(BaseFeatureView):
         sources = {}
         for source_name, fv_projection in self.source_feature_view_projections.items():
             sources[source_name] = OnDemandSource(
-                feature_view_projection=fv_projection.to_proto()
+                feature_view_projection=fv_projection.to_proto(),
             )
         for (
             source_name,
@@ -242,6 +316,10 @@ class OnDemandFeatureView(BaseFeatureView):
         )
         spec = OnDemandFeatureViewSpec(
             name=self.name,
+            entities=self.entities if self.entities else None,
+            entity_columns=[
+                field.to_proto() for field in self.entity_columns if self.entity_columns
+            ],
             features=[feature.to_proto() for feature in self.features],
             sources=sources,
             feature_transformation=feature_transformation,
@@ -249,6 +327,7 @@ class OnDemandFeatureView(BaseFeatureView):
             description=self.description,
             tags=self.tags,
             owner=self.owner,
+            write_to_online_store=self.write_to_online_store,
         )
 
         return OnDemandFeatureViewProto(spec=spec, meta=meta)
@@ -336,7 +415,25 @@ class OnDemandFeatureView(BaseFeatureView):
                 user_defined_function_proto=backwards_compatible_udf,
             )
         else:
-            raise Exception("At least one transformation type needs to be provided")
+            raise ValueError("At least one transformation type needs to be provided")
+
+        if hasattr(on_demand_feature_view_proto.spec, "write_to_online_store"):
+            write_to_online_store = (
+                on_demand_feature_view_proto.spec.write_to_online_store
+            )
+        else:
+            write_to_online_store = False
+        if hasattr(on_demand_feature_view_proto.spec, "entities"):
+            entities = list(on_demand_feature_view_proto.spec.entities)
+        else:
+            entities = []
+        if hasattr(on_demand_feature_view_proto.spec, "entity_columns"):
+            entity_columns = [
+                Field.from_proto(field_proto)
+                for field_proto in on_demand_feature_view_proto.spec.entity_columns
+            ]
+        else:
+            entity_columns = []
 
         on_demand_feature_view_obj = cls(
             name=on_demand_feature_view_proto.spec.name,
@@ -349,11 +446,15 @@ class OnDemandFeatureView(BaseFeatureView):
             ],
             sources=sources,
             feature_transformation=transformation,
-            mode=on_demand_feature_view_proto.spec.mode,
+            mode=on_demand_feature_view_proto.spec.mode or "pandas",
             description=on_demand_feature_view_proto.spec.description,
             tags=dict(on_demand_feature_view_proto.spec.tags),
             owner=on_demand_feature_view_proto.spec.owner,
+            write_to_online_store=write_to_online_store,
         )
+
+        on_demand_feature_view_obj.entities = entities
+        on_demand_feature_view_obj.entity_columns = entity_columns
 
         # FeatureViewProjections are not saved in the OnDemandFeatureView proto.
         # Create the default projection.
@@ -372,18 +473,18 @@ class OnDemandFeatureView(BaseFeatureView):
 
         return on_demand_feature_view_obj
 
-    def get_request_data_schema(self) -> Dict[str, ValueType]:
-        schema: Dict[str, ValueType] = {}
+    def get_request_data_schema(self) -> dict[str, ValueType]:
+        schema: dict[str, ValueType] = {}
         for request_source in self.source_request_sources.values():
-            if isinstance(request_source.schema, List):
+            if isinstance(request_source.schema, list):
                 new_schema = {}
                 for field in request_source.schema:
                     new_schema[field.name] = field.dtype.to_value_type()
                 schema.update(new_schema)
-            elif isinstance(request_source.schema, Dict):
+            elif isinstance(request_source.schema, dict):
                 schema.update(request_source.schema)
             else:
-                raise Exception(
+                raise TypeError(
                     f"Request source schema is not correct type: ${str(type(request_source.schema))}"
                 )
         return schema
@@ -401,7 +502,10 @@ class OnDemandFeatureView(BaseFeatureView):
         if not isinstance(ibis_table, Table):
             raise TypeError("transform_ibis only accepts ibis.expr.types.Table")
 
-        assert type(self.feature_transformation) == SubstraitTransformation
+        if not isinstance(self.feature_transformation, SubstraitTransformation):
+            raise TypeError(
+                "The feature_transformation is not SubstraitTransformation type while calling transform_ibis()."
+            )
 
         columns_to_cleanup = []
         for source_fv_projection in self.source_feature_view_projections.values():
@@ -423,7 +527,7 @@ class OnDemandFeatureView(BaseFeatureView):
 
         transformed_table = transformed_table.drop(*columns_to_cleanup)
 
-        rename_columns: Dict[str, str] = {}
+        rename_columns: dict[str, str] = {}
         for feature in self.features:
             short_name = feature.name
             long_name = self._get_projected_feature_name(feature.name)
@@ -454,11 +558,9 @@ class OnDemandFeatureView(BaseFeatureView):
                     pa_table = pa_table.append_column(
                         feature.name, pa_table[full_feature_ref]
                     )
-                    # pa_table[feature.name] = pa_table[full_feature_ref]
                     columns_to_cleanup.append(feature.name)
                 elif feature.name in pa_table.column_names:
                     # Make sure the full feature name is always present
-                    # pa_table[full_feature_ref] = pa_table[feature.name]
                     pa_table = pa_table.append_column(
                         full_feature_ref, pa_table[feature.name]
                     )
@@ -469,7 +571,7 @@ class OnDemandFeatureView(BaseFeatureView):
         )
 
         # Work out whether the correct columns names are used.
-        rename_columns: Dict[str, str] = {}
+        rename_columns: dict[str, str] = {}
         for feature in self.features:
             short_name = feature.name
             long_name = self._get_projected_feature_name(feature.name)
@@ -494,12 +596,12 @@ class OnDemandFeatureView(BaseFeatureView):
 
     def transform_dict(
         self,
-        feature_dict: Dict[str, Any],  # type: ignore
-    ) -> Dict[str, Any]:
+        feature_dict: dict[str, Any],  # type: ignore
+    ) -> dict[str, Any]:
         # we need a mapping from full feature name to short and back to do a renaming
         # The simplest thing to do is to make the full reference, copy the columns with the short reference
         # and rerun
-        columns_to_cleanup: List[str] = []
+        columns_to_cleanup: list[str] = []
         for source_fv_projection in self.source_feature_view_projections.values():
             for feature in source_fv_projection.features:
                 full_feature_ref = f"{source_fv_projection.name}__{feature.name}"
@@ -512,7 +614,7 @@ class OnDemandFeatureView(BaseFeatureView):
                     feature_dict[full_feature_ref] = feature_dict[feature.name]
                     columns_to_cleanup.append(str(full_feature_ref))
 
-        output_dict: Dict[str, Any] = self.feature_transformation.transform(
+        output_dict: dict[str, Any] = self.feature_transformation.transform(
             feature_dict
         )
         for feature_name in columns_to_cleanup:
@@ -542,8 +644,8 @@ class OnDemandFeatureView(BaseFeatureView):
                 f"Could not infer Features for the feature view '{self.name}'.",
             )
 
-    def _construct_random_input(self) -> Dict[str, List[Any]]:
-        rand_dict_value: Dict[ValueType, List[Any]] = {
+    def _construct_random_input(self) -> dict[str, list[Any]]:
+        rand_dict_value: dict[ValueType, list[Any]] = {
             ValueType.BYTES: [str.encode("hello world")],
             ValueType.STRING: ["hello world"],
             ValueType.INT32: [1],
@@ -551,7 +653,7 @@ class OnDemandFeatureView(BaseFeatureView):
             ValueType.DOUBLE: [1.0],
             ValueType.FLOAT: [1.0],
             ValueType.BOOL: [True],
-            ValueType.UNIX_TIMESTAMP: [datetime.utcnow()],
+            ValueType.UNIX_TIMESTAMP: [_utc_now()],
             ValueType.BYTES_LIST: [[str.encode("hello world")]],
             ValueType.STRING_LIST: [["hello world"]],
             ValueType.INT32_LIST: [[1]],
@@ -559,7 +661,7 @@ class OnDemandFeatureView(BaseFeatureView):
             ValueType.DOUBLE_LIST: [[1.0]],
             ValueType.FLOAT_LIST: [[1.0]],
             ValueType.BOOL_LIST: [[True]],
-            ValueType.UNIX_TIMESTAMP_LIST: [[datetime.utcnow()]],
+            ValueType.UNIX_TIMESTAMP_LIST: [[_utc_now()]],
         }
 
         feature_dict = {}
@@ -582,11 +684,11 @@ class OnDemandFeatureView(BaseFeatureView):
     @staticmethod
     def get_requested_odfvs(
         feature_refs, project, registry
-    ) -> List["OnDemandFeatureView"]:
+    ) -> list["OnDemandFeatureView"]:
         all_on_demand_feature_views = registry.list_on_demand_feature_views(
             project, allow_cache=True
         )
-        requested_on_demand_feature_views: List[OnDemandFeatureView] = []
+        requested_on_demand_feature_views: list[OnDemandFeatureView] = []
         for odfv in all_on_demand_feature_views:
             for feature in odfv.features:
                 if f"{odfv.name}:{feature.name}" in feature_refs:
@@ -597,8 +699,9 @@ class OnDemandFeatureView(BaseFeatureView):
 
 def on_demand_feature_view(
     *,
-    schema: List[Field],
-    sources: List[
+    entities: Optional[List[Entity]] = None,
+    schema: list[Field],
+    sources: list[
         Union[
             FeatureView,
             RequestSource,
@@ -607,13 +710,15 @@ def on_demand_feature_view(
     ],
     mode: str = "pandas",
     description: str = "",
-    tags: Optional[Dict[str, str]] = None,
+    tags: Optional[dict[str, str]] = None,
     owner: str = "",
+    write_to_online_store: bool = False,
 ):
     """
     Creates an OnDemandFeatureView object with the given user function as udf.
 
     Args:
+        entities (Optional): The list of names of entities that this feature view is associated with.
         schema: The list of features in the output of the on demand feature view, after
             the transformation has been applied.
         sources: A map from input source names to the actual input sources, which may be
@@ -624,6 +729,8 @@ def on_demand_feature_view(
         tags (optional): A dictionary of key-value pairs to store arbitrary metadata.
         owner (optional): The owner of the on demand feature view, typically the email
             of the primary maintainer.
+        write_to_online_store (optional): A boolean that indicates whether to write the on demand feature view to
+            the online store for faster retrieval.
     """
 
     def mainify(obj) -> None:
@@ -633,7 +740,7 @@ def on_demand_feature_view(
             obj.__module__ = "__main__"
 
     def decorator(user_function):
-        return_annotation = inspect.signature(user_function).return_annotation
+        return_annotation = get_type_hints(user_function).get("return", inspect._empty)
         udf_string = dill.source.getsource(user_function)
         mainify(user_function)
         if mode == "pandas":
@@ -643,9 +750,9 @@ def on_demand_feature_view(
                 )
             transformation = PandasTransformation(user_function, udf_string)
         elif mode == "python":
-            if return_annotation not in (inspect._empty, Dict[str, Any]):
+            if return_annotation not in (inspect._empty, dict[str, Any]):
                 raise TypeError(
-                    f"return signature for {user_function} is {return_annotation} but should be Dict[str, Any]"
+                    f"return signature for {user_function} is {return_annotation} but should be dict[str, Any]"
                 )
             transformation = PythonTransformation(user_function, udf_string)
         elif mode == "substrait":
@@ -666,6 +773,8 @@ def on_demand_feature_view(
             description=description,
             tags=tags,
             owner=owner,
+            write_to_online_store=write_to_online_store,
+            entities=entities,
         )
         functools.update_wrapper(
             wrapper=on_demand_feature_view_obj, wrapped=user_function

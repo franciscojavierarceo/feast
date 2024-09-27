@@ -21,6 +21,7 @@ ifeq ($(shell uname -s), Darwin)
 	OS = osx
 endif
 TRINO_VERSION ?= 376
+PYTHON_VERSION = ${shell python --version | grep -Eo '[0-9]\.[0-9]+'}
 
 # General
 
@@ -36,55 +37,69 @@ build: protos build-java build-docker
 
 # Python SDK
 
+install-python-dependencies-uv:
+	uv pip sync --system sdk/python/requirements/py$(PYTHON_VERSION)-requirements.txt
+	uv pip install --system --no-deps .
+
+install-python-dependencies-uv-venv:
+	uv pip sync sdk/python/requirements/py$(PYTHON_VERSION)-requirements.txt
+	uv pip install --no-deps .
+
 install-python-ci-dependencies:
-	python -m piptools sync sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	python -m piptools sync sdk/python/requirements/py$(PYTHON_VERSION)-ci-requirements.txt
 	pip install --no-deps -e .
-	python setup.py build_python_protos --inplace
 
 install-python-ci-dependencies-uv:
-	uv pip sync --system sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
+	uv pip sync --system sdk/python/requirements/py$(PYTHON_VERSION)-ci-requirements.txt
 	uv pip install --system --no-deps -e .
-	python setup.py build_python_protos --inplace
+
+install-python-ci-dependencies-uv-venv:
+	uv pip sync sdk/python/requirements/py$(PYTHON_VERSION)-ci-requirements.txt
+	uv pip install --no-deps -e .
 
 lock-python-ci-dependencies:
-	python -m piptools compile -U --extra ci --output-file sdk/python/requirements/py$(PYTHON)-ci-requirements.txt
-
-package-protos:
-	cp -r ${ROOT_DIR}/protos ${ROOT_DIR}/sdk/python/feast/protos
+	uv pip compile --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py$(PYTHON_VERSION)-ci-requirements.txt
 
 compile-protos-python:
-	python setup.py build_python_protos --inplace
+	python infra/scripts/generate_protos.py
 
 install-python:
-	python -m piptools sync sdk/python/requirements/py$(PYTHON)-requirements.txt
+	python -m piptools sync sdk/python/requirements/py$(PYTHON_VERSION)-requirements.txt
 	python setup.py develop
 
 lock-python-dependencies:
-	python -m piptools compile -U --output-file sdk/python/requirements/py$(PYTHON)-requirements.txt
+	uv pip compile --system --no-strip-extras setup.py --output-file sdk/python/requirements/py$(PYTHON_VERSION)-requirements.txt
+
+lock-python-dependencies-all:
+	# Remove all existing requirements because we noticed the lock file is not always updated correctly. Removing and running the command again ensures that the lock file is always up to date.
+	rm -r sdk/python/requirements/*
+	pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.9 --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.9-requirements.txt"
+	pixi run --environment py39 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.9 --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.9-ci-requirements.txt"
+	pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.10 --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.10-requirements.txt"
+	pixi run --environment py310 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.10 --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.10-ci-requirements.txt"
+	pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.11 --system --no-strip-extras setup.py --output-file sdk/python/requirements/py3.11-requirements.txt"
+	pixi run --environment py311 --manifest-path infra/scripts/pixi/pixi.toml "uv pip compile -p 3.11 --system --no-strip-extras setup.py --extra ci --output-file sdk/python/requirements/py3.11-ci-requirements.txt"
 
 benchmark-python:
-	FEAST_USAGE=False IS_TEST=True python -m pytest --integration --benchmark  --benchmark-autosave --benchmark-save-data sdk/python/tests
+	IS_TEST=True python -m pytest --integration --benchmark  --benchmark-autosave --benchmark-save-data sdk/python/tests
 
 benchmark-python-local:
-	FEAST_USAGE=False IS_TEST=True FEAST_IS_LOCAL_TEST=True python -m pytest --integration --benchmark  --benchmark-autosave --benchmark-save-data sdk/python/tests
+	IS_TEST=True FEAST_IS_LOCAL_TEST=True python -m pytest --integration --benchmark  --benchmark-autosave --benchmark-save-data sdk/python/tests
 
 test-python-unit:
 	python -m pytest -n 8 --color=yes sdk/python/tests
 
 test-python-integration:
-	python -m pytest -n 8 --integration -k "not minio_registry" --color=yes --durations=5 --timeout=1200 --timeout_method=thread sdk/python/tests
+	python -m pytest -n 8 --integration --color=yes --durations=10 --timeout=1200 --timeout_method=thread --dist loadgroup \
+		-k "(not snowflake or not test_historical_features_main)" \
+		sdk/python/tests
 
 test-python-integration-local:
-	@(docker info > /dev/null 2>&1 && \
-		FEAST_IS_LOCAL_TEST=True \
-		FEAST_LOCAL_ONLINE_CONTAINER=True \
-		python -m pytest -n 8 --color=yes --integration \
-			-k "not gcs_registry and \
- 				not s3_registry and \
- 				not test_lambda_materialization and \
- 				not test_snowflake_materialization" \
-		sdk/python/tests \
-	) || echo "This script uses Docker, and it isn't running - please start the Docker Daemon and try again!";
+	FEAST_IS_LOCAL_TEST=True \
+	FEAST_LOCAL_ONLINE_CONTAINER=True \
+	python -m pytest -n 8 --color=yes --integration --durations=10 --timeout=1200 --timeout_method=thread --dist loadgroup \
+		-k "not test_lambda_materialization and not test_snowflake_materialization" \
+		sdk/python/tests
 
 test-python-integration-container:
 	@(docker info > /dev/null 2>&1 && \
@@ -150,11 +165,14 @@ test-python-universal-mssql:
  	 	-k "not gcs_registry and \
 			not s3_registry and \
 			not test_lambda_materialization and \
-			not test_snowflake" \
+			not test_snowflake and \
+			not test_historical_features_persisting and \
+			not validation and \
+			not test_feature_service_logging" \
  	 sdk/python/tests
 
 
-# To use Athena as an offline store, you need to create an Athena database and an S3 bucket on AWS. 
+# To use Athena as an offline store, you need to create an Athena database and an S3 bucket on AWS.
 # https://docs.aws.amazon.com/athena/latest/ug/getting-started.html
 # Modify environment variables ATHENA_REGION, ATHENA_DATA_SOURCE, ATHENA_DATABASE, ATHENA_WORKGROUP or
 # ATHENA_S3_BUCKET_NAME according to your needs. If tests fail with the pytest -n 8 option, change the number to 1.
@@ -166,7 +184,7 @@ test-python-universal-athena:
 	ATHENA_DATA_SOURCE=AwsDataCatalog \
 	ATHENA_DATABASE=default \
 	ATHENA_WORKGROUP=primary \
-	ATHENA_S3_BUCKET_NAME=feast-integration-tests \
+	ATHENA_S3_BUCKET_NAME=feast-int-bucket \
  	python -m pytest -n 8 --integration \
  	 	-k "not test_go_feature_server and \
 		    not test_logged_features_validation and \
@@ -181,7 +199,7 @@ test-python-universal-athena:
 			not s3_registry and \
 			not test_snowflake" \
 	sdk/python/tests
-			
+
 test-python-universal-postgres-offline:
 	PYTHONPATH='.' \
 		FULL_REPO_CONFIGS_MODULE=sdk.python.feast.infra.offline_stores.contrib.postgres_repo_configuration \
@@ -199,6 +217,7 @@ test-python-universal-postgres-offline:
 				not test_push_features_to_offline_store and \
 				not gcs_registry and \
 				not s3_registry and \
+				not test_snowflake and \
  				not test_universal_types" \
  			sdk/python/tests
 
@@ -302,6 +321,36 @@ test-python-universal-cassandra-no-cloud-providers:
 	  not test_snowflake" \
 	sdk/python/tests
 
+ test-python-universal-elasticsearch-online:
+	PYTHONPATH='.' \
+		FULL_REPO_CONFIGS_MODULE=sdk.python.feast.infra.online_stores.contrib.elasticsearch_repo_configuration \
+		PYTEST_PLUGINS=sdk.python.tests.integration.feature_repos.universal.online_store.elasticsearch \
+		python -m pytest -n 8 --integration \
+ 			-k "not test_universal_cli and \
+ 				not test_go_feature_server and \
+ 				not test_feature_logging and \
+				not test_reorder_columns and \
+				not test_logged_features_validation and \
+				not test_lambda_materialization_consistency and \
+				not test_offline_write and \
+				not test_push_features_to_offline_store and \
+				not gcs_registry and \
+				not s3_registry and \
+ 				not test_universal_types and \
+				not test_snowflake" \
+ 			sdk/python/tests
+
+test-python-universal-singlestore-online:
+	PYTHONPATH='.' \
+		FULL_REPO_CONFIGS_MODULE=sdk.python.feast.infra.online_stores.contrib.singlestore_repo_configuration \
+		PYTEST_PLUGINS=sdk.python.tests.integration.feature_repos.universal.online_store.singlestore \
+		python -m pytest -n 8 --integration \
+			-k "not test_universal_cli and \
+				not gcs_registry and \
+				not s3_registry and \
+				not test_snowflake" \
+			sdk/python/tests
+
 test-python-universal:
 	python -m pytest -n 8 --integration sdk/python/tests
 
@@ -345,16 +394,10 @@ start-trino-locally:
 	sleep 15
 
 test-trino-plugin-locally:
-	cd ${ROOT_DIR}/sdk/python; FULL_REPO_CONFIGS_MODULE=feast.infra.offline_stores.contrib.trino_offline_store.test_config.manual_tests FEAST_USAGE=False IS_TEST=True python -m pytest --integration tests/
+	cd ${ROOT_DIR}/sdk/python; FULL_REPO_CONFIGS_MODULE=feast.infra.offline_stores.contrib.trino_offline_store.test_config.manual_tests IS_TEST=True python -m pytest --integration tests/
 
 kill-trino-locally:
 	cd ${ROOT_DIR}; docker stop trino
-
-install-protoc-dependencies:
-	pip install --ignore-installed protobuf==4.23.4 "grpcio-tools>=1.56.2,<2" mypy-protobuf==3.1.0
-
-install-feast-ci-locally:
-	pip install -e ".[ci]"
 
 # Docker
 
@@ -371,14 +414,6 @@ build-feature-server-docker:
 		-t $(REGISTRY)/feature-server:$$VERSION \
 		-f sdk/python/feast/infra/feature_servers/multicloud/Dockerfile --load .
 
-push-feature-server-python-aws-docker:
-	docker push $(REGISTRY)/feature-server-python-aws:$$VERSION
-
-build-feature-server-python-aws-docker:
-	docker buildx build --build-arg VERSION=$$VERSION \
-		-t $(REGISTRY)/feature-server-python-aws:$$VERSION \
-		-f sdk/python/feast/infra/feature_servers/aws_lambda/Dockerfile --load .
-
 push-feature-transformation-server-docker:
 	docker push $(REGISTRY)/feature-transformation-server:$(VERSION)
 
@@ -394,6 +429,18 @@ build-feature-server-java-docker:
 	docker buildx build --build-arg VERSION=$(VERSION) \
 		-t $(REGISTRY)/feature-server-java:$(VERSION) \
 		-f java/infra/docker/feature-server/Dockerfile --load .
+
+push-feast-operator-docker:
+	cd infra/feast-operator && \
+	IMAGE_TAG_BASE=$(REGISTRY)/feast-operator \
+	VERSION=$(VERSION) \
+	$(MAKE) docker-push
+
+build-feast-operator-docker:
+	cd infra/feast-operator && \
+	IMAGE_TAG_BASE=$(REGISTRY)/feast-operator \
+	VERSION=$(VERSION) \
+	$(MAKE) docker-build
 
 # Dev images
 

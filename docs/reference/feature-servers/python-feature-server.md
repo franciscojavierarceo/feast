@@ -12,8 +12,6 @@ There is a CLI command that starts the server: `feast serve`. By default, Feast 
 
 One can deploy a feature server by building a docker image that bundles in the project's `feature_store.yaml`. See this [helm chart](https://github.com/feast-dev/feast/blob/master/infra/charts/feast-feature-server) for an example on how to run Feast on Kubernetes.
 
-A [remote feature server](alpha-aws-lambda-feature-server.md) on AWS Lambda is also available.
-
 ## Example
 
 ### Initializing a feature server
@@ -155,7 +153,7 @@ curl -X POST \
 
 ### Pushing features to the online and offline stores
 
-The Python feature server also exposes an endpoint for [push sources](../../data-sources/push.md). This endpoint allows you to push data to the online and/or offline store.
+The Python feature server also exposes an endpoint for [push sources](../data-sources/push.md). This endpoint allows you to push data to the online and/or offline store.
 
 The request definition for `PushMode` is a string parameter `to` where the options are: \[`"online"`, `"offline"`, `"online_and_offline"`].
 
@@ -201,3 +199,19 @@ requests.post(
     "http://localhost:6566/push",
     data=json.dumps(push_data))
 ```
+
+# Online Feature Server Permissions and Access Control
+
+## API Endpoints and Permissions
+
+| Endpoint                     | Resource Type                   | Permission                                            | Description                                                              |
+| ---------------------------- |---------------------------------|-------------------------------------------------------| ------------------------------------------------------------------------ |
+| /get-online-features         | FeatureView,OnDemandFeatureView | Read Online                                           | Get online features from the feature store                     |
+| /push                        | FeatureView                     | Write Online, Write Offline, Write Online and Offline | Push features to the feature store (online, offline, or both)  |
+| /write-to-online-store       | FeatureView                     | Write Online                                          | Write features to the online store                             |
+| /materialize                 | FeatureView                     | Write Online                                          | Materialize features within a specified time range             |
+| /materialize-incremental     | FeatureView                     | Write Online                                          | Incrementally materialize features up to a specified timestamp |
+
+## How to configure Authentication and Authorization ?
+
+Please refer the [page](./../../../docs/getting-started/concepts/permission.md) for more details on how to configure authentication and authorization.

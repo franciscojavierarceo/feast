@@ -1,6 +1,6 @@
 # Offline stores
 
-Please see [Offline Store](../../getting-started/architecture-and-components/offline-store.md) for a conceptual explanation of offline stores.
+Please see [Offline Store](../../getting-started/components/offline-store.md) for a conceptual explanation of offline stores.
 
 {% content-ref url="overview.md" %}
 [overview.md](overview.md)
@@ -20,6 +20,10 @@ Please see [Offline Store](../../getting-started/architecture-and-components/off
 
 {% content-ref url="redshift.md" %}
 [redshift.md](redshift.md)
+{% endcontent-ref %}
+
+{% content-ref url="duckdb.md" %}
+[duckdb.md](duckdb.md)
 {% endcontent-ref %}
 
 {% content-ref url="spark.md" %}
