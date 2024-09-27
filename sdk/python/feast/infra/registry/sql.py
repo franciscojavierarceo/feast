@@ -922,16 +922,8 @@ class SqlRegistry(CachingRegistry):
         name = name or (obj.name if hasattr(obj, "name") else None)
         assert name, f"name needs to be provided for {obj}"
 
-<<<<<<< HEAD
-        with self.engine.begin() as conn:
-            update_datetime = datetime.now(timezone.utc)
-||||||| 93ddb11b
-        with self.engine.begin() as conn:
-            update_datetime = datetime.utcnow()
-=======
         with self.write_engine.begin() as conn:
             update_datetime = _utc_now()
->>>>>>> upstream/master
             update_time = int(update_datetime.timestamp())
             stmt = select(table).where(
                 getattr(table.c, id_field_name) == name, table.c.project_id == project
