@@ -2,7 +2,9 @@ root: ./docs/
 
 structure:
   readme: README.md
+  summary: SUMMARY.md
 
 redirects:
   reference/telemetry: ./reference/usage.md
   quickstart: ./getting-started/quickstart.md
+  user-guides: ./user-guides/README.md
