@@ -179,6 +179,11 @@ spec:
 - Automated deployment pipelines
 - Performance testing before production deployment
 
+## Tutorials and Examples
+- [Real-time Credit Scoring on AWS](../tutorials/tutorials-overview/real-time-credit-scoring-on-aws.md) - Deploy a production credit scoring system
+- [Azure Deployment Guide](../tutorials/azure/README.md) - Set up Feast infrastructure on Azure
+- [Building Streaming Features](../tutorials/building-streaming-features.md) - Implement streaming feature pipelines
+
 ## Next Steps
 - Review [deployment patterns](../reference/feature-servers/README.md)
 - Explore [online stores](../reference/online-stores/README.md)

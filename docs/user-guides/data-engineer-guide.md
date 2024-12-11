@@ -157,6 +157,11 @@ quality_monitor = DataQualityMonitor(
 3. Implement data retention policies
 4. Monitor storage utilization
 
+## Tutorials and Examples
+- [Driver Stats on Snowflake](../tutorials/tutorials-overview/driver-stats-on-snowflake.md) - Set up and manage Snowflake as a feature store
+- [Building Streaming Features](../tutorials/building-streaming-features.md) - Implement streaming feature pipelines
+- [Feature Validation Tutorial](../tutorials/validating-historical-features.md) - Implement data quality checks with Great Expectations
+
 ## Next Steps
 - Explore [offline stores](../reference/offline-stores/README.md)
 - Learn about [data sources](../reference/data-sources/README.md)

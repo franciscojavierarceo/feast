@@ -172,6 +172,11 @@ class CustomDataSource(DataSource):
 - Use connection pooling
 - Handle retries appropriately
 
+## Tutorials and Examples
+- [Real-time Credit Scoring on AWS](../tutorials/tutorials-overview/real-time-credit-scoring-on-aws.md) - Integrate real-time feature serving
+- [Azure Deployment Guide](../tutorials/azure/README.md) - Learn system integration patterns
+- [Fraud Detection Tutorial](../tutorials/tutorials-overview/fraud-detection.md) - Implement real-time prediction serving
+
 ## Next Steps
 - Explore [feature servers](../reference/feature-servers/README.md)
 - Learn about [client SDKs](../reference/client-libraries.md)

@@ -83,6 +83,11 @@ features = store.get_online_features(
 - Monitor feature freshness and quality
 - Version control your feature definitions
 
+## Tutorials and Examples
+- [Driver Ranking Tutorial](../tutorials/tutorials-overview/driver-ranking-with-feast.md) - Train a model using Scikit-learn and Feast for driver ranking prediction
+- [Fraud Detection Tutorial](../tutorials/tutorials-overview/fraud-detection.md) - Build an end-to-end fraud prediction system
+- [Feature Validation Tutorial](../tutorials/validating-historical-features.md) - Learn how to validate historical features using Great Expectations
+
 ## Next Steps
 - Explore [example projects](../tutorials/tutorials-overview/README.md)
 - Learn about [feature views](../getting-started/concepts/feature-view.md)
