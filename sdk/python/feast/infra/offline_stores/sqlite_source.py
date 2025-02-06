@@ -5,7 +5,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from google.protobuf.message import Message
 
 from feast.data_source import DataSource
-from feast.infra.offline_stores.sqlite import SQLiteOfflineStoreConfig
+from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
 from feast.protos.feast.core.DataSource_pb2 import DataSource as DataSourceProto
 from feast.repo_config import RepoConfig
 from feast.value_type import ValueType
@@ -154,10 +154,13 @@ class SQLiteSource(DataSource):
             raise ValueError("SQLite source requires SQLiteOfflineStoreConfig")
 
         store_config = config.offline_store
+        if store_config is None:
+            raise ValueError("Offline store configuration is missing")
+
         path = str(store_config.path or ":memory:")
         timeout = float(store_config.connection_timeout)
-        if hasattr(store_config, "_conn") and store_config._conn is not None:
-            conn = store_config._conn
+        if hasattr(store_config, "_conn") and getattr(store_config, "_conn") is not None:
+            conn = getattr(store_config, "_conn")
             use_existing_conn = True
         else:
             conn = sqlite3.connect(path, timeout=timeout)

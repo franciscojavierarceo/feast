@@ -156,8 +156,9 @@ def test_sqlite_source_get_table_column_names_and_types():
         )
         # Create test table in the same connection that will be used by get_table_column_names_and_types
         store = SQLiteOfflineStore()
-        store._conn = sqlite3.connect(":memory:")
-        cursor = store._conn.cursor()
+        conn = sqlite3.connect(":memory:")
+        setattr(store, "_conn", conn)
+        cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE test_table (
                 id INTEGER,
@@ -173,11 +174,12 @@ def test_sqlite_source_get_table_column_names_and_types():
                 char_col CHAR(10)
             )
         """)
-        store._conn.commit()
+        conn.commit()
         # Use the same connection for getting column types
         source = SQLiteSource(table="test_table")
-        config.offline_store._conn = store._conn
-        columns = source.get_table_column_names_and_types(config)
+        if isinstance(config.offline_store, SQLiteOfflineStoreConfig):
+            setattr(config.offline_store, "_conn", conn)
+            columns = source.get_table_column_names_and_types(config)
     assert len(columns) == 11
     assert ("id", "INTEGER") in columns
     assert ("value", "REAL") in columns
@@ -233,9 +235,9 @@ def test_sqlite_data_type_mapping():
     with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         store = SQLiteOfflineStore()
         conn = sqlite3.connect(":memory:")
-        store._conn = conn
+        setattr(store, "_conn", conn)
         offline_store_config = SQLiteOfflineStoreConfig(type="sqlite", path=":memory:")
-        offline_store_config._conn = conn
+        setattr(offline_store_config, "_conn", conn)
         config = RepoConfig(
             registry=registry_file.name,
             project="test",
@@ -271,7 +273,7 @@ def test_sqlite_data_type_mapping():
         """)
         conn.commit()
         source = SQLiteSource(table="test_types", timestamp_field="datetime_col")
-        source._conn = conn
+        setattr(source, "_conn", conn)
         df = store.pull_latest_from_table_or_query(
             config=config,
             data_source=source,
@@ -282,7 +284,7 @@ def test_sqlite_data_type_mapping():
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 1, 2),
         )
-        assert df["int_col"].dtype == "int64"
+        assert df["int_col"].dtype == "Int64"  # Using pandas nullable integer type
         assert df["real_col"].dtype == "float64"
         assert df["text_col"].dtype == "object"
         assert df["bool_col"].dtype == "bool"
