@@ -309,10 +309,10 @@ class SQLiteRetrievalJob(RetrievalJob):
                     return pa.Table.from_arrays(empty_arrays, schema=schema)
 
                 # Create schema based on table info
-                fields = []
-                data_transposed = []
+                fields: List[Tuple[str, pa.DataType]] = []
+                data_transposed: List[List[Any]] = []
                 print("Using data type inference from cursor description")
-                col_types = {}
+                col_types: Dict[str, str] = {}
                 
                 # Execute the main query first
                 cursor.execute(query)
@@ -324,7 +324,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                     return pa.Table.from_arrays([], schema=pa.schema(fields))
 
                 # First pass: collect column info and data
-                fields: List[Tuple[str, pa.DataType]] = []
+                field_list: List[Tuple[str, pa.DataType]] = []
                 arrays: List[pa.Array] = []
                 for col_idx, col in enumerate(cursor.description):
                     col_name = str(col[0])
