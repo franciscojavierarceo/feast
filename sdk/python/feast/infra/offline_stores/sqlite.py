@@ -266,203 +266,181 @@ class SQLiteRetrievalJob(RetrievalJob):
                     else 5.0,
                 )
             )
+            cursor = conn.cursor()
+            if isinstance(query_and_params, tuple):
+                query, params = query_and_params
+            else:
+                query = query_and_params
+                params = None
+
+            # Add debug logging and error handling
+            print(f"Executing SQL query:\n{query}")
+            if params:
+                print(f"With parameters: {params}")
+
             try:
-                cursor = conn.cursor()
-                if isinstance(query_and_params, tuple):
-                    query, params = query_and_params
-                else:
-                    query = query_and_params
-                    params = None
-
-                # Add debug logging and error handling
-                print(f"Executing SQL query:\n{query}")
                 if params:
-                    print(f"With parameters: {params}")
-
-                try:
-                    if params:
-                        cursor.execute(query, params)
-                    else:
-                        cursor.execute(query)
-                    if not cursor.description:
-                        print("Warning: No cursor description after query execution")
-                        # Try to get column info from the table if available
-                        if (
-                            hasattr(self, "_data_source")
-                            and self._data_source
-                            and hasattr(self._data_source, "get_table_query_string")
-                        ):
-                            table_name = self._data_source.get_table_query_string()
-                            cursor.execute(f"PRAGMA table_info({table_name})")
-                            table_info = cursor.fetchall()
-                            if table_info:
-                                print(f"Retrieved column info from table: {table_info}")
-                            else:
-                                raise ZeroColumnQueryResult(
-                                    query_and_params
-                                    if isinstance(query_and_params, str)
-                                    else query_and_params[0]
-                                )
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute(query)
+                if not cursor.description:
+                    print("Warning: No cursor description after query execution")
+                    # Try to get column info from the table if available
+                    if (
+                        hasattr(self, "_data_source")
+                        and self._data_source
+                        and hasattr(self._data_source, "get_table_query_string")
+                    ):
+                        table_name = self._data_source.get_table_query_string()
+                        cursor.execute(f"PRAGMA table_info({table_name})")
+                        table_info = cursor.fetchall()
+                        if table_info:
+                            print(f"Retrieved column info from table: {table_info}")
                         else:
                             raise ZeroColumnQueryResult(
                                 query_and_params
                                 if isinstance(query_and_params, str)
                                 else query_and_params[0]
                             )
-                except sqlite3.Error as e:
-                    print(f"SQLite error: {e}")
-                    raise
-                data = cursor.fetchall()
-                if not data:
-                    # Get column types from cursor description for empty table
-                    fields = []
-                    for col in cursor.description:
-                        col_name = str(col[0])
-                        col_type = str(col[1]).upper()
-                        if "INTEGER" in col_type:
-                            arrow_type = pa.int64()
-                        elif "REAL" in col_type or "NUMERIC" in col_type:
-                            arrow_type = pa.float64()
-                        elif "BOOLEAN" in col_type:
-                            arrow_type = pa.bool_()
-                        elif "DATETIME" in col_type:
-                            arrow_type = pa.timestamp("us")
-                        elif "DATE" in col_type:
-                            arrow_type = pa.date32()
-                        elif "TIME" in col_type:
-                            arrow_type = pa.time64("us")
-                        else:
-                            arrow_type = pa.string()
-                        fields.append((col_name, arrow_type))
-                    schema = pa.schema(fields)
-                    empty_arrays = [pa.array([], type=field.type) for field in schema]
-                    return pa.Table.from_arrays(empty_arrays, schema=schema)
-
-                # Create schema based on table info
-                field_list: List[Tuple[str, pa.DataType]] = []
-                print("Using data type inference from cursor description")
-
-                # Execute the main query first
-                cursor.execute(query)
-                data = cursor.fetchall()
-
-                if not data:
-                    # Return empty table with correct schema
-                    field_list = [
-                        (str(col[0]), pa.string()) for col in cursor.description
-                    ]
-                    return pa.Table.from_arrays([], schema=pa.schema(field_list))
-
-                # First pass: collect column info and data
-                arrays: List[pa.Array] = []
-                for col_idx, col in enumerate(cursor.description):
+                    else:
+                        raise ZeroColumnQueryResult(
+                            query_and_params
+                            if isinstance(query_and_params, str)
+                            else query_and_params[0]
+                        )
+            except sqlite3.Error as e:
+                print(f"SQLite error: {e}")
+                raise
+            data = cursor.fetchall()
+            if not data:
+                # Get column types from cursor description for empty table
+                fields: List[Tuple[str, pa.DataType]] = []
+                for col in cursor.description:
                     col_name = str(col[0])
-                    print(f"Processing column {col_name}")
-
-                    # Extract column data and determine type
-                    col_data: List[Any] = [row[col_idx] for row in data]
-                    col_type = cursor.description[col_idx][1]
-                    col_type_upper: str = str(col_type).upper()
-
-                    # Convert data based on SQLite column type
-                    if "INTEGER" in col_type_upper:
+                    col_type = str(col[1]).upper()
+                    if "INTEGER" in col_type:
                         arrow_type = pa.int64()
-                        # Handle integer conversion with explicit null handling
-                        valid_data: List[Optional[int]] = []
-                        for val in col_data:
-                            if val is None:
-                                valid_data.append(None)
-                            else:
-                                try:
-                                    valid_data.append(int(val))
-                                except (ValueError, TypeError):
-                                    valid_data.append(None)
-                        arrays.append(pa.array(valid_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
-                    elif any(
-                        t in col_type_upper
-                        for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
-                    ):
+                    elif "REAL" in col_type or "NUMERIC" in col_type:
                         arrow_type = pa.float64()
-                        float_data: List[Optional[float]] = [
-                            float(val) if val is not None else None for val in col_data
-                        ]
-                        arrays.append(pa.array(float_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
-                    elif "BOOLEAN" in col_type_upper or col_name == "bool_col":
+                    elif "BOOLEAN" in col_type:
                         arrow_type = pa.bool_()
-                        bool_data: List[Optional[bool]] = []
-                        for val in col_data:
-                            if val is None:
-                                bool_data.append(None)
-                            elif isinstance(val, bool):
-                                bool_data.append(val)
-                            elif isinstance(val, (int, float)):
-                                bool_data.append(bool(int(val)))
-                            elif isinstance(val, str):
-                                bool_data.append(
-                                    val.lower() in ("1", "true", "t", "yes", "y")
-                                )
-                            else:
-                                bool_data.append(None)
-                        arrays.append(pa.array(bool_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
-                    elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
+                    elif "DATETIME" in col_type:
                         arrow_type = pa.timestamp("us")
-                        timestamp_data: List[Optional[np.datetime64]] = []
-                        for val in col_data:
-                            if val is None:
-                                timestamp_data.append(None)
-                            else:
-                                try:
-                                    ts = pd.Timestamp(val)
-                                    timestamp_data.append(ts.to_numpy())
-                                except (ValueError, TypeError):
-                                    timestamp_data.append(None)
-                        arrays.append(pa.array(timestamp_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
-                    elif "DATE" in col_type_upper:
+                    elif "DATE" in col_type:
                         arrow_type = pa.date32()
-                        date_data: List[Optional[np.datetime64]] = [
-                            pd.Timestamp(val).to_datetime64()
-                            if val is not None
-                            else None
-                            for val in col_data
-                        ]
-                        arrays.append(pa.array(date_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
-                    elif "TIME" in col_type_upper:
+                    elif "TIME" in col_type:
                         arrow_type = pa.time64("us")
-                        time_data: List[Optional[np.datetime64]] = [
-                            pd.Timestamp(val).to_datetime64()
-                            if val is not None
-                            else None
-                            for val in col_data
-                        ]
-                        arrays.append(pa.array(time_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
                     else:
                         arrow_type = pa.string()
-                        str_data: List[Optional[str]] = [
-                            str(val) if val is not None else None for val in col_data
-                        ]
-                        arrays.append(pa.array(str_data, type=arrow_type))
-                        field_list.append((col_name, arrow_type))
-                        continue
+                    fields.append((col_name, arrow_type))
+                schema = pa.schema(fields)
+                empty_arrays = [pa.array([], type=field.type) for field in schema]
+                return pa.Table.from_arrays(empty_arrays, schema=schema)
 
+            # Create schema based on table info
+            field_list: List[Tuple[str, pa.DataType]] = []
+            print("Using data type inference from cursor description")
+
+            # First pass: collect column info and data
+            arrays: List[pa.Array] = []
+            for col_idx, col in enumerate(cursor.description):
+                col_name = str(col[0])
+                print(f"Processing column {col_name}")
+
+                # Extract column data and determine type
+                col_data: List[Any] = [row[col_idx] for row in data]
+                col_type = cursor.description[col_idx][1]
+                col_type_upper: str = str(col_type).upper()
+
+                # Convert data based on SQLite column type
+                if "INTEGER" in col_type_upper:
+                    arrow_type = pa.int64()
+                    # Handle integer conversion with explicit null handling
+                    valid_data: List[Optional[int]] = []
+                    for val in col_data:
+                        if val is None:
+                            valid_data.append(None)
+                        else:
+                            try:
+                                valid_data.append(int(float(val)))
+                            except (ValueError, TypeError):
+                                valid_data.append(None)
+                    arrays.append(pa.array(valid_data, type=arrow_type))
                     field_list.append((col_name, arrow_type))
-                    arrays.append(pa.array(col_data, type=arrow_type, from_pandas=True))
+                    continue
+                elif any(
+                    t in col_type_upper for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
+                ):
+                    arrow_type = pa.float64()
+                    float_data: List[Optional[float]] = [
+                        float(val) if val is not None else None for val in col_data
+                    ]
+                    arrays.append(pa.array(float_data, type=arrow_type))
+                    field_list.append((col_name, arrow_type))
+                    continue
+                elif "BOOLEAN" in col_type_upper or col_name == "bool_col":
+                    arrow_type = pa.bool_()
+                    bool_data: List[Optional[bool]] = []
+                    for val in col_data:
+                        if val is None:
+                            bool_data.append(None)
+                        elif isinstance(val, bool):
+                            bool_data.append(val)
+                        elif isinstance(val, (int, float)):
+                            bool_data.append(bool(int(val)))
+                        elif isinstance(val, str):
+                            bool_data.append(
+                                val.lower() in ("1", "true", "t", "yes", "y")
+                            )
+                        else:
+                            bool_data.append(None)
+                    arrays.append(pa.array(bool_data, type=arrow_type))
+                    fields.append((col_name, arrow_type))
+                    continue
+                elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
+                    arrow_type = pa.timestamp("us")
+                    timestamp_data: List[Optional[np.datetime64]] = []
+                    for val in col_data:
+                        if val is None:
+                            timestamp_data.append(None)
+                        else:
+                            try:
+                                ts = pd.Timestamp(val)
+                                timestamp_data.append(ts.to_numpy())
+                            except (ValueError, TypeError):
+                                timestamp_data.append(None)
+                    arrays.append(pa.array(timestamp_data, type=arrow_type))
+                    field_list.append((col_name, arrow_type))
+                    continue
+                elif "DATE" in col_type_upper:
+                    arrow_type = pa.date32()
+                    date_data: List[Optional[np.datetime64]] = [
+                        pd.Timestamp(val).to_datetime64() if val is not None else None
+                        for val in col_data
+                    ]
+                    arrays.append(pa.array(date_data, type=arrow_type))
+                    field_list.append((col_name, arrow_type))
+                    continue
+                elif "TIME" in col_type_upper:
+                    arrow_type = pa.time64("us")
+                    time_data: List[Optional[np.datetime64]] = [
+                        pd.Timestamp(val).to_datetime64() if val is not None else None
+                        for val in col_data
+                    ]
+                    arrays.append(pa.array(time_data, type=arrow_type))
+                    field_list.append((col_name, arrow_type))
+                    continue
+                else:
+                    arrow_type = pa.string()
+                    str_data: List[Optional[str]] = [
+                        str(val) if val is not None else None for val in col_data
+                    ]
+                    arrays.append(pa.array(str_data, type=arrow_type))
+                    field_list.append((col_name, arrow_type))
+                    continue
 
-                schema = pa.schema(field_list)
-                return pa.Table.from_arrays(arrays, schema=schema)
-            finally:
-                conn.close()
+            schema = pa.schema(field_list)
+            return pa.Table.from_arrays(arrays, schema=schema)
 
     @property
     def metadata(self) -> Optional[RetrievalMetadata]:
@@ -627,17 +605,7 @@ class SQLiteOfflineStore(OfflineStore):
             except (ValueError, TypeError):
                 pass
 
-        @contextlib.contextmanager
-        def result_query_generator() -> Iterator[str]:
-            yield "SELECT * FROM feast_persisted_df"
-
-        return SQLiteRetrievalJob(
-            query=result_query_generator,
-            config=config,
-            full_feature_names=False,
-            on_demand_feature_views=None,
-            data_source=data_source,
-        )
+        return job
 
     @staticmethod
     def get_historical_features(
