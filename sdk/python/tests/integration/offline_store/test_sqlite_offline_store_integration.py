@@ -35,14 +35,15 @@ def get_test_data():
     )
     return df
 
+
 @pytest.fixture
 def feature_store():
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         store_config = SQLiteOfflineStoreConfig(
             type="sqlite",
             path=temp_db.name,
         )
-        registry_file = tempfile.NamedTemporaryFile(suffix='.json')
+        registry_file = tempfile.NamedTemporaryFile(suffix=".json")
         config = RepoConfig(
             registry=registry_file.name,
             project="test_sqlite",
@@ -54,7 +55,7 @@ def feature_store():
         # Create test data
         df = get_test_data()
         conn = sqlite3.connect(store_config.path)
-        df.to_sql("driver_stats", conn, if_exists='replace', index=False)
+        df.to_sql("driver_stats", conn, if_exists="replace", index=False)
         conn.close()
 
         # Define entity
@@ -84,6 +85,7 @@ def feature_store():
         fs.apply([driver, driver_stats_view])
 
         yield fs, driver_stats_view, driver
+
 
 def test_basic_retrieval(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -126,6 +128,7 @@ def test_basic_retrieval(feature_store):
     assert "driver_stats__value" in service_feature_data.columns
     assert "driver_stats__rating" in service_feature_data.columns
 
+
 def test_point_in_time_joins(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -144,6 +147,8 @@ def test_point_in_time_joins(feature_store):
 
     assert not feature_data.empty
     assert feature_data["value"].iloc[0] == 1.1
+
+
 def test_multiple_feature_views(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -183,6 +188,7 @@ def test_multiple_feature_views(feature_store):
     assert "extra_value" in feature_data.columns
     assert feature_data["extra_value"].iloc[0] == feature_data["value"].iloc[0] * 2
 
+
 def test_missing_data_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -203,11 +209,12 @@ def test_missing_data_handling(feature_store):
     assert pd.isna(feature_data["value"].iloc[0])
     assert pd.isna(feature_data["rating"].iloc[0])
 
+
 def test_data_type_validation(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Test with string data in numeric column
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -227,7 +234,9 @@ def test_data_type_validation(feature_store):
             entities=[Entity(name="driver", join_keys=["driver_id"])],
             schema=[
                 Field(name="driver_id", dtype=Int64),
-                Field(name="value", dtype=Float32),  # Should be Float32 but data is text
+                Field(
+                    name="value", dtype=Float32
+                ),  # Should be Float32 but data is text
             ],
             source=SQLiteSource(
                 table="invalid_types",
@@ -239,6 +248,7 @@ def test_data_type_validation(feature_store):
             fs.apply([invalid_view])
 
         conn.close()
+
 
 def test_large_query_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -259,6 +269,7 @@ def test_large_query_handling(feature_store):
     ).to_df()
 
     assert len(feature_data) == num_rows
+
 
 def test_concurrent_access(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -306,11 +317,12 @@ def test_concurrent_access(feature_store):
         assert not result.empty
         assert "value" in result.columns
 
+
 def test_transaction_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Test transaction rollback
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -333,16 +345,19 @@ def test_transaction_handling(feature_store):
             cursor.execute("ROLLBACK")
 
         # Verify table doesn't exist after rollback
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='test_transaction'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='test_transaction'"
+        )
         assert cursor.fetchone() is None
 
         conn.close()
+
 
 def test_query_timeout(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create a long-running query
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name, timeout=0.1)  # Very short timeout
         cursor = conn.cursor()
 
@@ -350,7 +365,7 @@ def test_query_timeout(feature_store):
         cursor.execute("CREATE TABLE test_timeout (id INTEGER, value REAL)")
         cursor.executemany(
             "INSERT INTO test_timeout VALUES (?, ?)",
-            [(i, i * 1.0) for i in range(100000)]
+            [(i, i * 1.0) for i in range(100000)],
         )
         conn.commit()
 
@@ -364,6 +379,7 @@ def test_query_timeout(feature_store):
             cursor2.execute("SELECT * FROM test_timeout")
 
         conn.close()
+
 
 def test_invalid_sql_query(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -385,6 +401,7 @@ def test_invalid_sql_query(feature_store):
     with pytest.raises(Exception):
         fs.apply([invalid_view])
 
+
 def test_schema_validation(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -393,7 +410,9 @@ def test_schema_validation(feature_store):
         name="schema_mismatch",
         entities=[Entity(name="driver", join_keys=["driver_id"])],
         schema=[
-            Field(name="nonexistent_field", dtype=Int64),  # Field doesn't exist in source
+            Field(
+                name="nonexistent_field", dtype=Int64
+            ),  # Field doesn't exist in source
             Field(name="value", dtype=Float32),
         ],
         source=SQLiteSource(
@@ -405,11 +424,12 @@ def test_schema_validation(feature_store):
     with pytest.raises(Exception):
         fs.apply([mismatched_view])
 
+
 def test_null_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create test data with NULL values
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -455,15 +475,16 @@ def test_null_handling(feature_store):
         ).to_df()
 
         assert pd.isna(feature_data["value"].iloc[0])  # NULL value
-        assert feature_data["value"].iloc[2] == 3.3    # Non-NULL value
+        assert feature_data["value"].iloc[2] == 3.3  # Non-NULL value
 
         conn.close()
+
 
 def test_datetime_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create test data with various datetime formats
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -502,11 +523,13 @@ def test_datetime_handling(feature_store):
         entity_df = pd.DataFrame(
             {
                 "driver_id": [1, 2, 3],
-                "event_timestamp": pd.to_datetime([
-                    "2024-01-01 12:00:00",
-                    "2024-01-01T13:00:00",  # ISO format
-                    "2024-01-01 14:00:00+00:00"  # With timezone
-                ]),
+                "event_timestamp": pd.to_datetime(
+                    [
+                        "2024-01-01 12:00:00",
+                        "2024-01-01T13:00:00",  # ISO format
+                        "2024-01-01 14:00:00+00:00",  # With timezone
+                    ]
+                ),
             }
         )
 
@@ -521,6 +544,7 @@ def test_datetime_handling(feature_store):
         assert feature_data["value"].iloc[2] == 3.3
 
         conn.close()
+
 
 def test_timezone_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -557,6 +581,7 @@ def test_timezone_handling(feature_store):
     assert not feature_data_pst.empty
     assert "value" in feature_data_pst.columns
 
+
 def test_feature_persistence(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -576,7 +601,7 @@ def test_feature_persistence(feature_store):
         features=["driver_stats:value", "driver_stats:rating"],
     )
 
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         persisted_path = temp_db.name
         storage = SavedDatasetStorage()
         job.persist(storage)
@@ -591,11 +616,12 @@ def test_feature_persistence(feature_store):
         assert "value" in [desc[0] for desc in cursor.description]
         assert "rating" in [desc[0] for desc in cursor.description]
 
+
 def test_cleanup(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create temporary tables
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -629,7 +655,9 @@ def test_cleanup(feature_store):
         fs.delete_feature_view(name="temp_test")
 
         # Verify table still exists but feature view is gone
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='temp_test'")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='temp_test'"
+        )
         assert cursor.fetchone() is not None
 
         with pytest.raises(Exception):
@@ -637,11 +665,12 @@ def test_cleanup(feature_store):
 
         conn.close()
 
+
 def test_feature_inference(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create test data with various types
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -679,9 +708,12 @@ def test_feature_inference(feature_store):
         assert schema_fields["int_value"] == Int64
         assert schema_fields["float_value"] == Float32
         assert schema_fields["text_value"] == String
-        assert schema_fields["bool_value"] == Int64  # SQLite BOOLEAN is stored as INTEGER
+        assert (
+            schema_fields["bool_value"] == Int64
+        )  # SQLite BOOLEAN is stored as INTEGER
 
         conn.close()
+
 
 def test_materialization(feature_store):
     fs, driver_stats_view, driver = feature_store
@@ -714,6 +746,7 @@ def test_materialization(feature_store):
     assert "driver_stats__rating" in online_features
     assert len(online_features["driver_stats__value"]) == 2
 
+
 def test_incremental_materialization(feature_store):
     fs, driver_stats_view, driver = feature_store
     now = datetime.utcnow()
@@ -724,7 +757,7 @@ def test_incremental_materialization(feature_store):
     )
 
     # Add new data
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -736,10 +769,13 @@ def test_incremental_materialization(feature_store):
                 event_timestamp DATETIME
             )
         """)
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO new_data VALUES
             (1, 4.4, 4.8, 'active', ?)
-        """, (now.strftime("%Y-%m-%d %H:%M:%S"),))
+        """,
+            (now.strftime("%Y-%m-%d %H:%M:%S"),),
+        )
         conn.commit()
 
         new_data_view = FeatureView(
@@ -776,11 +812,12 @@ def test_incremental_materialization(feature_store):
 
         conn.close()
 
+
 def test_feature_view_update(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Create initial feature view
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -833,10 +870,12 @@ def test_feature_view_update(feature_store):
 
         # Verify updated schema
         feature_data = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=["update_test:value", "update_test:new_value"],
         ).to_df()
 
@@ -846,10 +885,11 @@ def test_feature_view_update(feature_store):
 
         conn.close()
 
+
 def test_feature_joins(feature_store):
     fs, driver_stats_view, driver = feature_store
     # Create test data with multiple tables
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -935,10 +975,11 @@ def test_feature_joins(feature_store):
 
         conn.close()
 
+
 def test_feature_aggregations(feature_store):
     fs, driver_stats_view, driver = feature_store
     # Create test data with multiple events per driver
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -1011,6 +1052,7 @@ def test_feature_aggregations(feature_store):
 
         conn.close()
 
+
 def test_on_demand_feature_view(feature_store):
     fs, driver_stats_view, driver = feature_store
     # Create an on-demand feature view
@@ -1057,6 +1099,7 @@ def test_on_demand_feature_view(feature_store):
     assert "scaled_value" in feature_data.columns
     assert feature_data["scaled_value"].iloc[0] == feature_data["value"].iloc[0] * 2.0
 
+
 def test_feature_service(feature_store):
     fs, driver_stats_view, driver = feature_store
 
@@ -1089,16 +1132,19 @@ def test_feature_service(feature_store):
     assert "value" in feature_data.columns
     assert "rating" in feature_data.columns
 
+
 def test_error_handling(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Test invalid SQL query
     with pytest.raises(Exception):
         fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=[
                 "nonexistent_view:value",
             ],
@@ -1107,10 +1153,12 @@ def test_error_handling(feature_store):
     # Test invalid feature reference
     with pytest.raises(Exception):
         fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=[
                 "driver_stats:nonexistent_feature",
             ],
@@ -1119,24 +1167,29 @@ def test_error_handling(feature_store):
     # Test invalid entity key
     with pytest.raises(Exception):
         fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "nonexistent_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "nonexistent_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=[
                 "driver_stats:value",
             ],
         )
+
 
 def test_edge_cases(feature_store):
     fs, driver_stats_view, driver = feature_store
 
     # Test empty entity DataFrame
     feature_data = fs.get_historical_features(
-        entity_df=pd.DataFrame({
-            "driver_id": [],
-            "event_timestamp": [],
-        }),
+        entity_df=pd.DataFrame(
+            {
+                "driver_id": [],
+                "event_timestamp": [],
+            }
+        ),
         features=[
             "driver_stats:value",
         ],
@@ -1145,10 +1198,12 @@ def test_edge_cases(feature_store):
     assert len(feature_data) == 0
 
     # Test large number of entity rows
-    large_entity_df = pd.DataFrame({
-        "driver_id": list(range(10000)),
-        "event_timestamp": [datetime.utcnow()] * 10000,
-    })
+    large_entity_df = pd.DataFrame(
+        {
+            "driver_id": list(range(10000)),
+            "event_timestamp": [datetime.utcnow()] * 10000,
+        }
+    )
 
     feature_data = fs.get_historical_features(
         entity_df=large_entity_df,
@@ -1160,10 +1215,12 @@ def test_edge_cases(feature_store):
     assert len(feature_data) == 10000
 
     # Test duplicate entity rows
-    duplicate_entity_df = pd.DataFrame({
-        "driver_id": [1, 1, 1],
-        "event_timestamp": [datetime.utcnow()] * 3,
-    })
+    duplicate_entity_df = pd.DataFrame(
+        {
+            "driver_id": [1, 1, 1],
+            "event_timestamp": [datetime.utcnow()] * 3,
+        }
+    )
 
     feature_data = fs.get_historical_features(
         entity_df=duplicate_entity_df,
@@ -1174,9 +1231,10 @@ def test_edge_cases(feature_store):
 
     assert len(feature_data) == 3
 
+
 def test_data_validation(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         cursor.execute("""
@@ -1224,10 +1282,12 @@ def test_data_validation(feature_store):
 
         # Test data retrieval with valid data
         feature_data = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=["validation_test:value"],
         ).to_df()
 
@@ -1236,9 +1296,10 @@ def test_data_validation(feature_store):
 
         conn.close()
 
+
 def test_schema_evolution(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -1297,10 +1358,12 @@ def test_schema_evolution(feature_store):
 
         # Test data retrieval with evolved schema
         feature_data = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1],
-                "event_timestamp": [datetime.utcnow()],
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1],
+                    "event_timestamp": [datetime.utcnow()],
+                }
+            ),
             features=[
                 "evolution_test:value",
                 "evolution_test:status",
@@ -1315,9 +1378,10 @@ def test_schema_evolution(feature_store):
 
         conn.close()
 
+
 def test_data_partitioning(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -1332,11 +1396,7 @@ def test_data_partitioning(feature_store):
         """)
 
         # Insert data for different dates
-        dates = [
-            '2024-01-01',
-            '2024-01-02',
-            '2024-01-03'
-        ]
+        dates = ["2024-01-01", "2024-01-02", "2024-01-03"]
 
         for date in dates:
             cursor.execute(f"""
@@ -1370,10 +1430,13 @@ def test_data_partitioning(feature_store):
 
         # Test data retrieval with date range
         feature_data = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": [1, 2],
-                "event_timestamp": [datetime.strptime('2024-01-02', '%Y-%m-%d')] * 2,
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": [1, 2],
+                    "event_timestamp": [datetime.strptime("2024-01-02", "%Y-%m-%d")]
+                    * 2,
+                }
+            ),
             features=["partitioned_data:value"],
         ).to_df()
 
@@ -1382,9 +1445,10 @@ def test_data_partitioning(feature_store):
 
         conn.close()
 
+
 def test_performance_monitoring(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -1432,10 +1496,12 @@ def test_performance_monitoring(feature_store):
         # Test query performance with and without index
         start_time = time.time()
         feature_data = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": list(range(1000)),
-                "event_timestamp": [datetime.utcnow()] * 1000,
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": list(range(1000)),
+                    "event_timestamp": [datetime.utcnow()] * 1000,
+                }
+            ),
             features=["performance_test:value"],
         ).to_df()
         query_time = time.time() - start_time
@@ -1450,9 +1516,10 @@ def test_performance_monitoring(feature_store):
 
         conn.close()
 
+
 def test_batch_operations(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -1466,11 +1533,8 @@ def test_batch_operations(feature_store):
         """)
 
         # Prepare batch data
-        batch_data = [(i, i * 1.0, '2024-01-01 12:00:00') for i in range(100)]
-        cursor.executemany(
-            "INSERT INTO batch_test VALUES (?, ?, ?)",
-            batch_data
-        )
+        batch_data = [(i, i * 1.0, "2024-01-01 12:00:00") for i in range(100)]
+        cursor.executemany("INSERT INTO batch_test VALUES (?, ?, ?)", batch_data)
         conn.commit()
 
         batch_view = FeatureView(
@@ -1489,10 +1553,12 @@ def test_batch_operations(feature_store):
         fs.apply([batch_view])
 
         # Test batch retrieval
-        entity_df = pd.DataFrame({
-            "driver_id": list(range(0, 100, 10)),
-            "event_timestamp": [datetime.utcnow()] * 10,
-        })
+        entity_df = pd.DataFrame(
+            {
+                "driver_id": list(range(0, 100, 10)),
+                "event_timestamp": [datetime.utcnow()] * 10,
+            }
+        )
 
         feature_data = fs.get_historical_features(
             entity_df=entity_df,
@@ -1504,9 +1570,10 @@ def test_batch_operations(feature_store):
 
         conn.close()
 
+
 def test_data_consistency(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
 
@@ -1528,21 +1595,17 @@ def test_data_consistency(feature_store):
         """)
 
         # Insert test data
-        test_data = [(i, i * 1.0, '2024-01-01 12:00:00') for i in range(10)]
-        cursor.executemany(
-            "INSERT INTO source_data VALUES (?, ?, ?)",
-            test_data
-        )
+        test_data = [(i, i * 1.0, "2024-01-01 12:00:00") for i in range(10)]
+        cursor.executemany("INSERT INTO source_data VALUES (?, ?, ?)", test_data)
         conn.commit()
 
         # Test transaction rollback
         try:
             cursor.execute("BEGIN TRANSACTION")
-            cursor.executemany(
-                "INSERT INTO target_data VALUES (?, ?, ?)",
-                test_data
+            cursor.executemany("INSERT INTO target_data VALUES (?, ?, ?)", test_data)
+            cursor.execute(
+                "INSERT INTO target_data VALUES ('invalid', 0.0, '2024-01-01')"
             )
-            cursor.execute("INSERT INTO target_data VALUES ('invalid', 0.0, '2024-01-01')")
             cursor.execute("COMMIT")
         except Exception:
             cursor.execute("ROLLBACK")
@@ -1554,10 +1617,7 @@ def test_data_consistency(feature_store):
 
         # Test successful transaction
         cursor.execute("BEGIN TRANSACTION")
-        cursor.executemany(
-            "INSERT INTO target_data VALUES (?, ?, ?)",
-            test_data
-        )
+        cursor.executemany("INSERT INTO target_data VALUES (?, ?, ?)", test_data)
         cursor.execute("COMMIT")
 
         # Verify data consistency
@@ -1595,10 +1655,12 @@ def test_data_consistency(feature_store):
         fs.apply([source_view, target_view])
 
         # Verify feature consistency
-        entity_df = pd.DataFrame({
-            "driver_id": list(range(10)),
-            "event_timestamp": [datetime.utcnow()] * 10,
-        })
+        entity_df = pd.DataFrame(
+            {
+                "driver_id": list(range(10)),
+                "event_timestamp": [datetime.utcnow()] * 10,
+            }
+        )
 
         source_features = fs.get_historical_features(
             entity_df=entity_df,
@@ -1611,15 +1673,15 @@ def test_data_consistency(feature_store):
         ).to_df()
 
         pd.testing.assert_frame_equal(
-            source_features[["value"]],
-            target_features[["value"]]
+            source_features[["value"]], target_features[["value"]]
         )
 
         conn.close()
 
+
 def test_query_optimization(feature_store):
     fs, driver_stats_view, driver = feature_store
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
         # Enable query optimization
@@ -1638,25 +1700,28 @@ def test_query_optimization(feature_store):
         """)
 
         # Create indexes
-        cursor.execute("CREATE INDEX idx_driver_ts ON optimization_test(driver_id, event_timestamp)")
+        cursor.execute(
+            "CREATE INDEX idx_driver_ts ON optimization_test(driver_id, event_timestamp)"
+        )
         cursor.execute("CREATE INDEX idx_region ON optimization_test(region)")
 
         # Insert test data
-        regions = ['north', 'south', 'east', 'west']
-        statuses = ['active', 'inactive']
+        regions = ["north", "south", "east", "west"]
+        statuses = ["active", "inactive"]
         test_data = []
         for i in range(1000):
-            test_data.append((
-                i,  # driver_id
-                i * 1.0,  # value
-                '2024-01-01 12:00:00',  # event_timestamp
-                regions[i % len(regions)],  # region
-                statuses[i % len(statuses)]  # status
-            ))
+            test_data.append(
+                (
+                    i,  # driver_id
+                    i * 1.0,  # value
+                    "2024-01-01 12:00:00",  # event_timestamp
+                    regions[i % len(regions)],  # region
+                    statuses[i % len(statuses)],  # status
+                )
+            )
 
         cursor.executemany(
-            "INSERT INTO optimization_test VALUES (?, ?, ?, ?, ?)",
-            test_data
+            "INSERT INTO optimization_test VALUES (?, ?, ?, ?, ?)", test_data
         )
         conn.commit()
 
@@ -1691,10 +1756,12 @@ def test_query_optimization(feature_store):
         # Test query performance with index
         start_time = time.time()
         _ = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": list(range(100)),
-                "event_timestamp": [datetime.utcnow()] * 100,
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": list(range(100)),
+                    "event_timestamp": [datetime.utcnow()] * 100,
+                }
+            ),
             features=[
                 "optimization_test:value",
                 "optimization_test:region",
@@ -1709,10 +1776,12 @@ def test_query_optimization(feature_store):
 
         start_time = time.time()
         _ = fs.get_historical_features(
-            entity_df=pd.DataFrame({
-                "driver_id": list(range(100)),
-                "event_timestamp": [datetime.utcnow()] * 100,
-            }),
+            entity_df=pd.DataFrame(
+                {
+                    "driver_id": list(range(100)),
+                    "event_timestamp": [datetime.utcnow()] * 100,
+                }
+            ),
             features=[
                 "optimization_test:value",
                 "optimization_test:region",
@@ -1725,7 +1794,9 @@ def test_query_optimization(feature_store):
         assert query_time_with_index < query_time_without_index
 
         # Get query execution plan
-        cursor.execute("EXPLAIN QUERY PLAN SELECT * FROM optimization_test WHERE driver_id = 1")
+        cursor.execute(
+            "EXPLAIN QUERY PLAN SELECT * FROM optimization_test WHERE driver_id = 1"
+        )
         plan = cursor.fetchall()
 
         # Verify query plan uses appropriate strategies
@@ -1733,6 +1804,7 @@ def test_query_optimization(feature_store):
         assert "SCAN" in plan_str
 
         conn.close()
+
 
 def test_historical_retrieval(sqlite_store):
     fs, feature_view, entity = sqlite_store
@@ -1756,6 +1828,7 @@ def test_historical_retrieval(sqlite_store):
     assert "value" in feature_data.columns
     assert len(feature_data) == len(entity_df)
 
+
 def test_point_in_time_accuracy(sqlite_store):
     fs, feature_view, entity = sqlite_store
     entity_df = pd.DataFrame(
@@ -1773,6 +1846,7 @@ def test_point_in_time_accuracy(sqlite_store):
 
     assert not feature_data.empty
     assert feature_data["value"].iloc[0] == 1.1
+
 
 def test_feature_view_inference(sqlite_store):
     fs, feature_view, entity = sqlite_store

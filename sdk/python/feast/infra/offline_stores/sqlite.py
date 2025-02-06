@@ -116,9 +116,9 @@ SQLITE_TO_ARROW_TYPES = {
     "BLOB": pa.binary(),
     "NUMERIC": pa.float32(),
     "BOOLEAN": pa.bool_(),
-    "DATETIME": pa.timestamp('us'),
+    "DATETIME": pa.timestamp("us"),
     "DATE": pa.date32(),
-    "TIME": pa.time64('us'),
+    "TIME": pa.time64("us"),
     "VARCHAR": pa.string(),
     "CHAR": pa.string(),
     "AVG": pa.float32(),  # Special case for aggregated columns
@@ -126,6 +126,7 @@ SQLITE_TO_ARROW_TYPES = {
     "MAX": pa.float32(),  # Special case for max aggregations
     "MIN": pa.float32(),  # Special case for min aggregations
 }
+
 
 class SQLiteOfflineStoreConfig(FeastConfigBaseModel):
     """SQLite offline store configuration.
@@ -136,19 +137,24 @@ class SQLiteOfflineStoreConfig(FeastConfigBaseModel):
         connection_timeout: SQLite connection timeout in seconds
         create_if_missing: Create database file if it doesn't exist
     """
+
     type: Literal["sqlite"] = "sqlite"
     path: Optional[str] = ":memory:"
     connection_timeout: float = 5.0
     create_if_missing: bool = True
+
 
 class SQLiteRetrievalJob(RetrievalJob):
     """SQLite retrieval job implementation.
 
     Handles the execution of point-in-time joins for feature values from a SQLite store.
     """
+
     def __init__(
         self,
-        query: Union[str, Callable[[], ContextManager[Union[str, Tuple[str, Tuple[str, str]]]]]],
+        query: Union[
+            str, Callable[[], ContextManager[Union[str, Tuple[str, Tuple[str, str]]]]]
+        ],
         config: RepoConfig,
         full_feature_names: bool,
         on_demand_feature_views: Optional[List[OnDemandFeatureView]] = None,
@@ -168,9 +174,11 @@ class SQLiteRetrievalJob(RetrievalJob):
         if not isinstance(query, str):
             self._query_generator = query
         else:
+
             @contextlib.contextmanager
             def query_generator() -> Iterator[Union[str, Tuple[str, Tuple[str, str]]]]:
                 yield query
+
             self._query_generator = query_generator
         self.config = config
         self._full_feature_names = full_feature_names
@@ -201,17 +209,21 @@ class SQLiteRetrievalJob(RetrievalJob):
             integer_object_nulls=True,
             use_nullable_dtypes=True,
             split_blocks=True,
-            self_destruct=True
+            self_destruct=True,
         )
-        
+
         for field in arrow_table.schema:
             try:
                 if field.type == pa.int64():
-                    df[field.name] = pd.to_numeric(df[field.name], errors='coerce').astype('int64')
+                    df[field.name] = pd.to_numeric(
+                        df[field.name], errors="coerce"
+                    ).astype("int64")
                 elif field.type in [pa.float32(), pa.float64()]:
-                    df[field.name] = pd.to_numeric(df[field.name], errors='coerce').astype('float64')
+                    df[field.name] = pd.to_numeric(
+                        df[field.name], errors="coerce"
+                    ).astype("float64")
                 elif field.type == pa.bool_():
-                    df[field.name] = df[field.name].astype('bool')
+                    df[field.name] = df[field.name].astype("bool")
                 elif pa.types.is_timestamp(field.type):
                     df[field.name] = pd.to_datetime(df[field.name])
             except (ValueError, TypeError):
@@ -244,9 +256,15 @@ class SQLiteRetrievalJob(RetrievalJob):
         with self._query_generator() as query_and_params:
             assert isinstance(self.config.offline_store, SQLiteOfflineStoreConfig)
             path = self.config.offline_store.path or ":memory:"
-            conn = self.config.offline_store._conn if hasattr(self.config.offline_store, "_conn") else sqlite3.connect(
-                str(path),
-                timeout=float(self.config.offline_store.connection_timeout) if hasattr(self.config.offline_store, "connection_timeout") else 5.0
+            conn = (
+                self.config.offline_store._conn
+                if hasattr(self.config.offline_store, "_conn")
+                else sqlite3.connect(
+                    str(path),
+                    timeout=float(self.config.offline_store.connection_timeout)
+                    if hasattr(self.config.offline_store, "connection_timeout")
+                    else 5.0,
+                )
             )
             try:
                 cursor = conn.cursor()
@@ -269,16 +287,28 @@ class SQLiteRetrievalJob(RetrievalJob):
                     if not cursor.description:
                         print("Warning: No cursor description after query execution")
                         # Try to get column info from the table if available
-                        if hasattr(self, "_data_source") and self._data_source and hasattr(self._data_source, "get_table_query_string"):
+                        if (
+                            hasattr(self, "_data_source")
+                            and self._data_source
+                            and hasattr(self._data_source, "get_table_query_string")
+                        ):
                             table_name = self._data_source.get_table_query_string()
                             cursor.execute(f"PRAGMA table_info({table_name})")
                             table_info = cursor.fetchall()
                             if table_info:
                                 print(f"Retrieved column info from table: {table_info}")
                             else:
-                                raise ZeroColumnQueryResult(query_and_params if isinstance(query_and_params, str) else query_and_params[0])
+                                raise ZeroColumnQueryResult(
+                                    query_and_params
+                                    if isinstance(query_and_params, str)
+                                    else query_and_params[0]
+                                )
                         else:
-                            raise ZeroColumnQueryResult(query_and_params if isinstance(query_and_params, str) else query_and_params[0])
+                            raise ZeroColumnQueryResult(
+                                query_and_params
+                                if isinstance(query_and_params, str)
+                                else query_and_params[0]
+                            )
                 except sqlite3.Error as e:
                     print(f"SQLite error: {e}")
                     raise
@@ -296,11 +326,11 @@ class SQLiteRetrievalJob(RetrievalJob):
                         elif "BOOLEAN" in col_type:
                             arrow_type = pa.bool_()
                         elif "DATETIME" in col_type:
-                            arrow_type = pa.timestamp('us')
+                            arrow_type = pa.timestamp("us")
                         elif "DATE" in col_type:
                             arrow_type = pa.date32()
                         elif "TIME" in col_type:
-                            arrow_type = pa.time64('us')
+                            arrow_type = pa.time64("us")
                         else:
                             arrow_type = pa.string()
                         fields.append((col_name, arrow_type))
@@ -309,32 +339,31 @@ class SQLiteRetrievalJob(RetrievalJob):
                     return pa.Table.from_arrays(empty_arrays, schema=schema)
 
                 # Create schema based on table info
-                fields: List[Tuple[str, pa.DataType]] = []
-                data_transposed: List[List[Any]] = []
+                field_list: List[Tuple[str, pa.DataType]] = []
                 print("Using data type inference from cursor description")
-                col_types: Dict[str, str] = {}
-                
+
                 # Execute the main query first
                 cursor.execute(query)
                 data = cursor.fetchall()
 
                 if not data:
                     # Return empty table with correct schema
-                    fields = [(str(col[0]), pa.string()) for col in cursor.description]
-                    return pa.Table.from_arrays([], schema=pa.schema(fields))
+                    field_list = [
+                        (str(col[0]), pa.string()) for col in cursor.description
+                    ]
+                    return pa.Table.from_arrays([], schema=pa.schema(field_list))
 
                 # First pass: collect column info and data
-                field_list: List[Tuple[str, pa.DataType]] = []
                 arrays: List[pa.Array] = []
                 for col_idx, col in enumerate(cursor.description):
                     col_name = str(col[0])
                     print(f"Processing column {col_name}")
-                    
+
                     # Extract column data and determine type
                     col_data: List[Any] = [row[col_idx] for row in data]
                     col_type = cursor.description[col_idx][1]
                     col_type_upper: str = str(col_type).upper()
-                    
+
                     # Convert data based on SQLite column type
                     if "INTEGER" in col_type_upper:
                         arrow_type = pa.int64()
@@ -351,9 +380,14 @@ class SQLiteRetrievalJob(RetrievalJob):
                         arrays.append(pa.array(valid_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
-                    elif any(t in col_type_upper for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]):
+                    elif any(
+                        t in col_type_upper
+                        for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
+                    ):
                         arrow_type = pa.float64()
-                        float_data: List[Optional[float]] = [float(val) if val is not None else None for val in col_data]
+                        float_data: List[Optional[float]] = [
+                            float(val) if val is not None else None for val in col_data
+                        ]
                         arrays.append(pa.array(float_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
@@ -368,14 +402,16 @@ class SQLiteRetrievalJob(RetrievalJob):
                             elif isinstance(val, (int, float)):
                                 bool_data.append(bool(int(val)))
                             elif isinstance(val, str):
-                                bool_data.append(val.lower() in ('1', 'true', 't', 'yes', 'y'))
+                                bool_data.append(
+                                    val.lower() in ("1", "true", "t", "yes", "y")
+                                )
                             else:
                                 bool_data.append(None)
                         arrays.append(pa.array(bool_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
                     elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
-                        arrow_type = pa.timestamp('us')
+                        arrow_type = pa.timestamp("us")
                         timestamp_data: List[Optional[np.datetime64]] = []
                         for val in col_data:
                             if val is None:
@@ -391,27 +427,39 @@ class SQLiteRetrievalJob(RetrievalJob):
                         continue
                     elif "DATE" in col_type_upper:
                         arrow_type = pa.date32()
-                        date_data: List[Optional[np.datetime64]] = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
+                        date_data: List[Optional[np.datetime64]] = [
+                            pd.Timestamp(val).to_datetime64()
+                            if val is not None
+                            else None
+                            for val in col_data
+                        ]
                         arrays.append(pa.array(date_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
                     elif "TIME" in col_type_upper:
-                        arrow_type = pa.time64('us')
-                        time_data: List[Optional[np.datetime64]] = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
+                        arrow_type = pa.time64("us")
+                        time_data: List[Optional[np.datetime64]] = [
+                            pd.Timestamp(val).to_datetime64()
+                            if val is not None
+                            else None
+                            for val in col_data
+                        ]
                         arrays.append(pa.array(time_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
                     else:
                         arrow_type = pa.string()
-                        str_data: List[Optional[str]] = [str(val) if val is not None else None for val in col_data]
+                        str_data: List[Optional[str]] = [
+                            str(val) if val is not None else None for val in col_data
+                        ]
                         arrays.append(pa.array(str_data, type=arrow_type))
                         field_list.append((col_name, arrow_type))
                         continue
-                    
-                    fields.append((col_name, arrow_type))
+
+                    field_list.append((col_name, arrow_type))
                     arrays.append(pa.array(col_data, type=arrow_type, from_pandas=True))
-                    
-                schema = pa.schema(fields)
+
+                schema = pa.schema(field_list)
                 return pa.Table.from_arrays(arrays, schema=schema)
             finally:
                 conn.close()
@@ -420,7 +468,12 @@ class SQLiteRetrievalJob(RetrievalJob):
     def metadata(self) -> Optional[RetrievalMetadata]:
         return self._metadata
 
-    def persist(self, storage: SavedDatasetStorage, allow_overwrite: bool = False, timeout: Optional[int] = None):
+    def persist(
+        self,
+        storage: SavedDatasetStorage,
+        allow_overwrite: bool = False,
+        timeout: Optional[int] = None,
+    ):
         """Persist the retrieval data to SQLite storage.
 
         Args:
@@ -435,9 +488,15 @@ class SQLiteRetrievalJob(RetrievalJob):
         conn = sqlite3.connect(str(path), timeout=conn_timeout)
         try:
             table_name = "feast_persisted_df"
-            df.to_sql(table_name, conn, if_exists='replace' if allow_overwrite else 'fail', index=False)
+            df.to_sql(
+                table_name,
+                conn,
+                if_exists="replace" if allow_overwrite else "fail",
+                index=False,
+            )
         finally:
             conn.close()
+
 
 class SQLiteOfflineStore(OfflineStore):
     """SQLite offline store implementation.
@@ -455,6 +514,7 @@ class SQLiteOfflineStore(OfflineStore):
         ...     )
         ... )
     """
+
     def __init__(self):
         """Initialize the SQLite offline store."""
         self._conn = None
@@ -491,15 +551,19 @@ class SQLiteOfflineStore(OfflineStore):
         timestamps = [timestamp_field]
         if created_timestamp_column and created_timestamp_column != timestamp_field:
             timestamps.append(created_timestamp_column)
-        
+
         # Build field string with explicit type casting
         all_columns = join_key_columns + feature_name_columns + timestamps
-        field_string = ", ".join([
-            f"CAST({col} AS INTEGER) AS {col}" if col in join_key_columns
-            else f"CAST(CASE WHEN {col} IN (1, '1', 'true', 't', 'yes', 'y') THEN 1 ELSE 0 END AS BOOLEAN) AS {col}" if col == "bool_col"
-            else f"{col} AS {col}"
-            for col in dict.fromkeys(all_columns)
-        ])
+        field_string = ", ".join(
+            [
+                f"CAST({col} AS INTEGER) AS {col}"
+                if col in join_key_columns
+                else f"CAST(CASE WHEN {col} IN (1, '1', 'true', 't', 'yes', 'y') THEN 1 ELSE 0 END AS BOOLEAN) AS {col}"
+                if col == "bool_col"
+                else f"{col} AS {col}"
+                for col in dict.fromkeys(all_columns)
+            ]
+        )
 
         query = f"""
             WITH latest_records AS (
@@ -517,7 +581,6 @@ class SQLiteOfflineStore(OfflineStore):
             WHERE row_num = 1
         """
 
-
         @contextlib.contextmanager
         def query_generator() -> Iterator[str]:
             yield query
@@ -534,25 +597,30 @@ class SQLiteOfflineStore(OfflineStore):
         # Convert numeric columns to appropriate types
         for col in join_key_columns:
             try:
-                df[col] = pd.to_numeric(df[col], errors='coerce').astype('int64')
+                df[col] = pd.to_numeric(df[col], errors="coerce").astype("int64")
             except (ValueError, TypeError):
                 pass
 
         # Handle feature columns based on their SQLite types
         for col in feature_name_columns:
             try:
-                if df[col].dtype == 'object':
+                if df[col].dtype == "object":
                     # Try to convert boolean columns first
-                    if all(isinstance(x, (int, type(None))) for x in df[col].dropna()) and set(df[col].dropna().unique()).issubset({0, 1}):
-                        df[col] = df[col].astype('bool')
+                    if all(
+                        isinstance(x, (int, type(None))) for x in df[col].dropna()
+                    ) and set(df[col].dropna().unique()).issubset({0, 1}):
+                        df[col] = df[col].astype("bool")
                     else:
                         # Try to convert numeric columns
                         try:
-                            numeric_col = pd.to_numeric(df[col], errors='raise')
-                            if all(isinstance(x, (int, type(None))) for x in df[col].dropna()):
-                                df[col] = numeric_col.astype('int64')
+                            numeric_col = pd.to_numeric(df[col], errors="raise")
+                            if all(
+                                isinstance(x, (int, type(None)))
+                                for x in df[col].dropna()
+                            ):
+                                df[col] = numeric_col.astype("int64")
                             else:
-                                df[col] = numeric_col.astype('float64')
+                                df[col] = numeric_col.astype("float64")
                         except (ValueError, TypeError):
                             # Keep as object type if not numeric
                             pass
@@ -600,7 +668,9 @@ class SQLiteOfflineStore(OfflineStore):
             assert isinstance(fv.batch_source, DataSource)
 
         entity_schema = _get_entity_schema(entity_df, config)
-        entity_df_event_timestamp_col = offline_utils.infer_event_timestamp_from_entity_df(entity_schema)
+        entity_df_event_timestamp_col = (
+            offline_utils.infer_event_timestamp_from_entity_df(entity_schema)
+        )
         entity_df_event_timestamp_range = _get_entity_df_event_timestamp_range(
             entity_df,
             entity_df_event_timestamp_col,
@@ -633,7 +703,10 @@ class SQLiteOfflineStore(OfflineStore):
 
             try:
                 yield build_point_in_time_query(
-                    [offline_utils.FeatureViewQueryContext(**context) for context in query_context_dict],
+                    [
+                        offline_utils.FeatureViewQueryContext(**context)
+                        for context in query_context_dict
+                    ],
                     left_table_query_string=table_name,
                     entity_df_event_timestamp_col=entity_df_event_timestamp_col,
                     entity_df_columns=entity_schema.keys(),
@@ -667,15 +740,20 @@ class SQLiteOfflineStore(OfflineStore):
             ),
         )
 
+
 def _get_entity_df_event_timestamp_range(
     entity_df: Union[pd.DataFrame, str],
     entity_df_event_timestamp_col: str,
     config: RepoConfig,
 ) -> Tuple[datetime, datetime]:
     if isinstance(entity_df, pd.DataFrame):
-        entity_df_event_timestamp = entity_df.loc[:, entity_df_event_timestamp_col].infer_objects()
+        entity_df_event_timestamp = entity_df.loc[
+            :, entity_df_event_timestamp_col
+        ].infer_objects()
         if pd.api.types.is_string_dtype(entity_df_event_timestamp):
-            entity_df_event_timestamp = pd.to_datetime(entity_df_event_timestamp, utc=True)
+            entity_df_event_timestamp = pd.to_datetime(
+                entity_df_event_timestamp, utc=True
+            )
         entity_df_event_timestamp_range = (
             entity_df_event_timestamp.min().to_pydatetime(),
             entity_df_event_timestamp.max().to_pydatetime(),
@@ -684,8 +762,13 @@ def _get_entity_df_event_timestamp_range(
     elif isinstance(entity_df, str):
         assert isinstance(config.offline_store, SQLiteOfflineStoreConfig)
         conn = sqlite3.connect(
-            str(config.offline_store.path) if config.offline_store and config.offline_store.path else ":memory:",
-            timeout=float(config.offline_store.connection_timeout) if config.offline_store and hasattr(config.offline_store, "connection_timeout") else 5.0
+            str(config.offline_store.path)
+            if config.offline_store and config.offline_store.path
+            else ":memory:",
+            timeout=float(config.offline_store.connection_timeout)
+            if config.offline_store
+            and hasattr(config.offline_store, "connection_timeout")
+            else 5.0,
         )
         try:
             cursor = conn.cursor()
@@ -700,22 +783,29 @@ def _get_entity_df_event_timestamp_range(
             if not res or not res[0] or not res[1]:
                 raise ZeroRowsQueryResult(query)
             return (
-                datetime.fromisoformat(res[0].replace('Z', '+00:00')),
-                datetime.fromisoformat(res[1].replace('Z', '+00:00')),
+                datetime.fromisoformat(res[0].replace("Z", "+00:00")),
+                datetime.fromisoformat(res[1].replace("Z", "+00:00")),
             )
         finally:
             conn.close()
     else:
         raise InvalidEntityType(type(entity_df))
 
-def _upload_entity_df(config: RepoConfig, entity_df: Union[pd.DataFrame, str], table_name: str):
+
+def _upload_entity_df(
+    config: RepoConfig, entity_df: Union[pd.DataFrame, str], table_name: str
+):
     assert isinstance(config.offline_store, SQLiteOfflineStoreConfig)
     path = config.offline_store.path or ":memory:"
-    conn_timeout = float(config.offline_store.connection_timeout) if hasattr(config.offline_store, "connection_timeout") else 5.0
+    conn_timeout = (
+        float(config.offline_store.connection_timeout)
+        if hasattr(config.offline_store, "connection_timeout")
+        else 5.0
+    )
     conn = sqlite3.connect(str(path), timeout=conn_timeout)
     try:
         if isinstance(entity_df, pd.DataFrame):
-            entity_df.to_sql(table_name, conn, if_exists='replace', index=False)
+            entity_df.to_sql(table_name, conn, if_exists="replace", index=False)
         elif isinstance(entity_df, str):
             cursor = conn.cursor()
             cursor.execute(f"CREATE TABLE {table_name} AS {entity_df}")
@@ -724,6 +814,7 @@ def _upload_entity_df(config: RepoConfig, entity_df: Union[pd.DataFrame, str], t
             raise InvalidEntityType(type(entity_df))
     finally:
         conn.close()
+
 
 def _get_entity_schema(
     entity_df: Union[pd.DataFrame, str],
@@ -734,17 +825,23 @@ def _get_entity_schema(
     elif isinstance(entity_df, str):
         assert isinstance(config.offline_store, SQLiteOfflineStoreConfig)
         conn = sqlite3.connect(
-            str(config.offline_store.path) if config.offline_store and config.offline_store.path else ":memory:",
-            timeout=float(config.offline_store.connection_timeout) if config.offline_store and hasattr(config.offline_store, "connection_timeout") else 5.0
+            str(config.offline_store.path)
+            if config.offline_store and config.offline_store.path
+            else ":memory:",
+            timeout=float(config.offline_store.connection_timeout)
+            if config.offline_store
+            and hasattr(config.offline_store, "connection_timeout")
+            else 5.0,
         )
         try:
             cursor = conn.cursor()
             cursor.execute(f"SELECT * FROM ({entity_df}) LIMIT 0")
-            return {description[0]: np.dtype('O') for description in cursor.description}
+            return {description[0]: np.dtype("O") for description in cursor.description}
         finally:
             conn.close()
     else:
         raise InvalidEntityType(type(entity_df))
+
 
 MULTIPLE_FEATURE_VIEW_POINT_IN_TIME_JOIN = """
 WITH entity_dataframe AS (

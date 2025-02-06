@@ -35,6 +35,7 @@ class SQLiteOptions:
             query=config_dict["query"] if config_dict["query"] else None,
         )
 
+
 class SQLiteSource(DataSource):
     @staticmethod
     def source_datatype_to_feast_value_type() -> Callable[[str], ValueType]:
@@ -53,6 +54,7 @@ class SQLiteSource(DataSource):
                 "CHAR": ValueType.STRING,
             }
             return mapping.get(dtype.upper(), ValueType.UNKNOWN)
+
         return _convert_type
 
     def __init__(
@@ -121,10 +123,17 @@ class SQLiteSource(DataSource):
             type=DataSourceProto.CUSTOM_SOURCE,
             data_source_class_type="feast.infra.offline_stores.sqlite_source.SQLiteSource",
             field_mapping=self.field_mapping,
-            custom_options=DataSourceProto.CustomSourceOptions(configuration=bytes(str({
-                "table": self._table if self._table else "",
-                "query": self._query if self._query else "",
-            }), "utf-8")),
+            custom_options=DataSourceProto.CustomSourceOptions(
+                configuration=bytes(
+                    str(
+                        {
+                            "table": self._table if self._table else "",
+                            "query": self._query if self._query else "",
+                        }
+                    ),
+                    "utf-8",
+                )
+            ),
             description=self.description,
             tags=self.tags,
         )
@@ -141,7 +150,6 @@ class SQLiteSource(DataSource):
     def get_table_column_names_and_types(
         self, config: RepoConfig
     ) -> List[Tuple[str, str]]:
-
         if not isinstance(config.offline_store, SQLiteOfflineStoreConfig):
             raise ValueError("SQLite source requires SQLiteOfflineStoreConfig")
 
@@ -160,19 +168,23 @@ class SQLiteSource(DataSource):
             if self._table:
                 cursor.execute(f"SELECT * FROM {self._table} LIMIT 0")
             else:
-                cursor.execute(f"WITH query AS ({self._query}) SELECT * FROM query LIMIT 0")
+                cursor.execute(
+                    f"WITH query AS ({self._query}) SELECT * FROM query LIMIT 0"
+                )
             # Get column types using pragma table_info
             if self._table:
                 cursor.execute(f"PRAGMA table_info({self._table})")
                 columns = []
                 for row in cursor.fetchall():
                     col_name = str(row[1])
-                    col_type = str(row[2]).split('(')[0].upper()
+                    col_type = str(row[2]).split("(")[0].upper()
                     if col_type == "BOOLEAN":
                         # SQLite stores booleans as integers, but we want to preserve the boolean type
                         cursor.execute(f"SELECT COUNT(*) FROM {self._table}")
                         if cursor.fetchone()[0] > 0:
-                            cursor.execute(f"SELECT typeof({col_name}) FROM {self._table} LIMIT 1")
+                            cursor.execute(
+                                f"SELECT typeof({col_name}) FROM {self._table} LIMIT 1"
+                            )
                             actual_type = cursor.fetchone()[0].upper()
                             if actual_type == "INTEGER":
                                 col_type = "BOOLEAN"

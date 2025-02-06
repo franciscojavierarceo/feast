@@ -27,16 +27,16 @@ def test_sqlite_offline_store_config():
     assert config.type == "sqlite"
     assert config.path == ":memory:"
 
+
 def test_sqlite_offline_store_config_with_timeout():
     config = SQLiteOfflineStoreConfig(
-        type="sqlite",
-        path=":memory:",
-        connection_timeout=5.0
+        type="sqlite", path=":memory:", connection_timeout=5.0
     )
     assert config.connection_timeout == 5.0
 
+
 def test_sqlite_offline_store_with_temp_file():
-    with tempfile.NamedTemporaryFile(suffix='.db') as temp_db:
+    with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         config = RepoConfig(
             provider="local",
             project="test",
@@ -44,7 +44,9 @@ def test_sqlite_offline_store_with_temp_file():
             offline_store=SQLiteOfflineStoreConfig(type="sqlite", path=temp_db.name),
         )
         store = SQLiteOfflineStore()
-        entity = Entity(name="driver", join_keys=["driver_id"], value_type=ValueType.INT64)
+        entity = Entity(
+            name="driver", join_keys=["driver_id"], value_type=ValueType.INT64
+        )
         feature_view = FeatureView(
             name="driver_stats",
             entities=[entity],
@@ -55,7 +57,7 @@ def test_sqlite_offline_store_with_temp_file():
             source=SQLiteSource(
                 table="driver_stats",
                 timestamp_field="event_timestamp",
-            )
+            ),
         )
 
         entity_df = pd.DataFrame(
@@ -88,15 +90,21 @@ def test_sqlite_offline_store_with_temp_file():
         assert job.full_feature_names is False
         assert len(job.on_demand_feature_views) == 0
 
+
 def test_sqlite_source_validation():
-    with pytest.raises(ValueError, match="SQLite source must have either table or query specified"):
+    with pytest.raises(
+        ValueError, match="SQLite source must have either table or query specified"
+    ):
         source = SQLiteSource()
-        source.validate(RepoConfig(
-            provider="local",
-            project="test",
-            registry="memory://",
-            offline_store=SQLiteOfflineStoreConfig(type="sqlite", path=":memory:"),
-        ))
+        source.validate(
+            RepoConfig(
+                provider="local",
+                project="test",
+                registry="memory://",
+                offline_store=SQLiteOfflineStoreConfig(type="sqlite", path=":memory:"),
+            )
+        )
+
 
 def test_sqlite_source_table_query():
     source = SQLiteSource(table="my_table")
@@ -104,6 +112,7 @@ def test_sqlite_source_table_query():
 
     source = SQLiteSource(query="SELECT * FROM my_table")
     assert source.get_table_query_string() == "(SELECT * FROM my_table)"
+
 
 def test_sqlite_retrieval_job_to_sql():
     config = SQLiteOfflineStoreConfig(type="sqlite", path=":memory:")
@@ -113,6 +122,7 @@ def test_sqlite_retrieval_job_to_sql():
         full_feature_names=False,
     )
     assert job.to_sql() == "SELECT * FROM test"
+
 
 def test_sqlite_retrieval_job_to_arrow():
     config = SQLiteOfflineStoreConfig(type="sqlite", path=":memory:")
@@ -124,6 +134,7 @@ def test_sqlite_retrieval_job_to_arrow():
     with pytest.raises(Exception):
         job.to_arrow()  # Should fail since table doesn't exist
 
+
 def test_sqlite_retrieval_job_persist():
     config = SQLiteOfflineStoreConfig(type="sqlite", path=":memory:")
     job = SQLiteRetrievalJob(
@@ -134,8 +145,9 @@ def test_sqlite_retrieval_job_persist():
     with pytest.raises(Exception):
         job.persist(SavedDatasetStorage())
 
+
 def test_sqlite_source_get_table_column_names_and_types():
-    with tempfile.NamedTemporaryFile(suffix='.json') as registry_file:
+    with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         config = RepoConfig(
             registry=registry_file.name,
             project="test",
@@ -179,8 +191,9 @@ def test_sqlite_source_get_table_column_names_and_types():
     assert ("varchar_col", "VARCHAR") in columns
     assert ("char_col", "CHAR") in columns
 
+
 def test_sqlite_source_invalid_config():
-    with tempfile.NamedTemporaryFile(suffix='.json') as registry_file:
+    with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         with pytest.raises(ValueError, match="Input should be 'sqlite'"):
             RepoConfig(
                 registry=registry_file.name,
@@ -189,8 +202,9 @@ def test_sqlite_source_invalid_config():
                 offline_store=SQLiteOfflineStoreConfig(type="invalid"),
             )
 
+
 def test_sqlite_source_invalid_table():
-    with tempfile.NamedTemporaryFile(suffix='.json') as registry_file:
+    with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         source = SQLiteSource(table="nonexistent_table")
         config = RepoConfig(
             registry=registry_file.name,
@@ -201,8 +215,9 @@ def test_sqlite_source_invalid_table():
     with pytest.raises(Exception):
         source.get_table_column_names_and_types(config)
 
+
 def test_sqlite_source_invalid_query():
-    with tempfile.NamedTemporaryFile(suffix='.json') as registry_file:
+    with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         source = SQLiteSource(query="SELECT * FROM nonexistent_table")
         config = RepoConfig(
             registry=registry_file.name,
@@ -213,8 +228,9 @@ def test_sqlite_source_invalid_query():
     with pytest.raises(Exception):
         source.get_table_column_names_and_types(config)
 
+
 def test_sqlite_data_type_mapping():
-    with tempfile.NamedTemporaryFile(suffix='.json') as registry_file:
+    with tempfile.NamedTemporaryFile(suffix=".json") as registry_file:
         store = SQLiteOfflineStore()
         conn = sqlite3.connect(":memory:")
         store._conn = conn
@@ -273,11 +289,12 @@ def test_sqlite_data_type_mapping():
         assert df["numeric_col"].dtype == "float64"
         conn.close()
 
+
 def test_sqlite_connection_timeout():
     config = SQLiteOfflineStoreConfig(
         type="sqlite",
         path=":memory:",
-        connection_timeout=0.001  # Very short timeout
+        connection_timeout=0.001,  # Very short timeout
     )
     store = SQLiteOfflineStore()
     # Create a connection that holds a lock
