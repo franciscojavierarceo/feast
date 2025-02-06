@@ -408,10 +408,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                         continue
                     
                     fields.append((col_name, arrow_type))
-                    if "INTEGER" in col_type_upper:
-                        arrays.append(pa.array(converted_data, mask=np.logical_not(converted_mask), type=arrow_type))
-                    else:
-                        arrays.append(pa.array(converted_data, type=arrow_type))
+                    arrays.append(pa.array(col_data, type=arrow_type, from_pandas=True))
                     
                 schema = pa.schema(fields)
                 return pa.Table.from_arrays(arrays, schema=schema)
