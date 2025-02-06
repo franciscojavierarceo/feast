@@ -189,18 +189,17 @@ class SQLiteRetrievalJob(RetrievalJob):
     def _to_df_internal(self, timeout: Optional[int] = None) -> pd.DataFrame:
         """Convert query results to a pandas DataFrame."""
         arrow_table = self._to_arrow_internal(timeout=timeout)
-        # Convert integer columns to Int64 during pandas conversion
-        df = arrow_table.to_pandas(
-            timestamp_as_object=False,
-            date_as_object=False,
-            integer_object_nulls=True,
-            use_nullable_dtypes=True,
-            split_blocks=True,
-            self_destruct=True,
-            types_mapper=lambda pa_dtype: pd.Int64Dtype()
-            if pa.types.is_integer(pa_dtype)
-            else None,
-        )
+        # Convert Arrow table to pandas DataFrame with explicit type handling
+        df = pd.DataFrame()
+        for col_name in arrow_table.column_names:
+            col = arrow_table[col_name]
+            if pa.types.is_integer(col.type):
+                # Convert integer columns to nullable Int64 with proper null handling
+                values = col.to_numpy(zero_copy_only=False)
+                # Create a pandas Series with Int64 dtype
+                df[col_name] = pd.Series(values, dtype=pd.Int64Dtype())
+            else:
+                df[col_name] = col.to_pandas()
         return df
 
     def to_sql(self) -> str:
@@ -336,24 +335,22 @@ class SQLiteRetrievalJob(RetrievalJob):
 
                 # Convert data based on SQLite column type
                 if "INTEGER" in col_type_upper or col_name in join_key_columns:
-                    # Handle integer conversion with explicit null handling
-                    valid_data: List[Optional[int]] = []
+                    # Convert to integers with proper null handling
+                    int_data = []
                     for val in col_data:
-                        if val is None or (isinstance(val, str) and not val.strip()):
-                            valid_data.append(None)
+                        if val is None:
+                            int_data.append(None)
                         else:
                             try:
-                                # Ensure integer conversion
                                 if isinstance(val, (int, np.integer)):
-                                    valid_data.append(int(val))
+                                    int_data.append(int(val))
+                                elif isinstance(val, str):
+                                    int_data.append(int(float(val.strip())))
                                 else:
-                                    parsed_val = int(float(str(val).strip()))
-                                    valid_data.append(parsed_val)
+                                    int_data.append(int(float(val)))
                             except (ValueError, TypeError):
-                                valid_data.append(None)
-                    # Create Arrow array with explicit integer type
-                    int_array = pa.array(valid_data, type=pa.int64(), from_pandas=True)
-                    arrays.append(int_array)
+                                int_data.append(None)
+                    arrays.append(pa.array(int_data, type=pa.int64()))
                     schema_fields.append((col_name, pa.int64()))
                     continue
                 elif any(
@@ -605,74 +602,29 @@ class SQLiteOfflineStore(OfflineStore):
         )
         df = job.to_df()
 
-        # Convert columns to appropriate types based on SQLite schema
-        column_types = {
-            col_name: col_type
-            for col_name, col_type in data_source.get_table_column_names_and_types(
-                config
-            )
-        }
-        for col in df.columns:
-            if col in column_types or col in join_key_columns:
-                try:
-                    if col in join_key_columns or (
-                        col in column_types and "INTEGER" in column_types[col].upper()
-                    ):
-                        # Convert to nullable Int64 type with proper null handling
-                        df[col] = pd.to_numeric(df[col], errors="coerce").astype(
-                            "Int64"
-                        )
-                    elif col in column_types:
-                        col_sql_type = column_types[col].upper()
-                        if "BOOLEAN" in col_sql_type:
-                            df[col] = df[col].astype("boolean")
-                        elif any(
-                            t in col_sql_type
-                            for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
-                        ):
-                            df[col] = pd.to_numeric(df[col], errors="coerce")
-                except (ValueError, TypeError):
-                    pass
+        # Convert integer columns based on SQLite type information
+        if isinstance(data_source, SQLiteSource):
+            column_types = dict(data_source.get_table_column_names_and_types(config))
+            for col in df.columns:
+                if col in join_key_columns or (col in column_types and "INTEGER" in column_types[col].upper()):
+                    try:
+                        numeric_series = pd.to_numeric(df[col], errors="coerce")
+                        df[col] = pd.Series(numeric_series, dtype=pd.Int64Dtype())
+                    except (ValueError, TypeError):
+                        pass
 
         # Convert integer columns based on SQLite type information
-        if (
-            isinstance(data_source, SQLiteSource)
-            and hasattr(data_source, "_conn")
-            and data_source._conn is not None
-        ):
-            if isinstance(data_source, SQLiteSource) and data_source._conn is not None:
-                cursor = data_source._conn.cursor()
-                if data_source.table:
-                    cursor.execute(f"PRAGMA table_info({data_source.table})")
-                    rows = cursor.fetchall()
-                    if rows is not None:
-                        for row in cast(List[Tuple[Any, ...]], rows):
-                            col_name = str(row[1])
-                            col_type = str(row[2]).upper()
-                            if "INTEGER" in col_type and col_name in df.columns:
-                                try:
-                                    df[col_name] = pd.Series(
-                                        df[col_name], dtype="Int64"
-                                    )
-                                except (ValueError, TypeError):
-                                    pass
-                elif data_source.query:
-                    # For queries, we need to infer types from the result set
-                    cursor.execute(
-                        f"WITH query AS ({data_source.query}) SELECT * FROM query LIMIT 0"
-                    )
-                    description = cursor.description
-                    if description is not None:
-                        for desc in cast(List[Tuple[Any, ...]], description):
-                            col_name = str(desc[0])
-                            col_type = str(desc[1]).upper()
-                            if "INTEGER" in col_type and col_name in df.columns:
-                                try:
-                                    df[col_name] = pd.Series(
-                                        df[col_name], dtype="Int64"
-                                    )
-                                except (ValueError, TypeError):
-                                    pass
+        if isinstance(data_source, SQLiteSource):
+            column_types = dict(data_source.get_table_column_names_and_types(config))
+            for col in df.columns:
+                if col in join_key_columns or (col in column_types and "INTEGER" in column_types[col].upper()):
+                    try:
+                        # Convert to numeric first to handle various input formats
+                        numeric_series = pd.to_numeric(df[col], errors="coerce")
+                        # Create Int64 series with proper null handling
+                        df[col] = pd.Series(numeric_series, dtype=pd.Int64Dtype())</old_str>
+                    except (ValueError, TypeError):
+                        pass
 
         # Handle feature columns based on their SQLite types
         for col in feature_name_columns:
