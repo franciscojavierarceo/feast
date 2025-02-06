@@ -197,7 +197,9 @@ class SQLiteRetrievalJob(RetrievalJob):
             use_nullable_dtypes=True,
             split_blocks=True,
             self_destruct=True,
-            types_mapper=lambda pa_dtype: pd.Int64Dtype() if pa.types.is_integer(pa_dtype) else None,
+            types_mapper=lambda pa_dtype: pd.Int64Dtype()
+            if pa.types.is_integer(pa_dtype)
+            else None,
         )
         return df
 
