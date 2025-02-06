@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from google.protobuf.message import Message
 
 from feast.data_source import DataSource
+from feast.infra.offline_stores.sqlite import SQLiteOfflineStore
 from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
 from feast.protos.feast.core.DataSource_pb2 import DataSource as DataSourceProto
 from feast.repo_config import RepoConfig
