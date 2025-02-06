@@ -372,13 +372,21 @@ class SQLiteRetrievalJob(RetrievalJob):
                     t in col_type_upper for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
                 ):
                     arrow_type = pa.float64()
-                    float_data: List[Optional[float]] = [
-                        float(val) if val is not None else None for val in col_data
-                    ]
+                    float_data: List[Optional[float]] = []
+                    for val in col_data:
+                        if val is None:
+                            float_data.append(None)
+                        else:
+                            try:
+                                if isinstance(val, str):
+                                    val = val.strip()
+                                float_data.append(float(val))
+                            except (ValueError, TypeError):
+                                float_data.append(None)
                     arrays.append(pa.array(float_data, type=arrow_type))
                     field_list.append((col_name, arrow_type))
                     continue
-                elif "BOOLEAN" in col_type_upper or col_name == "bool_col":
+                elif "BOOLEAN" in col_type_upper or col_name.lower().endswith("_bool"):
                     arrow_type = pa.bool_()
                     bool_data: List[Optional[bool]] = []
                     for val in col_data:
@@ -389,13 +397,14 @@ class SQLiteRetrievalJob(RetrievalJob):
                         elif isinstance(val, (int, float)):
                             bool_data.append(bool(int(val)))
                         elif isinstance(val, str):
+                            val_lower = val.lower().strip()
                             bool_data.append(
-                                val.lower() in ("1", "true", "t", "yes", "y")
+                                val_lower in ("1", "true", "t", "yes", "y", "on")
                             )
                         else:
                             bool_data.append(None)
                     arrays.append(pa.array(bool_data, type=arrow_type))
-                    fields.append((col_name, arrow_type))
+                    field_list.append((col_name, arrow_type))
                     continue
                 elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
                     arrow_type = pa.timestamp("us")
@@ -405,21 +414,38 @@ class SQLiteRetrievalJob(RetrievalJob):
                             timestamp_data.append(None)
                         else:
                             try:
-                                ts = pd.Timestamp(val)
-                                timestamp_data.append(ts.to_numpy())
+                                if isinstance(val, (float, int)):
+                                    dt = pd.Timestamp(val, unit="s")
+                                elif isinstance(val, str):
+                                    if "T" in val:
+                                        dt = pd.to_datetime(val, format="ISO8601")
+                                    else:
+                                        dt = pd.to_datetime(val)
+                                else:
+                                    dt = pd.Timestamp(val)
+                                timestamp_data.append(dt.to_numpy())
                             except (ValueError, TypeError):
                                 timestamp_data.append(None)
                     arrays.append(pa.array(timestamp_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    fields.append((col_name, arrow_type))
                     continue
                 elif "DATE" in col_type_upper:
                     arrow_type = pa.date32()
-                    date_data: List[Optional[np.datetime64]] = [
-                        pd.Timestamp(val).to_datetime64() if val is not None else None
-                        for val in col_data
-                    ]
+                    date_data: List[Optional[np.datetime64]] = []
+                    for val in col_data:
+                        if val is None:
+                            date_data.append(None)
+                        else:
+                            try:
+                                if isinstance(val, str):
+                                    dt = pd.to_datetime(val).normalize()
+                                else:
+                                    dt = pd.Timestamp(val).normalize()
+                                date_data.append(dt.to_datetime64())
+                            except (ValueError, TypeError):
+                                date_data.append(None)
                     arrays.append(pa.array(date_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    fields.append((col_name, arrow_type))
                     continue
                 elif "TIME" in col_type_upper:
                     arrow_type = pa.time64("us")
