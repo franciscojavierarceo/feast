@@ -269,8 +269,8 @@ class SQLiteRetrievalJob(RetrievalJob):
                     if not cursor.description:
                         print("Warning: No cursor description after query execution")
                         # Try to get column info from the table if available
-                        if hasattr(self, "_data_source") and self._data_source and hasattr(self._data_source, "_table"):
-                            table_name = self._data_source._table
+                        if hasattr(self, "_data_source") and self._data_source and hasattr(self._data_source, "table"):
+                            table_name = self._data_source.table
                             cursor.execute(f"PRAGMA table_info({table_name})")
                             table_info = cursor.fetchall()
                             if table_info:
@@ -385,17 +385,17 @@ class SQLiteRetrievalJob(RetrievalJob):
                                     converted_data.append(None)
                     elif "DATE" in col_type_upper:
                         arrow_type = pa.date32()
-                        converted_data = [pd.Timestamp(val).to_numpy('M8[D]') if val is not None else None for val in col_data]
+                        converted_data = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
                     elif "TIME" in col_type_upper:
                         arrow_type = pa.time64('us')
-                        converted_data = [pd.Timestamp(val).to_numpy('M8[us]') if val is not None else None for val in col_data]
+                        converted_data = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
                     else:
                         arrow_type = pa.string()
                         converted_data = [str(val) if val is not None else None for val in col_data]
                     
                     fields.append((col_name, arrow_type))
                     if "INTEGER" in col_type_upper:
-                        arrays.append(pa.array(converted_data, mask=~converted_mask, type=arrow_type))
+                        arrays.append(pa.array(converted_data, mask=np.logical_not(converted_mask), type=arrow_type))
                     else:
                         arrays.append(pa.array(converted_data, type=arrow_type))
                     
@@ -547,7 +547,17 @@ class SQLiteOfflineStore(OfflineStore):
             except (ValueError, TypeError):
                 pass
 
-        return df
+        @contextlib.contextmanager
+        def query_generator() -> Iterator[str]:
+            yield "SELECT * FROM feast_persisted_df"
+
+        return SQLiteRetrievalJob(
+            query=query_generator,
+            config=config,
+            full_feature_names=False,
+            on_demand_feature_views=None,
+            data_source=data_source,
+        )
 
     @staticmethod
     def get_historical_features(
