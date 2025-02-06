@@ -50,6 +50,12 @@ Redshift Source
 .. autoclass:: feast.infra.offline_stores.redshift_source.RedshiftSource
     :members:
 
+SQLite Source
+------------------
+
+.. autoclass:: feast.infra.offline_stores.sqlite_source.SQLiteSource
+    :members:
+
 Spark Source
 ------------------
 
@@ -267,6 +273,18 @@ Redshift Offline Store
     :members:
 
 .. autoclass:: feast.infra.offline_stores.redshift.RedshiftRetrievalJob
+    :members:
+
+SQLite Offline Store
+----------------------
+
+.. autoclass:: feast.infra.offline_stores.sqlite.SQLiteOfflineStore
+    :members:
+
+.. autoclass:: feast.infra.offline_stores.sqlite.SQLiteOfflineStoreConfig
+    :members:
+
+.. autoclass:: feast.infra.offline_stores.sqlite.SQLiteRetrievalJob
     :members:
 
 Spark Offline Store

@@ -19,6 +19,11 @@ online_store:
 
 * **provider** \("local" or "gcp"\)  — Defines the environment in which Feast will execute data flows.
 * **registry** \(a local or GCS filepath\) — Defines the location of the feature registry.
+* **offline\_store** — Configures the offline store. This field will have various subfields depending on the type of offline store:
+  * **type** \("sqlite", "file", "bigquery", "redshift", "snowflake"\) — Defines the type of offline store.
+  * **path** \(a local filepath\) — Parameter for the sqlite offline store. Defines the path to the SQLite database file. Defaults to ":memory:" for an in-memory database.
+  * **connection_timeout** \(integer\) — Optional parameter for the sqlite offline store. Sets the connection timeout in seconds.
+
 * **online\_store** — Configures the online store. This field will have various subfields depending on the type of online store:
   * **type** \("sqlite" or "datastore"\) — Defines the type of online store.
   * **path** \(a local filepath\) — Parameter for the sqlite online store. Defines the path to the SQLite database file.
@@ -34,7 +39,7 @@ The `provider` field defines the environment in which Feast will execute data fl
 When using the local provider:
 
 * Feast can read from **local Parquet data sources.**
-* Feast performs historical feature retrieval \(point-in-time joins\) using **pandas.**
+* Feast performs historical feature retrieval \(point-in-time joins\) using **pandas** or **SQLite.**
 * Feast performs online feature serving from a **SQLite database.**
 
 ### **GCP**
