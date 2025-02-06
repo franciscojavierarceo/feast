@@ -609,19 +609,45 @@ class SQLiteOfflineStore(OfflineStore):
                 if col in join_key_columns or (col in column_types and "INTEGER" in column_types[col].upper()):
                     try:
                         numeric_series = pd.to_numeric(df[col], errors="coerce")
-                        df[col] = pd.Series(numeric_series, dtype=pd.Int64Dtype())
+        # Handle feature columns based on their SQLite types
+        for col in feature_name_columns:
+            try:
+                if df[col].dtype == "object":
+                    # Try to convert boolean columns first
+                    if all(
+                        isinstance(x, (int, type(None))) for x in df[col].dropna()
+                    ) and set(df[col].dropna().unique()).issubset({0, 1}):
+                        df[col] = df[col].astype("bool")
+                    else:
+                        # Try to convert numeric columns
+                        numeric_col = pd.to_numeric(df[col], errors="coerce")
+                        if numeric_col.dtype == "int64":
+                            df[col] = pd.Series(numeric_col.values, dtype="Int64")
+                        else:
+                            df[col] = numeric_col.astype("float64")
+            except (ValueError, TypeError):
+                pass
                     except (ValueError, TypeError):
                         pass
 
-        # Convert integer columns based on SQLite type information
-        if isinstance(data_source, SQLiteSource):
-            column_types = dict(data_source.get_table_column_names_and_types(config))
-            for col in df.columns:
-                if col in join_key_columns or (col in column_types and "INTEGER" in column_types[col].upper()):
-                    try:
-                        # Convert to numeric first to handle various input formats
-                        numeric_series = pd.to_numeric(df[col], errors="coerce")
-                        # Create Int64 series with proper null handling
+        # Handle feature columns based on their SQLite types
+        for col in feature_name_columns:
+            try:
+                if df[col].dtype == "object":
+                    # Try to convert boolean columns first
+                    if all(
+                        isinstance(x, (int, type(None))) for x in df[col].dropna()
+                    ) and set(df[col].dropna().unique()).issubset({0, 1}):
+                        df[col] = df[col].astype("bool")
+                    else:
+                        # Try to convert numeric columns
+                        numeric_col = pd.to_numeric(df[col], errors="coerce")
+                        if numeric_col.dtype == "int64":
+                            df[col] = pd.Series(numeric_col.values, dtype="Int64")
+                        else:
+                            df[col] = numeric_col.astype("float64")
+            except (ValueError, TypeError):
+                pass
                         df[col] = pd.Series(numeric_series, dtype=pd.Int64Dtype())</old_str>
                     except (ValueError, TypeError):
                         pass
