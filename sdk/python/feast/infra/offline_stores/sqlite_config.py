@@ -18,8 +18,6 @@ class SQLiteOfflineStoreConfig(FeastConfigBaseModel):
     connection_timeout: float = 5.0
     create_if_missing: bool = True
 
-    _offline_store_class_type: str = (
-        "feast.infra.offline_stores.sqlite.SQLiteOfflineStore"
-    )
+    _offline_store_class_type = "feast.infra.offline_stores.sqlite.SQLiteOfflineStore"
     _offline_store_class = _offline_store_class_type
     _supports_prefetch = True
