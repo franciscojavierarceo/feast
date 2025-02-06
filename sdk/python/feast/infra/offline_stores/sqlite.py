@@ -196,10 +196,11 @@ class SQLiteRetrievalJob(RetrievalJob):
             use_nullable_dtypes=True,
             split_blocks=True,
             self_destruct=True,
-            types_mapper=lambda pa_dtype: pd.Int64Dtype()
-            if pa.types.is_integer(pa_dtype)
-            else None,
         )
+        # Convert integer columns to Int64
+        for col in df.columns:
+            if arrow_table.schema.field(col).type == pa.int64():
+                df[col] = df[col].astype("Int64")
         return df
 
     def to_sql(self) -> str:
@@ -212,11 +213,16 @@ class SQLiteRetrievalJob(RetrievalJob):
             print(f"Generated SQL query:\n{query}")
             return query
 
-    def _to_arrow_internal(self, timeout: Optional[int] = None) -> pa.Table:
+    def _to_arrow_internal(
+        self,
+        timeout: Optional[int] = None,
+        join_key_columns: Optional[List[str]] = None,
+    ) -> pa.Table:
         """Convert query results to an Arrow table.
 
         Args:
             timeout: Optional query timeout in seconds
+            join_key_columns: Optional list of join key column names
 
         Returns:
             An Arrow table containing the query results
@@ -225,6 +231,8 @@ class SQLiteRetrievalJob(RetrievalJob):
             ZeroColumnQueryResult: If the query returns no columns
             ZeroRowsQueryResult: If the query returns no rows
         """
+        if join_key_columns is None:
+            join_key_columns = []
         with self._query_generator() as query_and_params:
             if not isinstance(self.config.offline_store, SQLiteOfflineStoreConfig):
                 raise TypeError("Offline store config must be SQLiteOfflineStoreConfig")
@@ -327,7 +335,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                 col_type_upper: str = col_type.upper()
 
                 # Convert data based on SQLite column type
-                if "INTEGER" in col_type_upper:
+                if "INTEGER" in col_type_upper or col_name in join_key_columns:
                     # Handle integer conversion with explicit null handling
                     valid_data: List[Optional[int]] = []
                     for val in col_data:
@@ -598,18 +606,23 @@ class SQLiteOfflineStore(OfflineStore):
             )
         }
         for col in df.columns:
-            if col in column_types:
-                col_sql_type = column_types[col].upper()
+            if col in column_types or col in join_key_columns:
                 try:
-                    if "INTEGER" in col_sql_type or col in join_key_columns:
-                        df[col] = pd.Series(df[col], dtype="Int64")
-                    elif "BOOLEAN" in col_sql_type:
-                        df[col] = df[col].astype("boolean")
-                    elif any(
-                        t in col_sql_type
-                        for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
+                    if col in join_key_columns or (
+                        col in column_types and "INTEGER" in column_types[col].upper()
                     ):
-                        df[col] = pd.to_numeric(df[col], errors="coerce")
+                        df[col] = pd.to_numeric(df[col], errors="coerce").astype(
+                            "Int64"
+                        )
+                    elif col in column_types:
+                        col_sql_type = column_types[col].upper()
+                        if "BOOLEAN" in col_sql_type:
+                            df[col] = df[col].astype("boolean")
+                        elif any(
+                            t in col_sql_type
+                            for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
+                        ):
+                            df[col] = pd.to_numeric(df[col], errors="coerce")
                 except (ValueError, TypeError):
                     pass
 

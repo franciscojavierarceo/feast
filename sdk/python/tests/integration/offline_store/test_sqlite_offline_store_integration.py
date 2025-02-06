@@ -10,7 +10,7 @@ from feast import FeatureService, FeatureStore, RepoConfig
 from feast.entity import Entity
 from feast.feature_view import FeatureView
 from feast.field import Field
-from feast.infra.offline_stores.sqlite import SQLiteOfflineStoreConfig
+from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
 from feast.infra.offline_stores.sqlite_source import SQLiteSource
 from feast.on_demand_feature_view import on_demand_feature_view
 from feast.saved_dataset import SavedDatasetStorage

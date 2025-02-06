@@ -49,6 +49,11 @@ class FeatureService:
     last_updated_timestamp: Optional[datetime] = None
     logging_config: Optional[LoggingConfig] = None
 
+    @property
+    def features(self) -> List[Union[FeatureView, OnDemandFeatureView]]:
+        """Returns the list of features associated with this feature service."""
+        return self._features
+
     def __init__(
         self,
         *,
