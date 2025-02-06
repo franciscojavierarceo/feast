@@ -37,7 +37,7 @@ def get_test_data():
 
 
 @pytest.fixture
-def feature_store():
+def sqlite_store():
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         store_config = SQLiteOfflineStoreConfig(
             type="sqlite",
@@ -87,8 +87,8 @@ def feature_store():
         yield fs, driver_stats_view, driver
 
 
-def test_basic_retrieval(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_basic_retrieval(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     entity_df = pd.DataFrame(
         {
@@ -129,8 +129,8 @@ def test_basic_retrieval(feature_store):
     assert "driver_stats__rating" in service_feature_data.columns
 
 
-def test_point_in_time_joins(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_point_in_time_joins(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test point-in-time correctness
     entity_df = pd.DataFrame(
@@ -149,8 +149,8 @@ def test_point_in_time_joins(feature_store):
     assert feature_data["value"].iloc[0] == 1.1
 
 
-def test_multiple_feature_views(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_multiple_feature_views(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create another feature view
     driver_extra_stats = FeatureView(
@@ -189,8 +189,8 @@ def test_multiple_feature_views(feature_store):
     assert feature_data["extra_value"].iloc[0] == feature_data["value"].iloc[0] * 2
 
 
-def test_missing_data_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_missing_data_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test with non-existent driver_id
     entity_df = pd.DataFrame(
@@ -210,8 +210,8 @@ def test_missing_data_handling(feature_store):
     assert pd.isna(feature_data["rating"].iloc[0])
 
 
-def test_data_type_validation(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_data_type_validation(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test with string data in numeric column
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -250,8 +250,8 @@ def test_data_type_validation(feature_store):
         conn.close()
 
 
-def test_large_query_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_large_query_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create a large number of entity rows
     num_rows = 10000
@@ -271,8 +271,8 @@ def test_large_query_handling(feature_store):
     assert len(feature_data) == num_rows
 
 
-def test_concurrent_access(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_concurrent_access(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     import queue
     import threading
@@ -318,8 +318,8 @@ def test_concurrent_access(feature_store):
         assert "value" in result.columns
 
 
-def test_transaction_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_transaction_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test transaction rollback
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -353,8 +353,8 @@ def test_transaction_handling(feature_store):
         conn.close()
 
 
-def test_query_timeout(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_query_timeout(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create a long-running query
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -381,8 +381,8 @@ def test_query_timeout(feature_store):
         conn.close()
 
 
-def test_invalid_sql_query(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_invalid_sql_query(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test with invalid SQL syntax
     invalid_view = FeatureView(
@@ -402,8 +402,8 @@ def test_invalid_sql_query(feature_store):
         fs.apply([invalid_view])
 
 
-def test_schema_validation(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_schema_validation(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test schema mismatch
     mismatched_view = FeatureView(
@@ -425,8 +425,8 @@ def test_schema_validation(feature_store):
         fs.apply([mismatched_view])
 
 
-def test_null_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_null_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create test data with NULL values
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -480,8 +480,8 @@ def test_null_handling(feature_store):
         conn.close()
 
 
-def test_datetime_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_datetime_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create test data with various datetime formats
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -546,8 +546,8 @@ def test_datetime_handling(feature_store):
         conn.close()
 
 
-def test_timezone_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_timezone_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test with timezone-aware timestamps
     entity_df = pd.DataFrame(
@@ -582,8 +582,8 @@ def test_timezone_handling(feature_store):
     assert "value" in feature_data_pst.columns
 
 
-def test_feature_persistence(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_persistence(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     entity_df = pd.DataFrame(
         {
@@ -617,8 +617,8 @@ def test_feature_persistence(feature_store):
         assert "rating" in [desc[0] for desc in cursor.description]
 
 
-def test_cleanup(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_cleanup(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create temporary tables
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -666,8 +666,8 @@ def test_cleanup(feature_store):
         conn.close()
 
 
-def test_feature_inference(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_inference(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create test data with various types
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -715,8 +715,8 @@ def test_feature_inference(feature_store):
         conn.close()
 
 
-def test_materialization(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_materialization(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     # Test materialization to online store
     _ = pd.DataFrame(
         {
@@ -747,8 +747,8 @@ def test_materialization(feature_store):
     assert len(online_features["driver_stats__value"]) == 2
 
 
-def test_incremental_materialization(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_incremental_materialization(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     now = datetime.utcnow()
     # Initial materialization
     fs.materialize(
@@ -813,8 +813,8 @@ def test_incremental_materialization(feature_store):
         conn.close()
 
 
-def test_feature_view_update(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_view_update(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create initial feature view
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
@@ -886,8 +886,8 @@ def test_feature_view_update(feature_store):
         conn.close()
 
 
-def test_feature_joins(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_joins(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     # Create test data with multiple tables
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
@@ -976,8 +976,8 @@ def test_feature_joins(feature_store):
         conn.close()
 
 
-def test_feature_aggregations(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_aggregations(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     # Create test data with multiple events per driver
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
@@ -1053,8 +1053,8 @@ def test_feature_aggregations(feature_store):
         conn.close()
 
 
-def test_on_demand_feature_view(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_on_demand_feature_view(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     # Create an on-demand feature view
     from feast import RequestSource
 
@@ -1100,8 +1100,8 @@ def test_on_demand_feature_view(feature_store):
     assert feature_data["scaled_value"].iloc[0] == feature_data["value"].iloc[0] * 2.0
 
 
-def test_feature_service(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_feature_service(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Create a feature service
     from feast import FeatureService
@@ -1133,8 +1133,8 @@ def test_feature_service(feature_store):
     assert "rating" in feature_data.columns
 
 
-def test_error_handling(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_error_handling(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test invalid SQL query
     with pytest.raises(Exception):
@@ -1179,8 +1179,8 @@ def test_error_handling(feature_store):
         )
 
 
-def test_edge_cases(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_edge_cases(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
 
     # Test empty entity DataFrame
     feature_data = fs.get_historical_features(
@@ -1232,8 +1232,8 @@ def test_edge_cases(feature_store):
     assert len(feature_data) == 3
 
 
-def test_data_validation(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_data_validation(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1297,8 +1297,8 @@ def test_data_validation(feature_store):
         conn.close()
 
 
-def test_schema_evolution(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_schema_evolution(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1379,8 +1379,8 @@ def test_schema_evolution(feature_store):
         conn.close()
 
 
-def test_data_partitioning(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_data_partitioning(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1446,8 +1446,8 @@ def test_data_partitioning(feature_store):
         conn.close()
 
 
-def test_performance_monitoring(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_performance_monitoring(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1517,8 +1517,8 @@ def test_performance_monitoring(feature_store):
         conn.close()
 
 
-def test_batch_operations(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_batch_operations(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1571,8 +1571,8 @@ def test_batch_operations(feature_store):
         conn.close()
 
 
-def test_data_consistency(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_data_consistency(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
@@ -1679,8 +1679,8 @@ def test_data_consistency(feature_store):
         conn.close()
 
 
-def test_query_optimization(feature_store):
-    fs, driver_stats_view, driver = feature_store
+def test_query_optimization(sqlite_store):
+    fs, driver_stats_view, driver = sqlite_store
     with tempfile.NamedTemporaryFile(suffix=".db") as temp_db:
         conn = sqlite3.connect(temp_db.name)
         cursor = conn.cursor()
