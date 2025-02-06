@@ -189,15 +189,7 @@ class SQLiteRetrievalJob(RetrievalJob):
     def _to_df_internal(self, timeout: Optional[int] = None) -> pd.DataFrame:
         """Convert query results to a pandas DataFrame."""
         arrow_table = self._to_arrow_internal(timeout=timeout)
-        # Convert integer columns to nullable Int64
-        for field in arrow_table.schema:
-            if pa.types.is_integer(field.type):
-                # Convert integer columns to pandas nullable Int64
-                arrow_table = arrow_table.set_column(
-                    arrow_table.schema.get_field_index(field.name),
-                    field.name,
-                    arrow_table.column(field.name).cast(pa.int64(), safe=True),
-                )
+        # Convert integer columns to Int64 during pandas conversion
         df = arrow_table.to_pandas(
             timestamp_as_object=False,
             date_as_object=False,
@@ -205,9 +197,7 @@ class SQLiteRetrievalJob(RetrievalJob):
             use_nullable_dtypes=True,
             split_blocks=True,
             self_destruct=True,
-            types_mapper=lambda pa_dtype: pd.Int64Dtype()
-            if pa.types.is_integer(pa_dtype)
-            else None,
+            types_mapper=lambda pa_dtype: pd.Int64Dtype() if pa.types.is_integer(pa_dtype) else None,
         )
         return df
 
@@ -511,6 +501,9 @@ class SQLiteOfflineStore(OfflineStore):
         >>> from feast import RepoConfig
         >>> from feast.infra.offline_stores.sqlite import SQLiteOfflineStoreConfig
         >>> config = RepoConfig(
+        ...     project="my_project",
+        ...     provider="local",
+        ...     registry="data/registry.db",
         ...     offline_store=SQLiteOfflineStoreConfig(
         ...         type="sqlite",
         ...         path="feast.db"
