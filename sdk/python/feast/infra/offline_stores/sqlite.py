@@ -196,11 +196,10 @@ class SQLiteRetrievalJob(RetrievalJob):
             use_nullable_dtypes=True,
             split_blocks=True,
             self_destruct=True,
+            types_mapper=lambda pa_dtype: pd.Int64Dtype()
+            if pa_dtype == pa.int64()
+            else None,
         )
-        # Convert integer columns to Int64
-        for col in df.columns:
-            if arrow_table.schema.field(col).type == pa.int64():
-                df[col] = df[col].astype("Int64")
         return df
 
     def to_sql(self) -> str:
@@ -347,8 +346,10 @@ class SQLiteRetrievalJob(RetrievalJob):
                                 valid_data.append(parsed_val)
                             except (ValueError, TypeError):
                                 valid_data.append(None)
+                    # Convert to nullable Int64 array with proper null handling
+                    int_series = pd.Series(valid_data, dtype="Int64")
                     arrays.append(
-                        pa.array(valid_data, type=pa.int64(), from_pandas=True)
+                        pa.array(int_series, mask=int_series.isna(), type=pa.int64())
                     )
                     schema_fields.append((col_name, pa.int64()))
                     continue
@@ -611,6 +612,7 @@ class SQLiteOfflineStore(OfflineStore):
                     if col in join_key_columns or (
                         col in column_types and "INTEGER" in column_types[col].upper()
                     ):
+                        # Convert to nullable Int64 type with proper null handling
                         df[col] = pd.to_numeric(df[col], errors="coerce").astype(
                             "Int64"
                         )
