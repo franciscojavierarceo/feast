@@ -10,11 +10,8 @@ from feast import RepoConfig
 from feast.entity import Entity
 from feast.feature_view import FeatureView
 from feast.field import Field
-from feast.infra.offline_stores.sqlite import (
-    SQLiteOfflineStore,
-    SQLiteOfflineStoreConfig,
-    SQLiteRetrievalJob,
-)
+from feast.infra.offline_stores.sqlite import SQLiteOfflineStore, SQLiteRetrievalJob
+from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
 from feast.infra.offline_stores.sqlite_source import SQLiteSource
 from feast.infra.registry.registry import Registry
 from feast.repo_config import RegistryConfig
@@ -274,7 +271,7 @@ def test_sqlite_data_type_mapping():
         conn.commit()
         source = SQLiteSource(table="test_types", timestamp_field="datetime_col")
         setattr(source, "_conn", conn)
-        df = store.pull_latest_from_table_or_query(
+        result = store.pull_latest_from_table_or_query(
             config=config,
             data_source=source,
             join_key_columns=["int_col"],
@@ -284,6 +281,7 @@ def test_sqlite_data_type_mapping():
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 1, 2),
         )
+        df = result.to_df()
         assert df["int_col"].dtype == "Int64"  # Using pandas nullable integer type
         assert df["real_col"].dtype == "float64"
         assert df["text_col"].dtype == "object"

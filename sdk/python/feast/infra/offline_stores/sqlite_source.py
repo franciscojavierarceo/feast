@@ -159,7 +159,10 @@ class SQLiteSource(DataSource):
 
         path = str(store_config.path or ":memory:")
         timeout = float(store_config.connection_timeout)
-        if hasattr(store_config, "_conn") and getattr(store_config, "_conn") is not None:
+        if (
+            hasattr(store_config, "_conn")
+            and getattr(store_config, "_conn") is not None
+        ):
             conn = getattr(store_config, "_conn")
             use_existing_conn = True
         else:

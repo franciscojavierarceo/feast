@@ -9,7 +9,6 @@ from typing import (
     Dict,
     Iterator,
     List,
-    Literal,
     Optional,
     Tuple,
     Union,
@@ -34,10 +33,11 @@ from feast.infra.offline_stores.offline_store import (
     RetrievalMetadata,
 )
 from feast.infra.offline_stores.offline_utils import build_point_in_time_query
+from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
 from feast.infra.offline_stores.sqlite_source import SQLiteSource
 from feast.infra.registry.base_registry import BaseRegistry
 from feast.on_demand_feature_view import OnDemandFeatureView
-from feast.repo_config import FeastConfigBaseModel, RepoConfig
+from feast.repo_config import RepoConfig
 from feast.saved_dataset import SavedDatasetStorage
 
 MULTIPLE_FEATURE_VIEW_POINT_IN_TIME_JOIN = """
@@ -130,9 +130,6 @@ SQLITE_TO_ARROW_TYPES = {
 }
 
 
-from feast.infra.offline_stores.sqlite_config import SQLiteOfflineStoreConfig
-
-
 class SQLiteRetrievalJob(RetrievalJob):
     """SQLite retrieval job implementation.
 
@@ -199,7 +196,9 @@ class SQLiteRetrievalJob(RetrievalJob):
             use_nullable_dtypes=True,
             split_blocks=True,
             self_destruct=True,
-            types_mapper=lambda pa_dtype: pd.Int64Dtype() if pa.types.is_integer(pa_dtype) else None
+            types_mapper=lambda pa_dtype: pd.Int64Dtype()
+            if pa.types.is_integer(pa_dtype)
+            else None,
         )
         return df
 
@@ -229,7 +228,6 @@ class SQLiteRetrievalJob(RetrievalJob):
         with self._query_generator() as query_and_params:
             if not isinstance(self.config.offline_store, SQLiteOfflineStoreConfig):
                 raise TypeError("Offline store config must be SQLiteOfflineStoreConfig")
-            
             store_config = self.config.offline_store
             path = getattr(store_config, "path", ":memory:")
             conn = getattr(store_config, "_conn", None)
@@ -286,31 +284,31 @@ class SQLiteRetrievalJob(RetrievalJob):
             data = cursor.fetchall()
             if not data:
                 # Get column types from cursor description for empty table
-                fields: List[Tuple[str, pa.DataType]] = []
+                field_list: List[Tuple[str, pa.DataType]] = []
                 for col in cursor.description:
                     col_name = str(col[0])
-                    col_type = str(col[1]).upper()
-                    if "INTEGER" in col_type:
+                    col_type_empty = str(col[1]).upper()
+                    if "INTEGER" in col_type_empty:
                         arrow_type = pa.int64()
-                    elif "REAL" in col_type or "NUMERIC" in col_type:
+                    elif "REAL" in col_type_empty or "NUMERIC" in col_type_empty:
                         arrow_type = pa.float64()
-                    elif "BOOLEAN" in col_type:
+                    elif "BOOLEAN" in col_type_empty:
                         arrow_type = pa.bool_()
-                    elif "DATETIME" in col_type:
+                    elif "DATETIME" in col_type_empty:
                         arrow_type = pa.timestamp("us")
-                    elif "DATE" in col_type:
+                    elif "DATE" in col_type_empty:
                         arrow_type = pa.date32()
-                    elif "TIME" in col_type:
+                    elif "TIME" in col_type_empty:
                         arrow_type = pa.time64("us")
                     else:
                         arrow_type = pa.string()
-                    fields.append((col_name, arrow_type))
-                schema = pa.schema(fields)
+                    field_list.append((col_name, arrow_type))
+                schema = pa.schema(field_list)
                 empty_arrays = [pa.array([], type=field.type) for field in schema]
                 return pa.Table.from_arrays(empty_arrays, schema=schema)
 
             # Create schema based on table info
-            field_list: List[Tuple[str, pa.DataType]] = []
+            schema_fields: List[Tuple[str, pa.DataType]] = []
             print("Using data type inference from cursor description")
 
             # First pass: collect column info and data
@@ -322,7 +320,9 @@ class SQLiteRetrievalJob(RetrievalJob):
                 # Extract column data and determine type
                 col_data: List[Any] = [row[col_idx] for row in data]
                 description_tuple = cursor.description[col_idx]
-                col_type_raw: Optional[str] = description_tuple[1] if description_tuple is not None else None
+                col_type_raw: Optional[str] = (
+                    description_tuple[1] if description_tuple is not None else None
+                )
                 col_type: str = str(col_type_raw) if col_type_raw is not None else ""
                 col_type_upper: str = col_type.upper()
 
@@ -339,8 +339,10 @@ class SQLiteRetrievalJob(RetrievalJob):
                                 valid_data.append(parsed_val)
                             except (ValueError, TypeError):
                                 valid_data.append(None)
-                    arrays.append(pa.array(valid_data, type=pa.int64(), from_pandas=True))
-                    field_list.append((col_name, pa.int64()))
+                    arrays.append(
+                        pa.array(valid_data, type=pa.int64(), from_pandas=True)
+                    )
+                    schema_fields.append((col_name, pa.int64()))
                     continue
                 elif any(
                     t in col_type_upper for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
@@ -358,7 +360,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                             except (ValueError, TypeError):
                                 float_data.append(None)
                     arrays.append(pa.array(float_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
                 elif "BOOLEAN" in col_type_upper or col_name.lower().endswith("_bool"):
                     arrow_type = pa.bool_()
@@ -378,7 +380,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                         else:
                             bool_data.append(None)
                     arrays.append(pa.array(bool_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
                 elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
                     arrow_type = pa.timestamp("us")
@@ -401,8 +403,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                             except (ValueError, TypeError):
                                 timestamp_data.append(None)
                     arrays.append(pa.array(timestamp_data, type=arrow_type))
-                    fields = fields if 'fields' in locals() else []
-                    fields.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
                 elif "DATE" in col_type_upper:
                     arrow_type = pa.date32()
@@ -420,8 +421,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                             except (ValueError, TypeError):
                                 date_data.append(None)
                     arrays.append(pa.array(date_data, type=arrow_type))
-                    fields = fields if 'fields' in locals() else []
-                    fields.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
                 elif "TIME" in col_type_upper:
                     arrow_type = pa.time64("us")
@@ -430,7 +430,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                         for val in col_data
                     ]
                     arrays.append(pa.array(time_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
                 else:
                     arrow_type = pa.string()
@@ -438,10 +438,10 @@ class SQLiteRetrievalJob(RetrievalJob):
                         str(val) if val is not None else None for val in col_data
                     ]
                     arrays.append(pa.array(str_data, type=arrow_type))
-                    field_list.append((col_name, arrow_type))
+                    schema_fields.append((col_name, arrow_type))
                     continue
 
-            schema = pa.schema(field_list)
+            schema = pa.schema(schema_fields)
             return pa.Table.from_arrays(arrays, schema=schema)
 
     @property
@@ -464,12 +464,10 @@ class SQLiteRetrievalJob(RetrievalJob):
         df = self.to_df()
         if not isinstance(self.config.offline_store, SQLiteOfflineStoreConfig):
             raise TypeError("Offline store config must be SQLiteOfflineStoreConfig")
-        
         store_config = self.config.offline_store
         path = getattr(store_config, "path", ":memory:")
         conn = sqlite3.connect(
-            str(path),
-            timeout=float(getattr(store_config, "connection_timeout", 5.0))
+            str(path), timeout=float(getattr(store_config, "connection_timeout", 5.0))
         )
         try:
             table_name = "feast_persisted_df"
@@ -516,8 +514,9 @@ class SQLiteOfflineStore(OfflineStore):
         end_date: datetime,
     ) -> RetrievalJob:
         if not isinstance(data_source, SQLiteSource):
-            raise ValueError(f"data_source must be SQLiteSource, not {type(data_source)}")
-        sqlite_source = cast(SQLiteSource, data_source)
+            raise ValueError(
+                f"data_source must be SQLiteSource, not {type(data_source)}"
+            )
         """Retrieves the latest feature values for the specified columns.
 
         Args:
@@ -543,7 +542,9 @@ class SQLiteOfflineStore(OfflineStore):
         # Get column types from data source
         column_types = {
             col_name: col_type
-            for col_name, col_type in data_source.get_table_column_names_and_types(config)
+            for col_name, col_type in data_source.get_table_column_names_and_types(
+                config
+            )
         }
 
         # Build field string with explicit type casting based on actual column types
@@ -551,7 +552,8 @@ class SQLiteOfflineStore(OfflineStore):
         field_string = ", ".join(
             [
                 f"CAST({col} AS INTEGER) AS {col}"
-                if col in join_key_columns or (col in column_types and "INTEGER" in column_types[col].upper())
+                if col in join_key_columns
+                or (col in column_types and "INTEGER" in column_types[col].upper())
                 else f"CAST(CASE WHEN {col} IN (1, '1', 'true', 't', 'yes', 'y') THEN 1 ELSE 0 END AS BOOLEAN) AS {col}"
                 if col in column_types and "BOOLEAN" in column_types[col].upper()
                 else f"{col} AS {col}"
@@ -591,24 +593,32 @@ class SQLiteOfflineStore(OfflineStore):
         # Convert columns to appropriate types based on SQLite schema
         column_types = {
             col_name: col_type
-            for col_name, col_type in data_source.get_table_column_names_and_types(config)
+            for col_name, col_type in data_source.get_table_column_names_and_types(
+                config
+            )
         }
-        
         for col in df.columns:
             if col in column_types:
-                col_type = column_types[col].upper()
+                col_sql_type = column_types[col].upper()
                 try:
-                    if "INTEGER" in col_type or col in join_key_columns:
+                    if "INTEGER" in col_sql_type or col in join_key_columns:
                         df[col] = pd.Series(df[col], dtype="Int64")
-                    elif "BOOLEAN" in col_type:
+                    elif "BOOLEAN" in col_sql_type:
                         df[col] = df[col].astype("boolean")
-                    elif any(t in col_type for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]):
+                    elif any(
+                        t in col_sql_type
+                        for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]
+                    ):
                         df[col] = pd.to_numeric(df[col], errors="coerce")
                 except (ValueError, TypeError):
                     pass
 
         # Convert integer columns based on SQLite type information
-        if isinstance(data_source, SQLiteSource) and hasattr(data_source, "_conn") and data_source._conn is not None:
+        if (
+            isinstance(data_source, SQLiteSource)
+            and hasattr(data_source, "_conn")
+            and data_source._conn is not None
+        ):
             if isinstance(data_source, SQLiteSource) and data_source._conn is not None:
                 cursor = data_source._conn.cursor()
                 if data_source.table:
@@ -620,12 +630,16 @@ class SQLiteOfflineStore(OfflineStore):
                             col_type = str(row[2]).upper()
                             if "INTEGER" in col_type and col_name in df.columns:
                                 try:
-                                    df[col_name] = pd.Series(df[col_name], dtype="Int64")
+                                    df[col_name] = pd.Series(
+                                        df[col_name], dtype="Int64"
+                                    )
                                 except (ValueError, TypeError):
                                     pass
                 elif data_source.query:
                     # For queries, we need to infer types from the result set
-                    cursor.execute(f"WITH query AS ({data_source.query}) SELECT * FROM query LIMIT 0")
+                    cursor.execute(
+                        f"WITH query AS ({data_source.query}) SELECT * FROM query LIMIT 0"
+                    )
                     description = cursor.description
                     if description is not None:
                         for desc in cast(List[Tuple[Any, ...]], description):
@@ -633,7 +647,9 @@ class SQLiteOfflineStore(OfflineStore):
                             col_type = str(desc[1]).upper()
                             if "INTEGER" in col_type and col_name in df.columns:
                                 try:
-                                    df[col_name] = pd.Series(df[col_name], dtype="Int64")
+                                    df[col_name] = pd.Series(
+                                        df[col_name], dtype="Int64"
+                                    )
                                 except (ValueError, TypeError):
                                     pass
 
@@ -734,7 +750,9 @@ class SQLiteOfflineStore(OfflineStore):
                 )
             finally:
                 if not isinstance(config.offline_store, SQLiteOfflineStoreConfig):
-                    raise TypeError("Offline store config must be SQLiteOfflineStoreConfig")
+                    raise TypeError(
+                        "Offline store config must be SQLiteOfflineStoreConfig"
+                    )
                 store_config = config.offline_store
                 path = getattr(store_config, "path", ":memory:")
                 conn_timeout = float(getattr(store_config, "connection_timeout", 5.0))
