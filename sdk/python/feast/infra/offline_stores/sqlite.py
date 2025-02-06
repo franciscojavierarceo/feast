@@ -269,8 +269,8 @@ class SQLiteRetrievalJob(RetrievalJob):
                     if not cursor.description:
                         print("Warning: No cursor description after query execution")
                         # Try to get column info from the table if available
-                        if hasattr(self, "_data_source") and self._data_source and hasattr(self._data_source, "table"):
-                            table_name = self._data_source.table
+                        if hasattr(self, "_data_source") and self._data_source and hasattr(self._data_source, "get_table_query_string"):
+                            table_name = self._data_source.get_table_query_string()
                             cursor.execute(f"PRAGMA table_info({table_name})")
                             table_info = cursor.fetchall()
                             if table_info:
@@ -324,23 +324,23 @@ class SQLiteRetrievalJob(RetrievalJob):
                     return pa.Table.from_arrays([], schema=pa.schema(fields))
 
                 # First pass: collect column info and data
-                fields = []
-                arrays = []
+                fields: List[Tuple[str, pa.DataType]] = []
+                arrays: List[pa.Array] = []
                 for col_idx, col in enumerate(cursor.description):
                     col_name = str(col[0])
                     print(f"Processing column {col_name}")
                     
                     # Extract column data and determine type
-                    col_data = [row[col_idx] for row in data]
+                    col_data: List[Any] = [row[col_idx] for row in data]
                     col_type = cursor.description[col_idx][1]
-                    col_type_upper = str(col_type).upper()
+                    col_type_upper: str = str(col_type).upper()
                     
                     # Convert data based on SQLite column type
                     if "INTEGER" in col_type_upper:
                         arrow_type = pa.int64()
                         # Handle integer conversion with explicit null handling
-                        valid_data = []
-                        valid_mask = []
+                        valid_data: List[int] = []
+                        valid_mask: List[bool] = []
                         for val in col_data:
                             if val is None:
                                 valid_data.append(0)
@@ -359,7 +359,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                         converted_data = [float(val) if val is not None else None for val in col_data]
                     elif "BOOLEAN" in col_type_upper or col_name == "bool_col":
                         arrow_type = pa.bool_()
-                        converted_data = []
+                        converted_data: List[Optional[bool]] = []
                         for val in col_data:
                             if val is None:
                                 converted_data.append(None)
@@ -373,7 +373,7 @@ class SQLiteRetrievalJob(RetrievalJob):
                                 converted_data.append(None)
                     elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
                         arrow_type = pa.timestamp('us')
-                        converted_data = []
+                        converted_data: List[Optional[np.datetime64]] = []
                         for val in col_data:
                             if val is None:
                                 converted_data.append(None)
@@ -548,11 +548,11 @@ class SQLiteOfflineStore(OfflineStore):
                 pass
 
         @contextlib.contextmanager
-        def query_generator() -> Iterator[str]:
+        def result_query_generator() -> Iterator[str]:
             yield "SELECT * FROM feast_persisted_df"
 
         return SQLiteRetrievalJob(
-            query=query_generator,
+            query=result_query_generator,
             config=config,
             full_feature_names=False,
             on_demand_feature_views=None,
