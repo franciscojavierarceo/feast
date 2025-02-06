@@ -22,3 +22,4 @@ class SQLiteOfflineStoreConfig(FeastConfigBaseModel):
         "feast.infra.offline_stores.sqlite.SQLiteOfflineStore"
     )
     _offline_store_class = "feast.infra.offline_stores.sqlite.SQLiteOfflineStore"
+    _supports_prefetch = True
