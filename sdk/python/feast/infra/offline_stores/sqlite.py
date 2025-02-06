@@ -339,31 +339,27 @@ class SQLiteRetrievalJob(RetrievalJob):
                     if "INTEGER" in col_type_upper:
                         arrow_type = pa.int64()
                         # Handle integer conversion with explicit null handling
-                        valid_data: List[int] = []
-                        valid_mask: List[bool] = []
+                        valid_data: List[Optional[int]] = []
                         for val in col_data:
                             if val is None:
-                                valid_data.append(0)
-                                valid_mask.append(False)
+                                valid_data.append(None)
                             else:
                                 try:
                                     valid_data.append(int(val))
-                                    valid_mask.append(True)
                                 except (ValueError, TypeError):
-                                    valid_data.append(0)
-                                    valid_mask.append(False)
-                        int_array = np.array(valid_data, dtype=np.int64)
-                        mask_array = np.array(valid_mask)
-                        arrays.append(pa.array(int_array, mask=~mask_array, type=arrow_type))
+                                    valid_data.append(None)
+                        arrays.append(pa.array(valid_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     elif any(t in col_type_upper for t in ["REAL", "FLOAT", "DOUBLE", "NUMERIC"]):
                         arrow_type = pa.float64()
-                        float_data = [float(val) if val is not None else None for val in col_data]
+                        float_data: List[Optional[float]] = [float(val) if val is not None else None for val in col_data]
                         arrays.append(pa.array(float_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     elif "BOOLEAN" in col_type_upper or col_name == "bool_col":
                         arrow_type = pa.bool_()
-                        bool_data = []
+                        bool_data: List[Optional[bool]] = []
                         for val in col_data:
                             if val is None:
                                 bool_data.append(None)
@@ -376,10 +372,11 @@ class SQLiteRetrievalJob(RetrievalJob):
                             else:
                                 bool_data.append(None)
                         arrays.append(pa.array(bool_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     elif any(t in col_type_upper for t in ["DATETIME", "TIMESTAMP"]):
                         arrow_type = pa.timestamp('us')
-                        timestamp_data = []
+                        timestamp_data: List[Optional[np.datetime64]] = []
                         for val in col_data:
                             if val is None:
                                 timestamp_data.append(None)
@@ -390,21 +387,25 @@ class SQLiteRetrievalJob(RetrievalJob):
                                 except (ValueError, TypeError):
                                     timestamp_data.append(None)
                         arrays.append(pa.array(timestamp_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     elif "DATE" in col_type_upper:
                         arrow_type = pa.date32()
-                        date_data = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
+                        date_data: List[Optional[np.datetime64]] = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
                         arrays.append(pa.array(date_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     elif "TIME" in col_type_upper:
                         arrow_type = pa.time64('us')
-                        time_data = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
+                        time_data: List[Optional[np.datetime64]] = [pd.Timestamp(val).to_datetime64() if val is not None else None for val in col_data]
                         arrays.append(pa.array(time_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     else:
                         arrow_type = pa.string()
-                        str_data = [str(val) if val is not None else None for val in col_data]
+                        str_data: List[Optional[str]] = [str(val) if val is not None else None for val in col_data]
                         arrays.append(pa.array(str_data, type=arrow_type))
+                        field_list.append((col_name, arrow_type))
                         continue
                     
                     fields.append((col_name, arrow_type))
