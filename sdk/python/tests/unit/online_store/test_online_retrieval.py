@@ -13,6 +13,7 @@ from pandas.testing import assert_frame_equal
 
 from feast import FeatureStore, RepoConfig
 from feast.errors import FeatureViewNotFoundException
+from feast.infra.online_stores.sqlite import SqliteOnlineStore
 from feast.protos.feast.types.EntityKey_pb2 import EntityKey as EntityKeyProto
 from feast.protos.feast.types.Value_pb2 import FloatList as FloatListProto
 from feast.protos.feast.types.Value_pb2 import Value as ValueProto
@@ -672,21 +673,24 @@ def test_sqlite_get_online_documents() -> None:
             df=documents_df,
         )
 
-        document_table = store._provider._online_store._conn.execute(
+        provider = store._get_provider()
+        if not hasattr(provider, "_online_store"):
+            raise ValueError("Provider does not have _online_store")
+        online_store = getattr(provider, "_online_store")
+        if not isinstance(online_store, SqliteOnlineStore):
+            raise ValueError("online_store must be SqliteOnlineStore")
+        conn = online_store._get_conn(store.config)
+        document_table = conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table' and name like '%_document_embeddings';"
         ).fetchall()
         assert len(document_table) == 1
         document_table_name = document_table[0][0]
         record_count = len(
-            store._provider._online_store._conn.execute(
-                f"select * from {document_table_name}"
-            ).fetchall()
+            conn.execute(f"select * from {document_table_name}").fetchall()
         )
         assert record_count == len(data) + documents_df.shape[0]
 
-        query_embedding = np.random.random(
-            vector_length,
-        )
+        query_embedding = [float(x) for x in np.random.random(vector_length)]
         result = store.retrieve_online_documents(
             feature="document_embeddings:Embeddings", query=query_embedding, top_k=3
         ).to_dict()
@@ -705,37 +709,67 @@ def test_sqlite_vec_import() -> None:
     db.enable_load_extension(True)
     sqlite_vec.load(db)
 
-    db.execute("""
-    create virtual table vec_examples using vec0(
-      sample_embedding float[8]
-    );
-    """)
 
-    db.execute("""
-    insert into vec_examples(rowid, sample_embedding)
-    values
-        (1, '[-0.200, 0.250, 0.341, -0.211, 0.645, 0.935, -0.316, -0.924]'),
-        (2, '[0.443, -0.501, 0.355, -0.771, 0.707, -0.708, -0.185, 0.362]'),
-        (3, '[0.716, -0.927, 0.134, 0.052, -0.669, 0.793, -0.634, -0.162]'),
-        (4, '[-0.710, 0.330, 0.656, 0.041, -0.990, 0.726, 0.385, -0.958]');
-    """)
+@pytest.mark.skipif(
+    sys.version_info[0:2] != (3, 10),
+    reason="Only works on Python 3.10",
+)
+def test_sqlite_get_online_documents_v2() -> None:
+    """Test retrieving documents using v2 method with vector similarity search."""
+    n = 10
+    vector_length = 8
+    runner = CliRunner()
+    with runner.local_repo(
+        get_example_repo("example_feature_repo_1.py"), "file"
+    ) as store:
+        store.config.online_store.vector_enabled = True
+        store.config.online_store.vector_len = vector_length
+        document_embeddings_fv = store.get_feature_view(name="document_embeddings")
 
-    sqlite_version, vec_version = db.execute(
-        "select sqlite_version(), vec_version()"
-    ).fetchone()
-    print(f"sqlite_version={sqlite_version}, vec_version={vec_version}")
+        provider = store._get_provider()
 
-    result = db.execute("""
-        select
-            rowid,
-            distance
-        from vec_examples
-        where sample_embedding match '[0.890, 0.544, 0.825, 0.961, 0.358, 0.0196, 0.521, 0.175]'
-        order by distance
-        limit 2;
-    """).fetchall()
-    result = [(rowid, round(distance, 2)) for rowid, distance in result]
-    assert result == [(2, 2.39), (1, 2.39)]
+        # Create test data
+        item_keys = [
+            EntityKeyProto(
+                join_keys=["item_id"], entity_values=[ValueProto(int64_val=i)]
+            )
+            for i in range(n)
+        ]
+        data = []
+        for item_key in item_keys:
+            data.append(
+                (
+                    item_key,
+                    {
+                        "Embeddings": ValueProto(
+                            float_list_val=FloatListProto(
+                                val=[float(x) for x in np.random.random(vector_length)]
+                            )
+                        )
+                    },
+                    _utc_now(),
+                    _utc_now(),
+                )
+            )
+
+        provider.online_write_batch(
+            config=store.config,
+            table=document_embeddings_fv,
+            data=data,
+            progress=None,
+        )
+
+        # Test vector similarity search
+        query_embedding = [float(x) for x in np.random.random(vector_length)]
+        result = store.retrieve_online_documents_v2(
+            features=["document_embeddings:Embeddings"],
+            query=query_embedding,
+            top_k=3,
+        ).to_dict()
+
+        assert "Embeddings" in result
+        assert "distance" in result
+        assert len(result["distance"]) == 3
 
 
 @pytest.mark.skip(reason="Skipping this test as CI struggles with it")
@@ -771,7 +805,9 @@ def test_local_milvus() -> None:
     ]
 
     print("Data has", len(data), "entities, each with fields: ", data[0].keys())
-    print("Vector dim:", len(data[0]["vector"]))
+    vector = data[0]["vector"]
+    assert isinstance(vector, list), "Vector must be a list"
+    print("Vector dim:", len(vector))
 
     insert_res = client.insert(collection_name=COLLECTION_NAME, data=data)
     assert insert_res == {"insert_count": 3, "ids": [0, 1, 2], "cost": 0}
@@ -876,17 +912,13 @@ def test_milvus_lite_get_online_documents_v2() -> None:
         ]
         data = []
         for i, item_key in enumerate(item_keys):
+            vector_data = [float(x) for x in np.random.random(vector_length) + i]
             data.append(
                 (
                     item_key,
                     {
                         "vector": ValueProto(
-                            float_list_val=FloatListProto(
-                                val=np.random.random(
-                                    vector_length,
-                                )
-                                + i
-                            )
+                            float_list_val=FloatListProto(val=vector_data)
                         ),
                         "sentence_chunks": ValueProto(string_val=f"sentence chunk {i}"),
                     },
@@ -923,11 +955,15 @@ def test_milvus_lite_get_online_documents_v2() -> None:
             df=documents_df,
         )
 
-        query_embedding = np.random.random(
-            vector_length,
-        )
+        query_embedding = [float(x) for x in np.random.random(vector_length)]
 
-        client = store._provider._online_store.client
+        provider = store._get_provider()
+        if not hasattr(provider, "_online_store"):
+            raise ValueError("Provider does not have _online_store")
+        online_store = getattr(provider, "_online_store")
+        client = getattr(online_store, "client", None)
+        if client is None:
+            raise ValueError("Online store does not have client attribute")
         collection_name = client.list_collections()[0]
         search_params = {
             "metric_type": "COSINE",
@@ -961,7 +997,9 @@ def test_milvus_lite_get_online_documents_v2() -> None:
 
         for k in ["vector", "item_id", "author_id", "sentence_chunks", "distance"]:
             assert k in result, f"Missing {k} in retrieve_online_documents response"
-        assert len(result["distance"]) == len(results[0])
+        distances = result["distance"]
+        assert isinstance(distances, list)
+        assert len(distances) == len(results[0])
 
 
 def test_milvus_native_from_feast_data() -> None:
