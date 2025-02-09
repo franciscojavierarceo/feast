@@ -100,6 +100,22 @@ feast.infra.offline\_stores.remote module
    :undoc-members:
    :show-inheritance:
 
+feast.infra.offline\_stores.sqlite module
+-------------------------------------------
+
+.. automodule:: feast.infra.offline_stores.sqlite
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+feast.infra.offline\_stores.sqlite\_source module
+---------------------------------------------------
+
+.. automodule:: feast.infra.offline_stores.sqlite_source
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 feast.infra.offline\_stores.snowflake module
 --------------------------------------------
 
