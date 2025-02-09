@@ -478,8 +478,7 @@ class KafkaSource(DataSource):
                 if data_source.batch_source
                 else None
             ),
-            kafka_settings=(DataSource.from_proto(data_source.kafka_options.kafka_settings) 
-                            if data_source.kafka_options.kafka_settings else None )
+            kafka_settings=dict(data_source.kafka_options.kafka_settings) if data_source.kafka_options.kafka_settings else None
         )
 
     def to_proto(self) -> DataSourceProto:
