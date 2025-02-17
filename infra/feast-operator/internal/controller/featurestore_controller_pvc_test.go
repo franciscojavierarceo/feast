@@ -104,16 +104,12 @@ var _ = Describe("FeatureStore Controller-Ephemeral services", func() {
 						},
 					},
 				}
-				resource.Spec.Services.Registry = &feastdevv1alpha1.Registry{
-					Local: &feastdevv1alpha1.LocalRegistryConfig{
-						Persistence: &feastdevv1alpha1.RegistryPersistence{
-							FilePersistence: &feastdevv1alpha1.RegistryFilePersistence{
-								Path: registryPath,
-								PvcConfig: &feastdevv1alpha1.PvcConfig{
-									Create:    &feastdevv1alpha1.PvcCreate{},
-									MountPath: registryMountPath,
-								},
-							},
+				resource.Spec.Services.Registry.Local.Persistence = &feastdevv1alpha1.RegistryPersistence{
+					FilePersistence: &feastdevv1alpha1.RegistryFilePersistence{
+						Path: registryPath,
+						PvcConfig: &feastdevv1alpha1.PvcConfig{
+							Create:    &feastdevv1alpha1.PvcCreate{},
+							MountPath: registryMountPath,
 						},
 					},
 				}
@@ -177,9 +173,9 @@ var _ = Describe("FeatureStore Controller-Ephemeral services", func() {
 			}
 			Expect(resource.Status.Applied.Services.OfflineStore.Persistence.FilePersistence.PvcConfig.Create.Resources).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.OfflineStore.Persistence.FilePersistence.PvcConfig.Create.Resources).To(Equal(expectedResources))
-			Expect(resource.Status.Applied.Services.OfflineStore.ImagePullPolicy).To(BeNil())
-			Expect(resource.Status.Applied.Services.OfflineStore.Resources).To(BeNil())
-			Expect(resource.Status.Applied.Services.OfflineStore.Image).To(Equal(&services.DefaultImage))
+			Expect(resource.Status.Applied.Services.OfflineStore.Server.ImagePullPolicy).To(BeNil())
+			Expect(resource.Status.Applied.Services.OfflineStore.Server.Resources).To(BeNil())
+			Expect(resource.Status.Applied.Services.OfflineStore.Server.Image).To(Equal(&services.DefaultImage))
 			Expect(resource.Status.Applied.Services.OnlineStore).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.OnlineStore.Persistence).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.OnlineStore.Persistence.FilePersistence).NotTo(BeNil())
@@ -195,11 +191,11 @@ var _ = Describe("FeatureStore Controller-Ephemeral services", func() {
 			}
 			Expect(resource.Status.Applied.Services.OnlineStore.Persistence.FilePersistence.PvcConfig.Create.Resources).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.OnlineStore.Persistence.FilePersistence.PvcConfig.Create.Resources).To(Equal(expectedResources))
-			Expect(resource.Status.Applied.Services.OnlineStore.Env).To(Equal(&[]corev1.EnvVar{{Name: testEnvVarName, Value: testEnvVarValue}, {Name: "fieldRefName", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "metadata.namespace"}}}}))
-			Expect(resource.Status.Applied.Services.OnlineStore.EnvFrom).To(Equal(withEnvFrom()))
-			Expect(resource.Status.Applied.Services.OnlineStore.ImagePullPolicy).To(Equal(&pullPolicy))
-			Expect(resource.Status.Applied.Services.OnlineStore.Resources).NotTo(BeNil())
-			Expect(resource.Status.Applied.Services.OnlineStore.Image).To(Equal(&image))
+			Expect(resource.Status.Applied.Services.OnlineStore.Server.Env).To(Equal(&[]corev1.EnvVar{{Name: testEnvVarName, Value: testEnvVarValue}, {Name: "fieldRefName", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "metadata.namespace"}}}}))
+			Expect(resource.Status.Applied.Services.OnlineStore.Server.EnvFrom).To(Equal(withEnvFrom()))
+			Expect(resource.Status.Applied.Services.OnlineStore.Server.ImagePullPolicy).To(Equal(&pullPolicy))
+			Expect(resource.Status.Applied.Services.OnlineStore.Server.Resources).NotTo(BeNil())
+			Expect(resource.Status.Applied.Services.OnlineStore.Server.Image).To(Equal(&image))
 			Expect(resource.Status.Applied.Services.Registry).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.Registry.Local).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.Registry.Local.Persistence).NotTo(BeNil())
@@ -216,9 +212,9 @@ var _ = Describe("FeatureStore Controller-Ephemeral services", func() {
 			}
 			Expect(resource.Status.Applied.Services.Registry.Local.Persistence.FilePersistence.PvcConfig.Create.Resources).NotTo(BeNil())
 			Expect(resource.Status.Applied.Services.Registry.Local.Persistence.FilePersistence.PvcConfig.Create.Resources).To(Equal(expectedResources))
-			Expect(resource.Status.Applied.Services.Registry.Local.ImagePullPolicy).To(BeNil())
-			Expect(resource.Status.Applied.Services.Registry.Local.Resources).To(BeNil())
-			Expect(resource.Status.Applied.Services.Registry.Local.Image).To(Equal(&services.DefaultImage))
+			Expect(resource.Status.Applied.Services.Registry.Local.Server.ImagePullPolicy).To(BeNil())
+			Expect(resource.Status.Applied.Services.Registry.Local.Server.Resources).To(BeNil())
+			Expect(resource.Status.Applied.Services.Registry.Local.Server.Image).To(Equal(&services.DefaultImage))
 
 			Expect(resource.Status.ServiceHostnames.OfflineStore).To(Equal(feast.GetFeastServiceName(services.OfflineFeastType) + "." + resource.Namespace + domain))
 			Expect(resource.Status.ServiceHostnames.OnlineStore).To(Equal(feast.GetFeastServiceName(services.OnlineFeastType) + "." + resource.Namespace + domain))

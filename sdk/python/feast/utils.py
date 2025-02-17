@@ -490,16 +490,28 @@ def _group_feature_refs(
     return fvs_result, odfvs_result
 
 
-def apply_list_mapping(
-    lst: Iterable[Any], mapping_indexes: Iterable[List[int]]
-) -> Iterable[Any]:
-    output_len = sum(len(item) for item in mapping_indexes)
-    output = [None] * output_len
-    for elem, destinations in zip(lst, mapping_indexes):
-        for idx in destinations:
-            output[idx] = elem
+def construct_response_feature_vector(
+    values_vector: Iterable[Any],
+    statuses_vector: Iterable[Any],
+    timestamp_vector: Iterable[Any],
+    mapping_indexes: Iterable[List[int]],
+    output_len: int,
+) -> GetOnlineFeaturesResponse.FeatureVector:
+    values_output: Iterable[Any] = [None] * output_len
+    statuses_output: Iterable[Any] = [None] * output_len
+    timestamp_output: Iterable[Any] = [None] * output_len
 
-    return output
+    for i, destinations in enumerate(mapping_indexes):
+        for idx in destinations:
+            values_output[idx] = values_vector[i]  # type: ignore[index]
+            statuses_output[idx] = statuses_vector[i]  # type: ignore[index]
+            timestamp_output[idx] = timestamp_vector[i]  # type: ignore[index]
+
+    return GetOnlineFeaturesResponse.FeatureVector(
+        values=values_output,
+        statuses=statuses_output,
+        event_timestamps=timestamp_output,
+    )
 
 
 def _augment_response_with_on_demand_transforms(
@@ -674,7 +686,7 @@ def _get_unique_entities(
     table: "FeatureView",
     join_key_values: Dict[str, List[ValueProto]],
     entity_name_to_join_key_map: Dict[str, str],
-) -> Tuple[Tuple[Dict[str, ValueProto], ...], Tuple[List[int], ...]]:
+) -> Tuple[Tuple[Dict[str, ValueProto], ...], Tuple[List[int], ...], int]:
     """Return the set of unique composite Entities for a Feature View and the indexes at which they appear.
 
     This method allows us to query the OnlineStore for data we need only once
@@ -687,31 +699,54 @@ def _get_unique_entities(
         entity_name_to_join_key_map,
         join_key_values,
     )
+    # Validate that all expected join keys exist and have non-empty values.
+    expected_keys = set(entity_name_to_join_key_map.values())
+    expected_keys.discard("__dummy_id")
+    missing_keys = sorted(
+        list(set([key for key in expected_keys if key not in table_entity_values]))
+    )
+    empty_keys = sorted(
+        list(set([key for key in expected_keys if not table_entity_values.get(key)]))
+    )
 
-    # Convert back to rowise.
-    keys = table_entity_values.keys()
-    # Sort the rowise data to allow for grouping but keep original index. This lambda is
-    # sufficient as Entity types cannot be complex (ie. lists).
+    if missing_keys or empty_keys:
+        if not any(table_entity_values.values()):
+            raise KeyError(
+                f"Missing join key values for keys: {missing_keys}. "
+                f"No values provided for keys: {empty_keys}. "
+                f"Provided join_key_values: {list(join_key_values.keys())}"
+            )
+
+    # Convert the column-oriented table_entity_values into row-wise data.
+    keys = list(table_entity_values.keys())
+    # Each row is a tuple of ValueProto objects corresponding to the join keys.
     rowise = list(enumerate(zip(*table_entity_values.values())))
+
+    # If there are no rows, return empty tuples.
+    if not rowise:
+        return (), (), 0
+
+    # Sort rowise so that rows with the same join key values are adjacent.
     rowise.sort(key=lambda row: tuple(getattr(x, x.WhichOneof("val")) for x in row[1]))
 
-    # Identify unique entities and the indexes at which they occur.
-    unique_entities: Tuple[Dict[str, ValueProto], ...]
-    indexes: Tuple[List[int], ...]
-    unique_entities, indexes = tuple(
-        zip(
-            *[
-                (dict(zip(keys, k)), [_[0] for _ in g])
-                for k, g in itertools.groupby(rowise, key=lambda x: x[1])
-            ]
-        )
-    )
-    return unique_entities, indexes
+    # Group rows by their composite join key value.
+    groups = [
+        (dict(zip(keys, key_tuple)), [idx for idx, _ in group])
+        for key_tuple, group in itertools.groupby(rowise, key=lambda row: row[1])
+    ]
+
+    # If no groups were formed (should not happen for valid input), return empty tuples.
+    if not groups:
+        return (), (), 0
+
+    # Unpack the unique entities and their original row indexes.
+    unique_entities, indexes = tuple(zip(*groups))
+    return unique_entities, indexes, len(rowise)
 
 
 def _get_unique_entities_from_values(
     table_entity_values: Dict[str, List[ValueProto]],
-) -> Tuple[Tuple[Dict[str, ValueProto], ...], Tuple[List[int], ...]]:
+) -> Tuple[Tuple[Dict[str, ValueProto], ...], Tuple[List[int], ...], int]:
     """Return the set of unique composite Entities for a Feature View and the indexes at which they appear.
 
     This method allows us to query the OnlineStore for data we need only once
@@ -735,7 +770,7 @@ def _get_unique_entities_from_values(
             ]
         )
     )
-    return unique_entities, indexes
+    return unique_entities, indexes, len(rowise)
 
 
 def _drop_unneeded_columns(
@@ -812,6 +847,7 @@ def _populate_response_from_feature_data(
     full_feature_names: bool,
     requested_features: Iterable[str],
     table: "FeatureView",
+    output_len: int,
 ):
     """Populate the GetOnlineFeaturesResponse with feature data.
 
@@ -830,33 +866,22 @@ def _populate_response_from_feature_data(
         requested_features: The names of the features in `feature_data`. This should be ordered in the same way as the
             data in `feature_data`.
         table: The FeatureView that `feature_data` was retrieved from.
+        output_len: The number of result rows in `online_features_response`.
     """
     # Add the feature names to the response.
+    table_name = table.projection.name_to_use()
     requested_feature_refs = [
-        (
-            f"{table.projection.name_to_use()}__{feature_name}"
-            if full_feature_names
-            else feature_name
-        )
+        f"{table_name}__{feature_name}" if full_feature_names else feature_name
         for feature_name in requested_features
     ]
     online_features_response.metadata.feature_names.val.extend(requested_feature_refs)
 
-    timestamps, statuses, values = zip(*feature_data)
-
-    # Populate the result with data fetched from the OnlineStore
-    # which is guaranteed to be aligned with `requested_features`.
-    for (
-        feature_idx,
-        (timestamp_vector, statuses_vector, values_vector),
-    ) in enumerate(zip(zip(*timestamps), zip(*statuses), zip(*values))):
-        online_features_response.results.append(
-            GetOnlineFeaturesResponse.FeatureVector(
-                values=apply_list_mapping(values_vector, indexes),
-                statuses=apply_list_mapping(statuses_vector, indexes),
-                event_timestamps=apply_list_mapping(timestamp_vector, indexes),
-            )
+    # Process each feature vector in a single pass
+    for timestamp_vector, statuses_vector, values_vector in feature_data:
+        response_vector = construct_response_feature_vector(
+            values_vector, statuses_vector, timestamp_vector, indexes, output_len
         )
+        online_features_response.results.append(response_vector)
 
 
 def _populate_response_from_feature_data_v2(
@@ -868,6 +893,7 @@ def _populate_response_from_feature_data_v2(
     indexes: Iterable[List[int]],
     online_features_response: GetOnlineFeaturesResponse,
     requested_features: Iterable[str],
+    output_len: int,
 ):
     """Populate the GetOnlineFeaturesResponse with feature data.
 
@@ -885,6 +911,7 @@ def _populate_response_from_feature_data_v2(
             "customer_fv__daily_transactions").
         requested_features: The names of the features in `feature_data`. This should be ordered in the same way as the
             data in `feature_data`.
+        output_len: The number of result rows in `online_features_response`.
     """
     # Add the feature names to the response.
     requested_feature_refs = [(feature_name) for feature_name in requested_features]
@@ -894,17 +921,11 @@ def _populate_response_from_feature_data_v2(
 
     # Populate the result with data fetched from the OnlineStore
     # which is guaranteed to be aligned with `requested_features`.
-    for (
-        feature_idx,
-        (timestamp_vector, statuses_vector, values_vector),
-    ) in enumerate(zip(zip(*timestamps), zip(*statuses), zip(*values))):
-        online_features_response.results.append(
-            GetOnlineFeaturesResponse.FeatureVector(
-                values=apply_list_mapping(values_vector, indexes),
-                statuses=apply_list_mapping(statuses_vector, indexes),
-                event_timestamps=apply_list_mapping(timestamp_vector, indexes),
-            )
+    for timestamp_vector, statuses_vector, values_vector in feature_data:
+        response_vector = construct_response_feature_vector(
+            values_vector, statuses_vector, timestamp_vector, indexes, output_len
         )
+        online_features_response.results.append(response_vector)
 
 
 def _convert_entity_key_to_proto_to_dict(
@@ -1223,33 +1244,32 @@ def _convert_rows_to_protobuf(
     requested_features: List[str],
     read_rows: List[Tuple[Optional[datetime], Optional[Dict[str, ValueProto]]]],
 ) -> List[Tuple[List[Timestamp], List["FieldStatus.ValueType"], List[ValueProto]]]:
-    # Each row is a set of features for a given entity key.
-    # We only need to convert the data to Protobuf once.
+    # Pre-calculate the length to avoid repeated calculations
+    n_rows = len(read_rows)
+
+    # Create single instances of commonly used values
     null_value = ValueProto()
-    read_row_protos = []
-    for read_row in read_rows:
-        row_ts_proto = Timestamp()
-        row_ts, feature_data = read_row
-        # TODO (Ly): reuse whatever timestamp if row_ts is None?
-        if row_ts is not None:
-            row_ts_proto.FromDatetime(row_ts)
-        event_timestamps = [row_ts_proto] * len(requested_features)
-        if feature_data is None:
-            statuses = [FieldStatus.NOT_FOUND] * len(requested_features)
-            values = [null_value] * len(requested_features)
-        else:
-            statuses = []
-            values = []
-            for feature_name in requested_features:
-                # Make sure order of data is the same as requested_features.
-                if feature_name not in feature_data:
-                    statuses.append(FieldStatus.NOT_FOUND)
-                    values.append(null_value)
-                else:
-                    statuses.append(FieldStatus.PRESENT)
-                    values.append(feature_data[feature_name])
-        read_row_protos.append((event_timestamps, statuses, values))
-    return read_row_protos
+    null_status = FieldStatus.NOT_FOUND
+    null_timestamp = Timestamp()
+    present_status = FieldStatus.PRESENT
+
+    requested_features_vectors = []
+    for feature_name in requested_features:
+        ts_vector = [null_timestamp] * n_rows
+        status_vector = [null_status] * n_rows
+        value_vector = [null_value] * n_rows
+        for idx, read_row in enumerate(read_rows):
+            row_ts_proto = Timestamp()
+            row_ts, feature_data = read_row
+            # TODO (Ly): reuse whatever timestamp if row_ts is None?
+            if row_ts is not None:
+                row_ts_proto.FromDatetime(row_ts)
+            ts_vector[idx] = row_ts_proto
+            if (feature_data is not None) and (feature_name in feature_data):
+                status_vector[idx] = present_status
+                value_vector[idx] = feature_data[feature_name]
+        requested_features_vectors.append((ts_vector, status_vector, value_vector))
+    return requested_features_vectors
 
 
 def has_all_tags(
