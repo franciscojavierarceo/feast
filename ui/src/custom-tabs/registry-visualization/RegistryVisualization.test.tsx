@@ -4,33 +4,39 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import RegistryVisualization from "./RegistryVisualization";
 
 // Mock ReactFlow since it's not compatible with Jest environment
-jest.mock("reactflow", () => ({
-  __esModule: true,
-  ReactFlow: () => <div data-testid="mock-react-flow">ReactFlow Mock</div>,
-  Controls: () => <div>Controls Mock</div>,
-  Background: () => <div>Background Mock</div>,
-  MiniMap: () => <div>MiniMap Mock</div>,
-  Panel: ({ children }) => <div>{children}</div>,
-  useReactFlow: () => ({
+jest.mock("reactflow", () => {
+  const mockReactFlow = () => <div data-testid="mock-react-flow">ReactFlow Mock</div>;
+  const mockControls = () => <div>Controls Mock</div>;
+  const mockBackground = () => <div>Background Mock</div>;
+  const mockMiniMap = () => <div>MiniMap Mock</div>;
+  const mockPanel = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+  const mockReactFlowProvider = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+  const mockUseReactFlow = () => ({
     fitView: jest.fn(),
     setNodes: jest.fn(),
     setEdges: jest.fn(),
-  }),
-  ReactFlowProvider: ({ children }) => <div>{children}</div>,
-  default: {
-    ReactFlow: () => <div data-testid="mock-react-flow">ReactFlow Mock</div>,
-    Controls: () => <div>Controls Mock</div>,
-    Background: () => <div>Background Mock</div>,
-    MiniMap: () => <div>MiniMap Mock</div>,
-    Panel: ({ children }) => <div>{children}</div>,
-    useReactFlow: () => ({
-      fitView: jest.fn(),
-      setNodes: jest.fn(),
-      setEdges: jest.fn(),
-    }),
-    ReactFlowProvider: ({ children }) => <div>{children}</div>,
-  }
-}));
+  });
+
+  return {
+    __esModule: true,
+    ReactFlow: mockReactFlow,
+    Controls: mockControls,
+    Background: mockBackground,
+    MiniMap: mockMiniMap,
+    Panel: mockPanel,
+    useReactFlow: mockUseReactFlow,
+    ReactFlowProvider: mockReactFlowProvider,
+    default: {
+      ReactFlow: mockReactFlow,
+      Controls: mockControls,
+      Background: mockBackground,
+      MiniMap: mockMiniMap,
+      Panel: mockPanel,
+      useReactFlow: mockUseReactFlow,
+      ReactFlowProvider: mockReactFlowProvider,
+    }
+  };
+});
 
 // Mock the custom hook
 jest.mock("./useRegistryVisualization", () => ({
