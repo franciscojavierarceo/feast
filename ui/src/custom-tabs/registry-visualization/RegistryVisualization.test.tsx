@@ -3,8 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "react-query";
 import RegistryVisualization from "./RegistryVisualization";
 
-// Mock CSS imports to avoid Jest errors
-jest.mock("reactflow/dist/style.css", () => ({}));
+// No need to mock CSS imports as they're conditionally imported in the component
 
 // Mock ReactFlow since it's not compatible with Jest environment
 jest.mock("reactflow", () => {

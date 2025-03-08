@@ -8,7 +8,7 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 // Import CSS conditionally to avoid Jest test failures
-if (process.env.NODE_ENV !== 'test') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
   require("reactflow/dist/style.css");
 }
 import {
