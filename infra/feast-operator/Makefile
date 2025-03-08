@@ -164,7 +164,6 @@ docker-build: ## Build docker image with the manager.
 feast-ci-dev-docker-img:
 	cd ./../.. && make build-feature-server-dev
 
-
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
