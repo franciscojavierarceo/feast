@@ -1,0 +1,36 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f5f7fa" />
+  
+  <!-- Header -->
+  <rect width="800" height="50" fill="#0569ff" />
+  <text x="20" y="30" font-family="Arial" font-size="16" fill="white">Feast Registry Visualization</text>
+  <rect x="600" y="10" width="80" height="30" rx="5" fill="#ffffff" />
+  <text x="615" y="30" font-family="Arial" font-size="12" fill="#0569ff">LR Layout</text>
+  <rect x="690" y="10" width="80" height="30" rx="5" fill="#0569ff" opacity="0.7" />
+  <text x="705" y="30" font-family="Arial" font-size="12" fill="white">TB Layout</text>
+  
+  <!-- Empty State Message -->
+  <rect x="200" y="200" width="400" height="200" rx="5" fill="white" stroke="#dddddd" />
+  <text x="300" y="250" font-family="Arial" font-size="18" font-weight="bold" fill="#333333">No Registry Data Available</text>
+  <text x="220" y="290" font-family="Arial" font-size="14" fill="#666666">No relationships found in the registry. This could be</text>
+  <text x="220" y="315" font-family="Arial" font-size="14" fill="#666666">because the registry is empty or the relationships</text>
+  <text x="220" y="340" font-family="Arial" font-size="14" fill="#666666">couldn't be parsed correctly.</text>
+  
+  <!-- Icon -->
+  <circle cx="400" cy="180" r="30" fill="#0569ff" opacity="0.2" />
+  <text x="390" y="190" font-family="Arial" font-size="30" fill="#0569ff">!</text>
+  
+  <!-- Controls -->
+  <rect x="20" y="520" width="120" height="60" rx="5" fill="white" stroke="#dddddd" />
+  <text x="45" y="550" font-family="Arial" font-size="12" fill="#666666">Controls</text>
+  
+  <!-- MiniMap -->
+  <rect x="700" y="520" width="80" height="60" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="710" y="530" width="60" height="40" fill="#f5f7fa" stroke="#dddddd" />
+  <text x="715" y="555" font-family="Arial" font-size="10" fill="#666666">MiniMap</text>
+  
+  <!-- Fit View Button -->
+  <rect x="680" y="60" width="100" height="30" rx="5" fill="#0569ff" />
+  <text x="705" y="80" font-family="Arial" font-size="12" fill="white">Fit View</text>
+</svg>

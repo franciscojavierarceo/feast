@@ -1,0 +1,84 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f5f7fa" />
+  
+  <!-- Header -->
+  <rect width="800" height="50" fill="#0569ff" />
+  <text x="20" y="30" font-family="Arial" font-size="16" fill="white">Feature Service: credit_score_service</text>
+  
+  <!-- Tabs -->
+  <rect width="800" height="40" y="50" fill="#ffffff" />
+  <rect x="20" y="55" width="80" height="30" rx="5" fill="#f5f7fa" />
+  <text x="35" y="75" font-family="Arial" font-size="12" fill="#666666">Overview</text>
+  
+  <rect x="110" y="55" width="80" height="30" rx="5" fill="#f5f7fa" />
+  <text x="130" y="75" font-family="Arial" font-size="12" fill="#666666">Schema</text>
+  
+  <rect x="200" y="55" width="100" height="30" rx="5" fill="#0569ff" />
+  <text x="215" y="75" font-family="Arial" font-size="12" fill="white">Visualization</text>
+  
+  <rect x="310" y="55" width="80" height="30" rx="5" fill="#f5f7fa" />
+  <text x="335" y="75" font-family="Arial" font-size="12" fill="#666666">Data</text>
+  
+  <!-- Entity Node -->
+  <rect x="100" y="200" width="150" height="100" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="100" y="200" width="150" height="5" fill="#2196F3" />
+  <text x="120" y="230" font-family="Arial" font-size="14" font-weight="bold" fill="#333333">customer</text>
+  <rect x="120" y="240" width="50" height="20" rx="10" fill="#2196F3" opacity="0.2" />
+  <text x="130" y="255" font-family="Arial" font-size="12" fill="#2196F3">Entity</text>
+  <text x="120" y="280" font-family="Arial" font-size="12" fill="#666666">Join Keys: customer_id</text>
+  
+  <!-- Feature View Node 1 -->
+  <rect x="350" y="150" width="150" height="100" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="350" y="150" width="150" height="5" fill="#FF9800" />
+  <text x="370" y="180" font-family="Arial" font-size="14" font-weight="bold" fill="#333333">customer_features</text>
+  <rect x="370" y="190" width="90" height="20" rx="10" fill="#FF9800" opacity="0.2" />
+  <text x="380" y="205" font-family="Arial" font-size="12" fill="#FF9800">Feature View</text>
+  <text x="370" y="230" font-family="Arial" font-size="12" fill="#666666">Features: age, income...</text>
+  
+  <!-- Feature View Node 2 -->
+  <rect x="350" y="300" width="150" height="100" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="350" y="300" width="150" height="5" fill="#FF9800" />
+  <text x="370" y="330" font-family="Arial" font-size="14" font-weight="bold" fill="#333333">transaction_features</text>
+  <rect x="370" y="340" width="90" height="20" rx="10" fill="#FF9800" opacity="0.2" />
+  <text x="380" y="355" font-family="Arial" font-size="12" fill="#FF9800">Feature View</text>
+  <text x="370" y="380" font-family="Arial" font-size="12" fill="#666666">Features: amount, date...</text>
+  
+  <!-- Feature Service Node -->
+  <rect x="600" y="225" width="150" height="100" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="600" y="225" width="150" height="5" fill="#E91E63" />
+  <text x="620" y="255" font-family="Arial" font-size="14" font-weight="bold" fill="#333333">credit_score_service</text>
+  <rect x="620" y="265" width="100" height="20" rx="10" fill="#E91E63" opacity="0.2" />
+  <text x="630" y="280" font-family="Arial" font-size="12" fill="#E91E63">Feature Service</text>
+  <text x="620" y="305" font-family="Arial" font-size="12" fill="#666666">Features: 12</text>
+  
+  <!-- Edges -->
+  <!-- Entity to Feature View 1 -->
+  <line x1="250" y1="225" x2="350" y2="200" stroke="#999999" stroke-width="2" />
+  <polygon points="345,200 350,200 347,205" fill="#999999" />
+  
+  <!-- Entity to Feature View 2 -->
+  <line x1="250" y1="250" x2="350" y2="325" stroke="#999999" stroke-width="2" />
+  <polygon points="345,325 350,325 347,330" fill="#999999" />
+  
+  <!-- Feature View 1 to Feature Service -->
+  <line x1="500" y1="200" x2="600" y2="250" stroke="#999999" stroke-width="2" />
+  <polygon points="595,250 600,250 597,255" fill="#999999" />
+  
+  <!-- Feature View 2 to Feature Service -->
+  <line x1="500" y1="325" x2="600" y2="275" stroke="#999999" stroke-width="2" />
+  <polygon points="595,275 600,275 597,280" fill="#999999" />
+  
+  <!-- Controls -->
+  <rect x="20" y="520" width="120" height="60" rx="5" fill="white" stroke="#dddddd" />
+  <text x="45" y="550" font-family="Arial" font-size="12" fill="#666666">Controls</text>
+  
+  <!-- MiniMap -->
+  <rect x="700" y="520" width="80" height="60" rx="5" fill="white" stroke="#dddddd" />
+  <rect x="710" y="530" width="60" height="40" fill="#f5f7fa" stroke="#dddddd" />
+  <text x="715" y="555" font-family="Arial" font-size="10" fill="#666666">MiniMap</text>
+  
+  <!-- Fit View Button -->
+  <rect x="680" y="100" width="100" height="30" rx="5" fill="#0569ff" />
+  <text x="705" y="120" font-family="Arial" font-size="12" fill="white">Fit View</text>
+</svg>

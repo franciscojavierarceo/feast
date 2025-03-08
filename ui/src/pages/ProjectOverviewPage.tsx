@@ -9,6 +9,7 @@ import {
   EuiSpacer,
   EuiSkeletonText,
   EuiEmptyPrompt,
+  EuiButton,
 } from "@elastic/eui";
 
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
@@ -16,11 +17,14 @@ import ObjectsCountStats from "../components/ObjectsCountStats";
 import ExplorePanel from "../components/ExplorePanel";
 import useLoadRegistry from "../queries/useLoadRegistry";
 import RegistryPathContext from "../contexts/RegistryPathContext";
+import { useNavigate, useParams } from "react-router-dom";
 
 const ProjectOverviewPage = () => {
   useDocumentTitle("Feast Home");
   const registryUrl = useContext(RegistryPathContext);
   const { isLoading, isSuccess, isError, data } = useLoadRegistry(registryUrl);
+  const navigate = useNavigate();
+  const { projectName } = useParams();
 
   return (
     <EuiPageTemplate panelled>
@@ -79,6 +83,14 @@ const ProjectOverviewPage = () => {
                 </EuiText>
               ))}
             <ObjectsCountStats />
+            <EuiSpacer />
+            <EuiButton
+              fill
+              iconType="visLine"
+              onClick={() => navigate(`${process.env.PUBLIC_URL || ""}/p/${projectName}/visualization`)}
+            >
+              View Registry Visualization
+            </EuiButton>
           </EuiFlexItem>
           <EuiFlexItem grow={1}>
             <ExplorePanel />

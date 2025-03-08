@@ -24,6 +24,7 @@ import DSDemoCustomTab from "./custom-tabs/data-source-demo-tab/DemoCustomTab";
 import EntDemoCustomTab from "./custom-tabs/entity-demo-tab/DemoCustomTab";
 import DatasetDemoCustomTab from "./custom-tabs/dataset-demo-tab/DemoCustomTab";
 import FDemoCustomTab from "./custom-tabs/feature-demo-tab/DemoCustomTab";
+import VisualizationTab from "./custom-tabs/registry-visualization/VisualizationTab";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,11 @@ const tabsRegistry = {
       label: "Custom Tab Demo",
       path: "fs-demo-tab",
       Component: FSDemoCustomTab,
+    },
+    {
+      label: "Registry Visualization",
+      path: "visualization",
+      Component: VisualizationTab,
     },
   ],
   DataSourceCustomTabs: [
