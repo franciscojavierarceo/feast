@@ -22,6 +22,7 @@ import DataSourceInstance from "./pages/data-sources/DataSourceInstance";
 import RootProjectSelectionPage from "./pages/RootProjectSelectionPage";
 import DatasetInstance from "./pages/saved-data-sets/DatasetInstance";
 import NoProjectGuard from "./components/NoProjectGuard";
+import RegistryVisualizationPage from "./pages/RegistryVisualizationPage";
 
 import TabsRegistryContext, {
   FeastTabsRegistryInterface,
@@ -80,6 +81,7 @@ const FeastUISansProviders = ({
                   <Route index element={<RootProjectSelectionPage />} />
                   <Route path={BASE_URL + "/p/:projectName/*"} element={<NoProjectGuard />}>
                     <Route index element={<ProjectOverviewPage />} />
+                    <Route path="visualization" element={<RegistryVisualizationPage />} />
                     <Route path="data-source/" element={<DatasourceIndex />} />
                     <Route
                       path="data-source/:dataSourceName/*"
