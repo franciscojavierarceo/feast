@@ -11,6 +11,17 @@ This component provides an interactive visualization of Feast registry metadata 
 - Available as both a standalone page and a Feature Service custom tab
 - Support for different layout directions (Left-to-Right, Top-to-Bottom)
 
+## Visualization Examples
+
+### Main Visualization Page
+![Main Visualization](./images/main-visualization.svg)
+
+### Feature Service Tab
+![Feature Service Tab](./images/feature-service-tab.svg)
+
+### Empty State
+![Empty State](./images/empty-state.svg)
+
 ## Implementation Details
 
 ### Components
