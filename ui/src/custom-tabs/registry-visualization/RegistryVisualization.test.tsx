@@ -5,17 +5,31 @@ import RegistryVisualization from "./RegistryVisualization";
 
 // Mock ReactFlow since it's not compatible with Jest environment
 jest.mock("reactflow", () => ({
+  __esModule: true,
   ReactFlow: () => <div data-testid="mock-react-flow">ReactFlow Mock</div>,
   Controls: () => <div>Controls Mock</div>,
   Background: () => <div>Background Mock</div>,
   MiniMap: () => <div>MiniMap Mock</div>,
-  Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Panel: ({ children }) => <div>{children}</div>,
   useReactFlow: () => ({
     fitView: jest.fn(),
     setNodes: jest.fn(),
     setEdges: jest.fn(),
   }),
-  ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ReactFlowProvider: ({ children }) => <div>{children}</div>,
+  default: {
+    ReactFlow: () => <div data-testid="mock-react-flow">ReactFlow Mock</div>,
+    Controls: () => <div>Controls Mock</div>,
+    Background: () => <div>Background Mock</div>,
+    MiniMap: () => <div>MiniMap Mock</div>,
+    Panel: ({ children }) => <div>{children}</div>,
+    useReactFlow: () => ({
+      fitView: jest.fn(),
+      setNodes: jest.fn(),
+      setEdges: jest.fn(),
+    }),
+    ReactFlowProvider: ({ children }) => <div>{children}</div>,
+  }
 }));
 
 // Mock the custom hook
@@ -26,6 +40,17 @@ jest.mock("./useRegistryVisualization", () => ({
     isError: false,
     getNodesAndEdges: () => ({ nodes: [], edges: [] }),
   }),
+}));
+
+// Mock the node types
+jest.mock("./CustomNodes", () => ({
+  __esModule: true,
+  nodeTypes: {
+    dataSourceNode: () => <div>Data Source Node</div>,
+    entityNode: () => <div>Entity Node</div>,
+    featureViewNode: () => <div>Feature View Node</div>,
+    featureServiceNode: () => <div>Feature Service Node</div>,
+  },
 }));
 
 const queryClient = new QueryClient();
