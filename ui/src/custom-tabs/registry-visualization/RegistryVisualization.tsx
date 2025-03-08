@@ -7,7 +7,10 @@ import ReactFlow, {
   useReactFlow,
   ReactFlowProvider,
 } from "reactflow";
-import "reactflow/dist/style.css";
+// Import CSS conditionally to avoid Jest test failures
+if (process.env.NODE_ENV !== 'test') {
+  require("reactflow/dist/style.css");
+}
 import {
   EuiButton,
   EuiFlexGroup,
@@ -33,9 +36,15 @@ const RegistryVisualizationInner = () => {
   useEffect(() => {
     if (!isLoading && !isError) {
       const data = getNodesAndEdges();
-      setGraphData(data);
+      // Use JSON.stringify to prevent infinite updates
+      const dataString = JSON.stringify(data);
+      const currentDataString = JSON.stringify(graphData);
+      
+      if (dataString !== currentDataString) {
+        setGraphData(data);
+      }
     }
-  }, [isLoading, isError, getNodesAndEdges]);
+  }, [isLoading, isError, getNodesAndEdges, graphData]);
 
   const onLayoutChange = useCallback(
     (optionId: string) => {
