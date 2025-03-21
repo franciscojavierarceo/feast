@@ -5,24 +5,11 @@ import { useContext } from "react";
 import RegistryPathContext from "../contexts/RegistryPathContext";
 import { FEAST_FV_TYPES } from "../parsers/mergedFVTypes";
 
-// Define Fuse.js types since @types/fuse.js doesn't exist
-declare module 'fuse.js' {
-  export interface FuseResult<T> {
-    item: T;
-    refIndex: number;
-    score?: number;
-  }
-  
-  export interface FuseOptions<T> {
-    includeScore?: boolean;
-    threshold?: number;
-    keys?: Array<string | { name: string; weight?: number }>;
-  }
-  
-  export default class Fuse<T> {
-    constructor(list: T[], options?: FuseOptions<T>);
-    search(pattern: string): Array<FuseResult<T>>;
-  }
+// Define type for Fuse.js result since we don't have @types/fuse.js
+interface FuseSearchResult<T> {
+  item: T;
+  refIndex: number;
+  score?: number;
 }
 
 export interface SearchResult {
@@ -140,7 +127,7 @@ const useGlobalSearch = (searchTerm: string) => {
     const results = fuse.search(searchTerm);
     
     // Return top 10 results
-    return results.slice(0, 10).map((result) => result.item);
+    return results.slice(0, 10).map((result: FuseSearchResult<SearchResult>) => result.item);
   }, [registryQuery.data, searchTerm]);
   
   return {
