@@ -583,11 +583,13 @@ class FeatureStore:
                 "This API is stable, but the functionality does not scale well for offline retrieval",
                 RuntimeWarning,
             )
-        _validate_feature_views([
-            *views_to_update,
-            *odfvs_to_update,
-            *sfvs_to_update,
-        ])
+        _validate_feature_views(
+            [
+                *views_to_update,
+                *odfvs_to_update,
+                *sfvs_to_update,
+            ]
+        )
 
     def _make_inferences(
         self,
@@ -866,7 +868,8 @@ class FeatureStore:
         views_to_update = [
             ob
             for ob in objects
-            if (
+            if
+            (
                 # BFVs are not handled separately from FVs right now.
                 (isinstance(ob, FeatureView) or isinstance(ob, BatchFeatureView))
                 and not isinstance(ob, StreamFeatureView)
@@ -1494,12 +1497,14 @@ class FeatureStore:
         fvs = self._fvs_for_push_source_or_raise(push_source_name, allow_registry_cache)
 
         if to == PushMode.ONLINE or to == PushMode.ONLINE_AND_OFFLINE:
-            _ = await asyncio.gather(*[
-                self.write_to_online_store_async(
-                    fv.name, df, allow_registry_cache=allow_registry_cache
-                )
-                for fv in fvs
-            ])
+            _ = await asyncio.gather(
+                *[
+                    self.write_to_online_store_async(
+                        fv.name, df, allow_registry_cache=allow_registry_cache
+                    )
+                    for fv in fvs
+                ]
+            )
 
         if to == PushMode.OFFLINE or to == PushMode.ONLINE_AND_OFFLINE:
 
@@ -1937,9 +1942,9 @@ class FeatureStore:
             distance_metric: The distance metric to use for retrieval.
             query_string: The query string to retrieve the closest document features using keyword search (bm25).
         """
-        assert query is not None or query_string is not None, (
-            "Either query or query_string must be provided."
-        )
+        assert (
+            query is not None or query_string is not None
+        ), "Either query or query_string must be provided."
 
         (
             available_feature_views,
@@ -2033,14 +2038,16 @@ class FeatureStore:
             else:
                 status = FieldStatus.PRESENT
 
-            read_row_protos.append((
-                row_ts_proto,
-                entity_key,
-                status,
-                feature_val,
-                vector_value,
-                distance_val,
-            ))
+            read_row_protos.append(
+                (
+                    row_ts_proto,
+                    entity_key,
+                    status,
+                    feature_val,
+                    vector_value,
+                    distance_val,
+                )
+            )
         return read_row_protos
 
     def _retrieve_from_online_store_v2(
@@ -2226,9 +2233,9 @@ class FeatureStore:
         if not isinstance(source, FeatureService):
             raise ValueError("Only feature service is currently supported as a source")
 
-        assert source.logging_config is not None, (
-            "Feature service must be configured with logging config in order to use this functionality"
-        )
+        assert (
+            source.logging_config is not None
+        ), "Feature service must be configured with logging config in order to use this functionality"
 
         assert isinstance(logs, (pa.Table, Path))
 
