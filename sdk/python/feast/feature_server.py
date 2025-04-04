@@ -350,7 +350,6 @@ def get_app(
         )
 
     if enable_chat_ui:
-
         @app.post("/chat")
         async def chat(request: ChatRequest):
             # Process the chat request
@@ -426,7 +425,6 @@ def get_app(
     manager = ConnectionManager()
 
     if enable_chat_ui:
-
         @app.websocket("/ws/chat")
         async def websocket_endpoint(websocket: WebSocket):
             await manager.connect(websocket)
