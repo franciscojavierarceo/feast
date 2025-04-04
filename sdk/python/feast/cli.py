@@ -982,6 +982,12 @@ def init_command(project_directory, minimal: bool, template: str):
     show_default=True,
     help="Enable the Metrics Server",
 )
+@click.option(
+    "--enable-chat-ui/--no-enable-chat-ui",
+    default=False,
+    show_default=True,
+    help="Whether to enable the chat UI and chat endpoints",
+)
 @click.pass_context
 def serve_command(
     ctx: click.Context,
@@ -995,6 +1001,7 @@ def serve_command(
     tls_key_path: str,
     tls_cert_path: str,
     registry_ttl_sec: int = 5,
+    enable_chat_ui: bool = False,
 ):
     """Start a feature server locally on a given port."""
     if (tls_key_path and not tls_cert_path) or (not tls_key_path and tls_cert_path):
@@ -1014,6 +1021,7 @@ def serve_command(
         tls_key_path=tls_key_path,
         tls_cert_path=tls_cert_path,
         registry_ttl_sec=registry_ttl_sec,
+        enable_chat_ui=enable_chat_ui,
     )
 
 

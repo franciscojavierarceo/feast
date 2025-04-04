@@ -133,6 +133,7 @@ def _get_features(request: GetOnlineFeaturesRequest, store: "feast.FeatureStore"
 def get_app(
     store: "feast.FeatureStore",
     registry_ttl_sec: int = DEFAULT_FEATURE_SERVER_REGISTRY_TTL,
+    enable_chat_ui: bool = False,
 ):
     """
     Creates a FastAPI app that can be used to start a feature server.
@@ -140,6 +141,7 @@ def get_app(
     Args:
         store: The FeatureStore to use for serving features
         registry_ttl_sec: The TTL in seconds for the registry cache
+        enable_chat_ui: Whether to enable the chat UI and chat endpoints
 
     Returns:
         A FastAPI app
@@ -347,20 +349,24 @@ def get_app(
             else Response(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         )
 
-    @app.post("/chat")
-    async def chat(request: ChatRequest):
-        # Process the chat request
-        # For now, just return dummy text
-        return {"response": "This is a dummy response from the Feast feature server."}
+    if enable_chat_ui:
 
-    @app.get("/chat")
-    async def chat_ui():
-        # Serve the chat UI
-        static_dir_ref = importlib_resources.files(__spec__.parent) / "static/chat"  # type: ignore[name-defined, arg-type]
-        with importlib_resources.as_file(static_dir_ref) as static_dir:
-            with open(os.path.join(static_dir, "index.html")) as f:
-                content = f.read()
-        return Response(content=content, media_type="text/html")
+        @app.post("/chat")
+        async def chat(request: ChatRequest):
+            # Process the chat request
+            # For now, just return dummy text
+            return {
+                "response": "This is a dummy response from the Feast feature server."
+            }
+
+        @app.get("/chat")
+        async def chat_ui():
+            # Serve the chat UI
+            static_dir_ref = importlib_resources.files(__spec__.parent) / "static/chat"  # type: ignore[name-defined, arg-type]
+            with importlib_resources.as_file(static_dir_ref) as static_dir:
+                with open(os.path.join(static_dir, "index.html")) as f:
+                    content = f.read()
+            return Response(content=content, media_type="text/html")
 
     @app.post("/materialize", dependencies=[Depends(inject_user_details)])
     def materialize(request: MaterializeRequest) -> None:
@@ -419,23 +425,25 @@ def get_app(
 
     manager = ConnectionManager()
 
-    @app.websocket("/ws/chat")
-    async def websocket_endpoint(websocket: WebSocket):
-        await manager.connect(websocket)
-        try:
-            while True:
-                message = await websocket.receive_text()
-                # Process the received message (currently unused but kept for future implementation)
-                # For now, just return dummy text
-                response = f"You sent: '{message}'. This is a dummy response from the Feast feature server."
+    if enable_chat_ui:
 
-                # Stream the response word by word
-                words = response.split()
-                for word in words:
-                    await manager.send_message(word + " ", websocket)
-                    await asyncio.sleep(0.1)  # Add a small delay between words
-        except WebSocketDisconnect:
-            manager.disconnect(websocket)
+        @app.websocket("/ws/chat")
+        async def websocket_endpoint(websocket: WebSocket):
+            await manager.connect(websocket)
+            try:
+                while True:
+                    message = await websocket.receive_text()
+                    # Process the received message (currently unused but kept for future implementation)
+                    # For now, just return dummy text
+                    response = f"You sent: '{message}'. This is a dummy response from the Feast feature server."
+
+                    # Stream the response word by word
+                    words = response.split()
+                    for word in words:
+                        await manager.send_message(word + " ", websocket)
+                        await asyncio.sleep(0.1)  # Add a small delay between words
+            except WebSocketDisconnect:
+                manager.disconnect(websocket)
 
     # Mount static files
     static_dir_ref = importlib_resources.files(__spec__.parent) / "static"  # type: ignore[name-defined, arg-type]
@@ -453,6 +461,7 @@ if sys.platform != "win32":
             self._app = get_app(
                 store=store,
                 registry_ttl_sec=options["registry_ttl_sec"],
+                enable_chat_ui=options.get("enable_chat_ui", False),
             )
             self._options = options
             super().__init__()
@@ -495,6 +504,7 @@ def start_server(
     tls_key_path: str,
     tls_cert_path: str,
     metrics: bool,
+    enable_chat_ui: bool = False,
 ):
     if (tls_key_path and not tls_cert_path) or (not tls_key_path and tls_cert_path):
         raise ValueError(
@@ -529,6 +539,7 @@ def start_server(
             "workers": workers,
             "keepalive": keep_alive_timeout,
             "registry_ttl_sec": registry_ttl_sec,
+            "enable_chat_ui": enable_chat_ui,
         }
 
         # Add SSL options if the paths exist
@@ -539,7 +550,7 @@ def start_server(
     else:
         import uvicorn
 
-        app = get_app(store, registry_ttl_sec)
+        app = get_app(store, registry_ttl_sec, enable_chat_ui)
         if tls_key_path and tls_cert_path:
             uvicorn.run(
                 app,

@@ -868,7 +868,8 @@ class FeatureStore:
         views_to_update = [
             ob
             for ob in objects
-            if (
+            if
+            (
                 # BFVs are not handled separately from FVs right now.
                 (isinstance(ob, FeatureView) or isinstance(ob, BatchFeatureView))
                 and not isinstance(ob, StreamFeatureView)
@@ -1941,9 +1942,9 @@ class FeatureStore:
             distance_metric: The distance metric to use for retrieval.
             query_string: The query string to retrieve the closest document features using keyword search (bm25).
         """
-        assert query is not None or query_string is not None, (
-            "Either query or query_string must be provided."
-        )
+        assert (
+            query is not None or query_string is not None
+        ), "Either query or query_string must be provided."
 
         (
             available_feature_views,
@@ -2128,6 +2129,7 @@ class FeatureStore:
         tls_key_path: str = "",
         tls_cert_path: str = "",
         registry_ttl_sec: int = 2,
+        enable_chat_ui: bool = False,
     ) -> None:
         """Start the feature consumption server locally on a given port."""
         type_ = type_.lower()
@@ -2147,6 +2149,7 @@ class FeatureStore:
             tls_key_path=tls_key_path,
             tls_cert_path=tls_cert_path,
             registry_ttl_sec=registry_ttl_sec,
+            enable_chat_ui=enable_chat_ui,
         )
 
     def get_feature_server_endpoint(self) -> Optional[str]:
@@ -2230,9 +2233,9 @@ class FeatureStore:
         if not isinstance(source, FeatureService):
             raise ValueError("Only feature service is currently supported as a source")
 
-        assert source.logging_config is not None, (
-            "Feature service must be configured with logging config in order to use this functionality"
-        )
+        assert (
+            source.logging_config is not None
+        ), "Feature service must be configured with logging config in order to use this functionality"
 
         assert isinstance(logs, (pa.Table, Path))
 

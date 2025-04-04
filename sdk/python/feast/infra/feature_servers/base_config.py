@@ -30,5 +30,8 @@ class BaseFeatureServerConfig(FeastConfigBaseModel):
     enabled: StrictBool = False
     """Whether the feature server should be launched."""
 
+    enable_chat_ui: StrictBool = False
+    """Whether the chat UI should be enabled in the feature server."""
+
     feature_logging: Optional[FeatureLoggingConfig] = None
     """ Feature logging configuration """
