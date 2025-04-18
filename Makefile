@@ -480,6 +480,7 @@ lint-python:
 	cd ${ROOT_DIR}/sdk/python; python -m mypy feast
 	cd ${ROOT_DIR}/sdk/python; python -m ruff check feast/ tests/
 	cd ${ROOT_DIR}/sdk/python; python -m ruff format --check feast/ tests
+	python ${ROOT_DIR}/infra/scripts/verify_package_files.py
 # Java
 
 install-java-ci-dependencies:
