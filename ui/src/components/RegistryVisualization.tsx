@@ -602,9 +602,11 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
       if (filterNode && filterNode.type && filterNode.name) {
         relationshipsToShow = relationshipsToShow.filter((rel) => {
           return (
-            (rel.source && rel.source.type === filterNode.type &&
+            (rel.source &&
+              rel.source.type === filterNode.type &&
               rel.source.name === filterNode.name) ||
-            (rel.target && rel.target.type === filterNode.type &&
+            (rel.target &&
+              rel.target.type === filterNode.type &&
               rel.target.name === filterNode.name)
           );
         });
