@@ -579,6 +579,7 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
   registryData,
   relationships,
   indirectRelationships,
+  filterNode,
 }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -636,6 +637,7 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
     indirectRelationships,
     showIndirectRelationships,
     showIsolatedNodes,
+    filterNode,
     setNodes,
     setEdges,
   ]);

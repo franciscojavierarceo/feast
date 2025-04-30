@@ -84,7 +84,7 @@ const RegistryVisualizationTab = () => {
                 <EuiSelect
                   options={[
                     { value: "", text: "All" },
-                    ...getObjectOptions(data.objects, selectedObjectType).map((name) => ({
+                    ...getObjectOptions(data.objects, selectedObjectType).map((name: string) => ({
                       value: name,
                       text: name,
                     })),
