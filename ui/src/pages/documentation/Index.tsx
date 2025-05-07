@@ -10,6 +10,9 @@ import {
 } from "@elastic/eui";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import CLIDocumentation from "./CLIDocumentation";
+import SDKDocumentation from "./SDKDocumentation";
+import APIDocumentation from "./APIDocumentation";
 import "./styles.css";
 
 const DocumentationIndex = () => {
@@ -28,22 +31,16 @@ const DocumentationIndex = () => {
     {
       id: "cli",
       name: "CLI Reference",
-      content: React.lazy(() => import("./CLIDocumentation")),
     },
     {
       id: "sdk",
       name: "SDK Reference",
-      content: React.lazy(() => import("./SDKDocumentation")),
     },
     {
       id: "api",
       name: "API Reference",
-      content: React.lazy(() => import("./APIDocumentation")),
     },
   ];
-
-  const selectedTabConfig = tabs.find((t) => t.id === activeTab) || tabs[0];
-  const TabContent = selectedTabConfig.content;
 
   const onSelectedTabChanged = (id: string) => {
     setActiveTab(id);
@@ -62,6 +59,19 @@ const DocumentationIndex = () => {
     ));
   };
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "cli":
+        return <CLIDocumentation />;
+      case "sdk":
+        return <SDKDocumentation />;
+      case "api":
+        return <APIDocumentation />;
+      default:
+        return <CLIDocumentation />;
+    }
+  };
+
   return (
     <EuiPageTemplate panelled>
       <EuiPageTemplate.Section>
@@ -74,9 +84,7 @@ const DocumentationIndex = () => {
         <EuiSpacer size="m" />
         <EuiTabs>{renderTabs()}</EuiTabs>
         <EuiSpacer size="m" />
-        <React.Suspense fallback={<EuiSkeletonText lines={10} />}>
-          <TabContent />
-        </React.Suspense>
+        {renderTabContent()}
       </EuiPageTemplate.Section>
     </EuiPageTemplate>
   );
