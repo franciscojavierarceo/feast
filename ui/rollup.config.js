@@ -55,6 +55,8 @@ const rollupConfig = [
       }),
       css({
         output: "feast-ui.css",
+        minify: true,
+        inject: false,
       }),
       svg(),
       json(),
@@ -96,6 +98,8 @@ const rollupConfig = [
       }),
       css({
         output: "feast-ui.css",
+        minify: true,
+        inject: false,
       }),
       svg(),
       json(),
