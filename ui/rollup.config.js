@@ -34,6 +34,7 @@ const rollupConfig = [
         sourcemap: "inline",
         banner,
         exports: "named",
+        inlineDynamicImports: true,
       },
     ],
     external: [
@@ -74,6 +75,7 @@ const rollupConfig = [
         sourcemap: "inline",
         banner,
         exports: "default",
+        inlineDynamicImports: true,
       },
     ],
     external: [
