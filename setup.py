@@ -173,6 +173,8 @@ TORCH_REQUIRED = [
 
 CLICKHOUSE_REQUIRED = ["clickhouse-connect>=0.7.19"]
 
+MLFLOW_REQUIRED = ["mlflow>=2.0.0"]
+
 CI_REQUIRED = (
     [
         "build",
@@ -346,6 +348,7 @@ setup(
         "pytorch": TORCH_REQUIRED,
         "nlp": NLP_REQUIRED,
         "clickhouse": CLICKHOUSE_REQUIRED,
+        "mlflow": MLFLOW_REQUIRED,
     },
     include_package_data=True,
     license="Apache",

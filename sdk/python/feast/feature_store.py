@@ -2539,6 +2539,62 @@ class FeatureStore:
         """Cleanup any long-lived clients and/or resources"""
         await self._get_provider().close()
 
+    def get_mlflow_client(self, tracking_uri: Optional[str] = None):
+        """
+        Get a MLFlow client for tracking features and models.
+
+        Args:
+            tracking_uri: Optional tracking URI for MLFlow. If not provided, the MLFlow
+                default will be used.
+
+        Returns:
+            MLFlowFeatureStoreClient instance.
+        """
+        from feast.integrations.mlflow.client import MLFlowFeatureStoreClient
+        return MLFlowFeatureStoreClient(tracking_uri=tracking_uri)
+
+    def log_features_to_mlflow(
+        self, 
+        features: Union[List[str], "FeatureService"],
+        entity_df: pd.DataFrame,
+        run_id: Optional[str] = None
+    ) -> str:
+        """
+        Log feature retrieval to MLFlow.
+
+        Args:
+            features: Feature references or a feature service.
+            entity_df: Entity dataframe for retrieving features.
+            run_id: Optional MLFlow run ID to log to. If not provided, a new run will be created.
+
+        Returns:
+            The MLFlow run ID.
+        """
+        from feast.integrations.mlflow.tracking import MLFlowLogger
+        import mlflow
+        
+        retrieval_job = self.get_historical_features(
+            entity_df=entity_df,
+            features=features
+        )
+        feature_df = retrieval_job.to_df()
+        
+        # Convert features to list of strings if it's a FeatureService
+        if not isinstance(features, list):
+            feature_names = []
+            for projection in features.feature_view_projections:
+                feature_names.extend([f"{projection.name}:{f}" for f in projection.features])
+        else:
+            feature_names = features
+            
+        run_context = mlflow.start_run(run_id=run_id) if run_id is None else mlflow.start_run(run_id=run_id)
+        with run_context:
+            return MLFlowLogger.log_features_retrieval(
+                feature_names=feature_names,
+                entity_df=entity_df,
+                feature_df=feature_df
+            )
+
 
 def _print_materialization_log(
     start_date, end_date, num_feature_views: int, online_store: str

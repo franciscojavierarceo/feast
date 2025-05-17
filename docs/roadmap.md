@@ -73,5 +73,6 @@ The list below contains the functionality that contributors are planning to deve
   * [x] Model-centric feature tracking (feature services)
   * [x] Amundsen integration (see [Feast extractor](https://github.com/amundsen-io/amundsen/blob/main/databuilder/databuilder/extractor/feast_extractor.py))
   * [x] DataHub integration (see [DataHub Feast docs](https://datahubproject.io/docs/generated/ingestion/sources/feast/))
+  * [x] MLFlow integration for tracking feature metadata and model versioning
   * [x] Feast Web UI (Beta release. See [docs](https://docs.feast.dev/reference/alpha-web-ui))
   * [ ] Feast Lineage Explorer
