@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional, Union, Any
-import pandas as pd
 from datetime import datetime
+from typing import Optional
 
 import mlflow  # type: ignore
 from mlflow.tracking import MlflowClient  # type: ignore
 
 from feast.feature_service import FeatureService
-from feast.saved_dataset import SavedDataset
 from feast.infra.offline_stores.offline_store import RetrievalJob
+from feast.saved_dataset import SavedDataset
 
 class MLFlowFeatureStoreClient:
     """
@@ -36,11 +35,9 @@ class MLFlowFeatureStoreClient:
         """
         with mlflow.start_run(run_name=f"feature_service_{feature_service.name}"):
             mlflow.log_param("feature_service_name", feature_service.name)
-            
             for feature_view_projection in feature_service.feature_view_projections:
                 view_name = feature_view_projection.name
                 features = feature_view_projection.features
-                
                 mlflow.log_param(f"{view_name}_feature_count", len(features))
                 for i, feature in enumerate(features):
                     mlflow.log_param(f"{view_name}_feature_{i}", feature)
@@ -57,17 +54,13 @@ class MLFlowFeatureStoreClient:
             The MLFlow run ID.
         """
         run_context = mlflow.start_run(run_id=run_id) if run_id is None else mlflow.start_run(run_id=run_id)
-        
         with run_context:
             mlflow.log_param("retrieval_timestamp", datetime.now().isoformat())
-            
             df = retrieval_job.to_df()
             mlflow.log_metric("row_count", len(df))
             mlflow.log_metric("column_count", len(df.columns))
-            
             for i, col in enumerate(df.columns):
                 mlflow.log_param(f"column_{i}", col)
-            
             active_run = mlflow.active_run()
             if active_run is None:
                 raise ValueError("No active MLflow run found")
@@ -85,29 +78,24 @@ class MLFlowFeatureStoreClient:
             The MLFlow run ID.
         """
         run_context = mlflow.start_run(run_id=run_id) if run_id is None else mlflow.start_run(run_id=run_id)
-        
         with run_context:
             mlflow.log_param("saved_dataset_name", saved_dataset.name)
             mlflow.log_param("feature_count", len(saved_dataset.features))
-            
             for i, feature in enumerate(saved_dataset.features):
                 mlflow.log_param(f"feature_{i}", feature)
-            
             for i, key in enumerate(saved_dataset.join_keys):
                 mlflow.log_param(f"join_key_{i}", key)
-            
             mlflow.log_param("min_event_timestamp", str(saved_dataset.min_event_timestamp))
             mlflow.log_param("max_event_timestamp", str(saved_dataset.max_event_timestamp))
-            
             active_run = mlflow.active_run()
             if active_run is None:
                 raise ValueError("No active MLflow run found")
             return active_run.info.run_id
 
     def register_model_with_features(
-        self, 
-        model_uri: str, 
-        name: str, 
+        self,
+        model_uri: str,
+        name: str,
         feature_service: FeatureService
     ) -> str:
         """
@@ -123,23 +111,19 @@ class MLFlowFeatureStoreClient:
         """
         result = mlflow.register_model(model_uri, name)
         model_version = result.version
-        
         self.client.set_model_version_tag(
             name=name,
             version=model_version,
             key="feature_service_name",
             value=feature_service.name
         )
-        
         feature_names = []
         for projection in feature_service.feature_view_projections:
             feature_names.extend([f"{projection.name}__{f}" for f in projection.features])
-        
         self.client.set_model_version_tag(
             name=name,
             version=model_version,
             key="feature_names",
             value=",".join(feature_names)
         )
-        
         return model_version

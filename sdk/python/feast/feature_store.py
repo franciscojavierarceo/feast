@@ -2554,7 +2554,7 @@ class FeatureStore:
         return MLFlowFeatureStoreClient(tracking_uri=tracking_uri)
 
     def log_features_to_mlflow(
-        self, 
+        self,
         features: Union[List[str], "FeatureService"],
         entity_df: pd.DataFrame,
         run_id: Optional[str] = None
@@ -2570,15 +2570,15 @@ class FeatureStore:
         Returns:
             The MLFlow run ID.
         """
+        import mlflow  # type: ignore
         from feast.integrations.mlflow.tracking import MLFlowLogger
-        import mlflow
-        
+
         retrieval_job = self.get_historical_features(
             entity_df=entity_df,
             features=features
         )
         feature_df = retrieval_job.to_df()
-        
+
         # Convert features to list of strings if it's a FeatureService
         if not isinstance(features, list):
             feature_names = []
@@ -2586,7 +2586,7 @@ class FeatureStore:
                 feature_names.extend([f"{projection.name}:{f}" for f in projection.features])
         else:
             feature_names = features
-            
+
         run_context = mlflow.start_run(run_id=run_id) if run_id is None else mlflow.start_run(run_id=run_id)
         with run_context:
             return MLFlowLogger.log_features_retrieval(
