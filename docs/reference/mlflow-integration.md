@@ -74,3 +74,42 @@ model_version = mlflow_client.register_model_with_features(
     feature_service=feature_service
 )
 ```
+
+### RAG Prompt Evaluation with MLFlow
+
+You can use MLFlow to evaluate different prompt templates in a Retrieval-Augmented Generation (RAG) system:
+
+```python
+from feast import FeatureStore
+import mlflow
+import numpy as np
+
+store = FeatureStore(repo_path="path/to/feature/repo")
+
+# Start an MLFlow experiment for prompt evaluation
+mlflow.set_experiment("rag_prompt_evaluation")
+
+# Evaluate different prompt templates
+for template_idx, template in enumerate(prompt_templates):
+    with mlflow.start_run(run_name=f"prompt_template_{template_idx}"):
+        # Log the prompt template
+        mlflow.log_param("prompt_template", template)
+        
+        # Evaluate each prompt against queries
+        for query in queries:
+            # Get embeddings and retrieve relevant documents
+            # ...
+            
+            # Evaluate metrics and log to MLFlow
+            metrics = evaluate_prompt(prompt=template, retrieved_docs=docs)
+            for metric_name, metric_value in metrics.items():
+                mlflow.log_metric(metric_name, metric_value)
+
+# Register the best prompt as a model
+mlflow.register_model(
+    model_uri=f"runs:/{best_run_id}/prompt_model",
+    name="best_rag_prompt"
+)
+```
+
+For a complete example, see the [RAG Prompt Evaluation Example](https://github.com/feast-dev/feast/tree/master/examples/mlflow_integration/rag_evaluation).
