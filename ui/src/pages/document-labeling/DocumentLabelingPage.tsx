@@ -18,6 +18,7 @@ import {
   EuiButtonGroup,
   EuiCode,
 } from "@elastic/eui";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface DocumentContent {
   content: string;
@@ -39,6 +40,7 @@ interface DocumentLabel {
 }
 
 const DocumentLabelingPage = () => {
+  const { colorMode } = useTheme();
   const [filePath, setFilePath] = useState("./src/test-document.txt");
   const [selectedText, setSelectedText] = useState<TextSelection | null>(null);
   const [labelingMode, setLabelingMode] = useState("relevant");
@@ -164,18 +166,23 @@ The final paragraph contains information about feature stores and real-time mach
     const result: (string | React.ReactElement)[] = [];
     let lastIndex = 0;
 
+    const isDarkMode = colorMode === "dark";
+
     sortedHighlights.forEach((highlight, index) => {
       result.push(content.slice(lastIndex, highlight.start));
 
-      let highlightColor = "#d4edda";
-      let borderColor = "#c3e6cb";
+      let highlightColor: string;
+      let borderColor: string;
 
       if (highlight.label === "temp-selection") {
-        highlightColor = "#add8e6";
-        borderColor = "#87ceeb";
+        highlightColor = isDarkMode ? "#1a4d66" : "#add8e6";
+        borderColor = isDarkMode ? "#2d6b8a" : "#87ceeb";
       } else if (highlight.label === "irrelevant") {
-        highlightColor = "#f8d7da";
-        borderColor = "#f5c6cb";
+        highlightColor = isDarkMode ? "#4d1a1a" : "#f8d7da";
+        borderColor = isDarkMode ? "#6b2d2d" : "#f5c6cb";
+      } else {
+        highlightColor = isDarkMode ? "#1a4d1a" : "#d4edda";
+        borderColor = isDarkMode ? "#2d6b2d" : "#c3e6cb";
       }
 
       result.push(
