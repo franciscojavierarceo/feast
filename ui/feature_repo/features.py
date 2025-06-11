@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 
 from feast import Entity, FeatureService, FeatureView, Field, FileSource
-from feast.data_source import RequestSource
+from feast.data_source import RequestSource, PushSource
+from feast.stream_feature_view import StreamFeatureView
 from feast.on_demand_feature_view import on_demand_feature_view
 from feast.permissions.action import AuthzedAction, READ
 from feast.permissions.permission import Permission
@@ -228,6 +229,32 @@ model_v1_permission = Permission(
     actions=[AuthzedAction.DESCRIBE, AuthzedAction.READ_ONLINE],
 )
 
+credit_stream_source = PushSource(
+    name="credit_stream",
+    batch_source=credit_history_source,
+)
+
+credit_stream_features = StreamFeatureView(
+    name="credit_stream_features",
+    entities=[dob_ssn],
+    ttl=timedelta(hours=1),
+    source=credit_stream_source,
+    schema=[
+        Field(name="real_time_credit_score", dtype=Int64),
+        Field(name="recent_transaction_count", dtype=Int64),
+        Field(name="account_balance", dtype=Float32),
+        Field(name="dob_ssn", dtype=String),
+    ],
+    tags={
+        "date_added": "2025-01-01",
+        "access_group": "streaming-team@feast.ai",
+        "stream_type": "real_time_monitoring",
+    },
+    online=True,
+    description="Real-time credit monitoring features from streaming data",
+    owner="streaming-team@feast.ai",
+)
+
 risky_features_permission = Permission(
     name="risky-features-reader",
     types=[FeatureView, FeatureService],
@@ -352,4 +379,14 @@ rag_model_permission = Permission(
     name_patterns=["rag_retriever"],
     policy=RoleBasedPolicy(roles=["ml_engineer", "app_developer"]),
     actions=[AuthzedAction.DESCRIBE, AuthzedAction.READ_ONLINE],
+)
+
+streaming_model = FeatureService(
+    name="streaming_credit_model",
+    features=[
+        credit_stream_features,
+        credit_history[["credit_card_due", "missed_payments_1y"]],
+    ],
+    tags={"owner": "streaming-team@feast.ai", "stage": "dev"},
+    description="Credit model with real-time streaming features",
 )

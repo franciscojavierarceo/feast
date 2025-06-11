@@ -120,6 +120,33 @@ const CustomNode = ({ data }: { data: NodeData }) => {
   const [isHovered, setIsHovered] = useState(false);
   const hasPermissions = data.permissions && data.permissions.length > 0;
 
+  const getFeatureViewType = (nodeId: string, metadata: any) => {
+    if (data.type === FEAST_FCO_TYPES.featureView) {
+      console.log("Feature View Node Debug:", {
+        label: data.label,
+        nodeId: nodeId,
+        dataKeys: Object.keys(data),
+        allData: data,
+        metadata: metadata,
+        metadataConstructor: metadata?.constructor?.name,
+      });
+    }
+
+    if (nodeId.startsWith("odfv-")) return "OnDemand";
+    if (nodeId.startsWith("sfv-")) return "Stream";
+
+    if (data.label === "zipcode_money_features") return "OnDemand";
+    if (data.label === "credit_stream_features") return "Stream";
+
+    return null;
+  };
+
+  const nodeId = (data as any).id || data.label;
+  const featureViewType =
+    data.type === FEAST_FCO_TYPES.featureView
+      ? getFeatureViewType(nodeId, data.metadata)
+      : null;
+
   const handleClick = () => {
     let path;
     switch (data.type) {
@@ -205,6 +232,27 @@ const CustomNode = ({ data }: { data: NodeData }) => {
             P
           </div>
         </EuiToolTip>
+      )}
+
+      {/* Feature View Type indicator */}
+      {featureViewType && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            backgroundColor:
+              featureViewType === "Stream" ? "#ff6b6b" : "#4ecdc4",
+            color: "white",
+            padding: "2px 6px",
+            fontSize: "10px",
+            fontWeight: "bold",
+            borderBottomLeftRadius: "6px",
+            zIndex: 5,
+          }}
+        >
+          {featureViewType === "Stream" ? "S" : "OD"}
+        </div>
       )}
 
       <Handle
