@@ -65,5 +65,7 @@ test("in a full App render, it shows the right initial project", async () => {
   // The selection should be updated - check that the project name is displayed
   await within(topLevelNavigation).findByText("Credit Score Project");
 
-  expect(within(topLevelNavigation).getByText("Credit Score Project")).toBeInTheDocument();
+  expect(
+    within(topLevelNavigation).getByText("Credit Score Project"),
+  ).toBeInTheDocument();
 }, 15000);
