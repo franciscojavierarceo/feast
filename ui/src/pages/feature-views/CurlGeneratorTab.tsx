@@ -115,7 +115,11 @@ const CurlGeneratorTab = ({
 
         {data?.features && data.features.length > 0 && (
           <>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Box sx={{ flexShrink: 0 }}>
                 <Typography variant="subtitle2" component="h3">
                   Features to Include (
@@ -160,7 +164,7 @@ const CurlGeneratorTab = ({
               </Box>
             </Stack>
             <Box sx={{ my: 1 }} />
-            <Paper variant="outlined" sx={{ p: 1, bgcolor: 'grey.50' }}>
+            <Paper variant="outlined" sx={{ p: 1, bgcolor: "grey.50" }}>
               {Array.from(
                 { length: Math.ceil(data.features.length / 5) },
                 (_, rowIndex) => (
@@ -186,7 +190,9 @@ const CurlGeneratorTab = ({
                             control={
                               <Checkbox
                                 id={`feature-${feature.name}`}
-                                checked={selectedFeatures[feature.name] !== false}
+                                checked={
+                                  selectedFeatures[feature.name] !== false
+                                }
                                 onChange={(e) =>
                                   setSelectedFeatures((prev) => ({
                                     ...prev,
@@ -235,16 +241,20 @@ const CurlGeneratorTab = ({
             </>
           )}
 
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
           <Box sx={{ flexShrink: 0 }}>
             <Typography variant="subtitle2" component="h3">
               Generated CURL Command
             </Typography>
           </Box>
           <Box sx={{ flexShrink: 0 }}>
-            <Button 
-              onClick={() => navigator.clipboard.writeText(curlCommand)} 
-              size="small" 
+            <Button
+              onClick={() => navigator.clipboard.writeText(curlCommand)}
+              size="small"
               startIcon={<ContentCopy />}
             >
               Copy to Clipboard

@@ -46,7 +46,9 @@ const Index = () => {
               <Typography>Loading</Typography>
             </Box>
           )}
-          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isError && (
+            <Typography>We encountered an error while loading.</Typography>
+          )}
           {isSuccess && data && <DatasetsListingTable datasets={data} />}
           {isSuccess && !data && <DatasetsIndexEmptyState />}
         </Box>

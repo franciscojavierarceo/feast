@@ -64,7 +64,15 @@ const RegistryVisualizationTab = () => {
         </Box>
       )}
       {isError && (
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", p: 4 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 4,
+          }}
+        >
           <Alert severity="error" sx={{ mb: 2 }}>
             <Typography variant="h6" component="h2">
               Error Loading Registry Data
@@ -72,7 +80,15 @@ const RegistryVisualizationTab = () => {
           </Alert>
           <Typography variant="body1">
             There was an error loading the Registry Data. Please check that{" "}
-            <Typography component="code" sx={{ fontFamily: "monospace", bgcolor: "grey.100", px: 0.5, borderRadius: 1 }}>
+            <Typography
+              component="code"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                px: 0.5,
+                borderRadius: 1,
+              }}
+            >
               feature_store.yaml
             </Typography>{" "}
             file is available and well-formed.

@@ -5,13 +5,7 @@ import {
   RegularFeatureViewCustomTabProps,
 } from "../types";
 
-import {
-  Skeleton,
-  Box,
-  Typography,
-  Button,
-  Stack,
-} from "@mui/material";
+import { Skeleton, Box, Typography, Button, Stack } from "@mui/material";
 
 import { Error as ErrorIcon } from "@mui/icons-material";
 
@@ -44,16 +38,16 @@ const DemoCustomTab = ({
   if (isError) {
     // Handle Data Fetching Error
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          p: 4 
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 4,
         }}
       >
-        <ErrorIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
+        <ErrorIcon sx={{ fontSize: 48, color: "error.main", mb: 2 }} />
         <Typography variant="h5" component="h2" gutterBottom>
           Unable to load your demo page
         </Typography>
@@ -75,14 +69,14 @@ const DemoCustomTab = ({
           <p>Hello World. The following is fetched data.</p>
           <Box sx={{ my: 2 }} />
           {isSuccess && data && (
-            <Typography 
-              component="pre" 
-              sx={{ 
-                fontFamily: 'monospace', 
-                bgcolor: 'grey.100', 
-                p: 1, 
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 1,
                 borderRadius: 1,
-                overflow: 'auto'
+                overflow: "auto",
               }}
             >
               {JSON.stringify(data, null, 2)}
@@ -93,14 +87,14 @@ const DemoCustomTab = ({
           <p>... and this is data from Feast UI&rsquo;s own query.</p>
           <Box sx={{ my: 2 }} />
           {feastObjectQuery.isSuccess && feastObjectQuery.data && (
-            <Typography 
-              component="pre" 
-              sx={{ 
-                fontFamily: 'monospace', 
-                bgcolor: 'grey.100', 
-                p: 1, 
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 1,
                 borderRadius: 1,
-                overflow: 'auto'
+                overflow: "auto",
               }}
             >
               {JSON.stringify(feastObjectQuery.data, null, 2)}

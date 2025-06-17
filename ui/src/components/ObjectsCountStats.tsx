@@ -1,10 +1,5 @@
 import React, { useContext } from "react";
-import {
-  Stack,
-  Box,
-  Divider,
-  Typography,
-} from "@mui/material";
+import { Stack, Box, Divider, Typography } from "@mui/material";
 import useLoadRegistry from "../queries/useLoadRegistry";
 import { useNavigate, useParams } from "react-router-dom";
 import RegistryPathContext from "../contexts/RegistryPathContext";
@@ -52,7 +47,7 @@ const ObjectsCountStats = () => {
           <Stack direction="row" spacing={2}>
             <Box sx={{ flexGrow: 1 }}>
               <Box
-                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
+                sx={{ ...statStyle, textAlign: "center", p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/feature-service`)}
               >
                 <Typography variant="h4">{data.featureServices}</Typography>
@@ -61,7 +56,7 @@ const ObjectsCountStats = () => {
             </Box>
             <Box sx={{ flexGrow: 1 }}>
               <Box
-                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
+                sx={{ ...statStyle, textAlign: "center", p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/feature-view`)}
               >
                 <Typography variant="h4">{data.featureViews}</Typography>
@@ -70,7 +65,7 @@ const ObjectsCountStats = () => {
             </Box>
             <Box sx={{ flexGrow: 1 }}>
               <Box
-                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
+                sx={{ ...statStyle, textAlign: "center", p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/entity`)}
               >
                 <Typography variant="h4">{data.entities}</Typography>
@@ -79,7 +74,7 @@ const ObjectsCountStats = () => {
             </Box>
             <Box sx={{ flexGrow: 1 }}>
               <Box
-                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
+                sx={{ ...statStyle, textAlign: "center", p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/data-source`)}
               >
                 <Typography variant="h4">{data.dataSources}</Typography>

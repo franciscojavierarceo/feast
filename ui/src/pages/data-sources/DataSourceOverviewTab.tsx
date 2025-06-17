@@ -45,9 +45,7 @@ const DataSourceOverviewTab = () => {
               <Stack direction="column" spacing={2}>
                 <Box>
                   <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="subtitle2">
-                      Properties
-                    </Typography>
+                    <Typography variant="subtitle2">Properties</Typography>
                     <Divider sx={{ my: 0.5 }} />
                     {data.fileOptions || data.bigqueryOptions ? (
                       <BatchSourcePropertiesView batchSource={data} />
@@ -104,14 +102,14 @@ const DataSourceOverviewTab = () => {
                     })}
                   />
                 ) : (
-                  <Typography variant="body1">No consuming feature views</Typography>
+                  <Typography variant="body1">
+                    No consuming feature views
+                  </Typography>
                 )}
               </Paper>
               <Box sx={{ my: 2 }} />
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle2">
-                  Permissions
-                </Typography>
+                <Typography variant="subtitle2">Permissions</Typography>
                 <Divider sx={{ my: 0.5 }} />
                 {registryQuery.data?.permissions ? (
                   <PermissionsDisplay

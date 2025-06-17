@@ -5,12 +5,7 @@ import {
   EntityCustomTabProps,
 } from "../types";
 
-import {
-  Skeleton,
-  Box,
-  Typography,
-  Stack,
-} from "@mui/material";
+import { Skeleton, Box, Typography, Stack } from "@mui/material";
 
 // Separating out the query is not required,
 // but encouraged for code readability
@@ -38,7 +33,15 @@ const DemoCustomTab = ({ id, feastObjectQuery }: EntityCustomTabProps) => {
   if (isError) {
     // Handle Data Fetching Error
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 4 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 4,
+        }}
+      >
         <Typography variant="h5" color="error" gutterBottom>
           Unable to load your demo page
         </Typography>
@@ -57,19 +60,41 @@ const DemoCustomTab = ({ id, feastObjectQuery }: EntityCustomTabProps) => {
     <React.Fragment>
       <Stack direction="row" spacing={2}>
         <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="body1">Hello World. The following is fetched data.</Typography>
+          <Typography variant="body1">
+            Hello World. The following is fetched data.
+          </Typography>
           <Box sx={{ my: 2 }} />
           {isSuccess && data && (
-            <Typography component="pre" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 1, borderRadius: 1, overflow: 'auto' }}>
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 1,
+                borderRadius: 1,
+                overflow: "auto",
+              }}
+            >
               {JSON.stringify(data, null, 2)}
             </Typography>
           )}
         </Box>
         <Box sx={{ flexGrow: 2 }}>
-          <Typography variant="body1">... and this is data from Feast UI&rsquo;s own query.</Typography>
+          <Typography variant="body1">
+            ... and this is data from Feast UI&rsquo;s own query.
+          </Typography>
           <Box sx={{ my: 2 }} />
           {feastObjectQuery.isSuccess && feastObjectQuery.data && (
-            <Typography component="pre" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 1, borderRadius: 1, overflow: 'auto' }}>
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 1,
+                borderRadius: 1,
+                overflow: "auto",
+              }}
+            >
               {JSON.stringify(feastObjectQuery.data, null, 2)}
             </Typography>
           )}

@@ -70,13 +70,12 @@ const RegularFeatureInstance = ({
             {data?.spec?.name}
           </Typography>
         </Box>
-        <Tabs value={tabs.findIndex(tab => tab.isSelected)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs
+          value={tabs.findIndex((tab) => tab.isSelected)}
+          sx={{ borderBottom: 1, borderColor: "divider" }}
+        >
           {tabs.map((tab, index) => (
-            <Tab
-              key={index}
-              label={tab.label}
-              onClick={tab.onClick}
-            />
+            <Tab key={index} label={tab.label} onClick={tab.onClick} />
           ))}
         </Tabs>
         <Box sx={{ mt: 2 }}>

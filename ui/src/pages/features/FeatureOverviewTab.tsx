@@ -55,7 +55,7 @@ const FeatureOverviewTab = () => {
                 <Divider sx={{ mx: 2 }} />
                 <List sx={{ p: 2 }}>
                   <ListItem sx={{ px: 0, py: 0.5 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary="Name"
                       secondary={featureData?.name}
                       primaryTypographyProps={{ variant: "subtitle2" }}
@@ -64,16 +64,18 @@ const FeatureOverviewTab = () => {
                   </ListItem>
 
                   <ListItem sx={{ px: 0, py: 0.5 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary="Value Type"
-                      secondary={feast.types.ValueType.Enum[featureData?.valueType!]}
+                      secondary={
+                        feast.types.ValueType.Enum[featureData?.valueType!]
+                      }
                       primaryTypographyProps={{ variant: "subtitle2" }}
                       secondaryTypographyProps={{ variant: "body2" }}
                     />
                   </ListItem>
 
                   <ListItem sx={{ px: 0, py: 0.5 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary="Description"
                       secondary={featureData?.description}
                       primaryTypographyProps={{ variant: "subtitle2" }}
@@ -82,7 +84,7 @@ const FeatureOverviewTab = () => {
                   </ListItem>
 
                   <ListItem sx={{ px: 0, py: 0.5 }}>
-                    <ListItemText 
+                    <ListItemText
                       primary="FeatureView"
                       secondary={
                         <CustomLink

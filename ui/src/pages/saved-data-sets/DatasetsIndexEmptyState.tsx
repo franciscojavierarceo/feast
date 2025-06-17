@@ -21,8 +21,8 @@ const DatasetsIndexEmptyState = () => {
         There are no saved datasets
       </Typography>
       <Typography variant="body1" sx={{ mb: 4, maxWidth: 600 }}>
-        You currently do not have any saved datasets. Learn more about
-        creating saved datasets in Feast Docs.
+        You currently do not have any saved datasets. Learn more about creating
+        saved datasets in Feast Docs.
       </Typography>
       <Button
         variant="contained"

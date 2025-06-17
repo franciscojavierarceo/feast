@@ -1,6 +1,15 @@
 import React, { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Paper, Stack, Box, Typography, Divider, Chip, TextField, InputAdornment } from "@mui/material";
+import {
+  Paper,
+  Stack,
+  Box,
+  Typography,
+  Divider,
+  Chip,
+  TextField,
+  InputAdornment,
+} from "@mui/material";
 import { Search } from "@mui/icons-material";
 
 const commandPaletteStyles: Record<string, React.CSSProperties> = {
@@ -215,7 +224,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                                 : commandPaletteStyles.searchResultItem
                             }
                           >
-                            <Stack direction="row" spacing={2} alignItems="flex-start">
+                            <Stack
+                              direction="row"
+                              spacing={2}
+                              alignItems="flex-start"
+                            >
                               <Box sx={{ flexGrow: 1 }}>
                                 <a
                                   href={item.link}
@@ -250,7 +263,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                               </Box>
                               {item.type && (
                                 <Box sx={{ flexShrink: 0 }}>
-                                  <Chip label={item.type} size="small" variant="filled" />
+                                  <Chip
+                                    label={item.type}
+                                    size="small"
+                                    variant="filled"
+                                  />
                                 </Box>
                               )}
                             </Stack>
@@ -261,7 +278,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                     </div>
                   ))
               ) : (
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.100' }}>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.100" }}>
                   <Typography variant="body1" textAlign="center">
                     No matches found for "{searchText}"
                   </Typography>
@@ -269,7 +286,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
               )}
             </div>
           ) : (
-            <Typography variant="body1" color="text.secondary" textAlign="center">
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              textAlign="center"
+            >
               Start typing to search...
             </Typography>
           )}

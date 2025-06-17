@@ -39,8 +39,8 @@ const RootProjectSelectionPage = () => {
               navigate(`/p/${item.id}`);
             }}
           >
-            <CardContent sx={{ textAlign: 'center', p: 3 }}>
-              <Box sx={{ mb: 2, '& svg': { width: 64, height: 64 } }}>
+            <CardContent sx={{ textAlign: "center", p: 3 }}>
+              <Box sx={{ mb: 2, "& svg": { width: 64, height: 64 } }}>
                 <FeastIconBlue />
               </Box>
               <Typography variant="h6" component="h2" gutterBottom>

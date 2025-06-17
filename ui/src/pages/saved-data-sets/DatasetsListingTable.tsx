@@ -1,5 +1,13 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../../protos";
@@ -24,15 +32,24 @@ const DatasetsListingTable = ({ datasets }: DatasetsListingTableProps) => {
         </TableHead>
         <TableBody>
           {datasets.map((dataset) => (
-            <TableRow key={dataset.spec?.name} data-test-subj={`row-${dataset.spec?.name}`}>
+            <TableRow
+              key={dataset.spec?.name}
+              data-test-subj={`row-${dataset.spec?.name}`}
+            >
               <TableCell>
-                <CustomLink to={`/p/${projectName}/data-set/${dataset.spec?.name}`}>
+                <CustomLink
+                  to={`/p/${projectName}/data-set/${dataset.spec?.name}`}
+                >
                   {dataset.spec?.name}
                 </CustomLink>
               </TableCell>
               <TableCell>{dataset.spec?.featureServiceName}</TableCell>
               <TableCell>
-                {toDate(dataset?.meta?.createdTimestamp!).toLocaleString("en-CA")!}
+                {
+                  toDate(dataset?.meta?.createdTimestamp!).toLocaleString(
+                    "en-CA",
+                  )!
+                }
               </TableCell>
             </TableRow>
           ))}

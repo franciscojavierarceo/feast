@@ -4,7 +4,16 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import { Paper, Stack, Box, Typography, Divider, Chip, TextField, InputAdornment } from "@mui/material";
+import {
+  Paper,
+  Stack,
+  Box,
+  Typography,
+  Divider,
+  Chip,
+  TextField,
+  InputAdornment,
+} from "@mui/material";
 import { Search } from "@mui/icons-material";
 import CustomLink from "./CustomLink";
 
@@ -168,7 +177,11 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
                               : searchResultsStyles.searchResultItem
                           }
                         >
-                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                          <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="flex-start"
+                          >
                             <div style={{ flexGrow: 1 }}>
                               <CustomLink
                                 to={item.link}
@@ -197,7 +210,7 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
                   </div>
                 ))
             ) : (
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.100' }}>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.100" }}>
                 <Typography variant="body1" textAlign="center">
                   No matches found for "{searchText}"
                 </Typography>

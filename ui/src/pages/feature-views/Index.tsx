@@ -113,8 +113,15 @@ const Index = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <FeatureViewIcon />
           <Typography variant="h4" component="h1">
             Feature Views
@@ -128,12 +135,14 @@ const Index = () => {
       </Box>
       <Box>
         {isLoading && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size="small" />
             <Typography>Loading</Typography>
           </Box>
         )}
-        {isError && <Typography>We encountered an error while loading.</Typography>}
+        {isError && (
+          <Typography>We encountered an error while loading.</Typography>
+        )}
         {isSuccess && data?.length === 0 && <FeatureViewIndexEmptyState />}
         {isSuccess && data && data.length > 0 && filterResult && (
           <React.Fragment>

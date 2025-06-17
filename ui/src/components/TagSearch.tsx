@@ -1,4 +1,13 @@
-import { Typography, Popover, Autocomplete, TextField, List, ListItem, ListItemText, Box } from "@mui/material";
+import {
+  Typography,
+  Popover,
+  Autocomplete,
+  TextField,
+  List,
+  ListItem,
+  ListItemText,
+  Box,
+} from "@mui/material";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -183,10 +192,12 @@ const TagSearch = ({
       </Typography>
       <Autocomplete
         options={options}
-        getOptionLabel={(option) => typeof option === 'string' ? option : option.label}
+        getOptionLabel={(option) =>
+          typeof option === "string" ? option : option.label
+        }
         value={null}
         onChange={(event, newValue) => {
-          if (newValue && typeof newValue !== 'string') {
+          if (newValue && typeof newValue !== "string") {
             acceptSuggestion(newValue.suggestion);
           }
         }}
@@ -203,7 +214,7 @@ const TagSearch = ({
         )}
         renderOption={(props, option) => (
           <ListItem {...props}>
-            <ListItemText 
+            <ListItemText
               primary={option.label}
               secondary={option.suggestion.description}
             />

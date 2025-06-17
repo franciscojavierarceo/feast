@@ -16,30 +16,32 @@ const TagsDisplay = ({
   description,
 }: TagsDisplayProps) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {owner ? (
         <Box key={"owner"}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>owner</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+            owner
+          </Typography>
           <Typography variant="body2">{owner}</Typography>
         </Box>
       ) : null}
       {description ? (
         <Box key={"description"}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>description</Typography>
-          <Typography variant="body2">
-            {description}
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+            description
           </Typography>
+          <Typography variant="body2">{description}</Typography>
         </Box>
       ) : null}
       {Object.entries(tags).map(([key, value]) => {
         return (
           <Box key={key}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{key}</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              {key}
+            </Typography>
             <Typography variant="body2">
               {createLink ? (
-                <CustomLink to={createLink(key, value)}>
-                  {value}
-                </CustomLink>
+                <CustomLink to={createLink(key, value)}>{value}</CustomLink>
               ) : (
                 value
               )}

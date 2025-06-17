@@ -31,21 +31,15 @@ const DatasetInstance = () => {
             Entity: {datasetName}
           </Typography>
         </Box>
-        <Tabs value={useMatchExact("") ? 0 : useMatchSubpath("expectations") ? 1 : 0}>
-          <Tab
-            label="Overview"
-            onClick={() => navigate("")}
-          />
-          <Tab
-            label="Expectations"
-            onClick={() => navigate("expectations")}
-          />
+        <Tabs
+          value={
+            useMatchExact("") ? 0 : useMatchSubpath("expectations") ? 1 : 0
+          }
+        >
+          <Tab label="Overview" onClick={() => navigate("")} />
+          <Tab label="Expectations" onClick={() => navigate("expectations")} />
           {customNavigationTabs.map((tab, index) => (
-            <Tab
-              key={index}
-              label={tab.label}
-              onClick={tab.onClick}
-            />
+            <Tab key={index} label={tab.label} onClick={tab.onClick} />
           ))}
         </Tabs>
         <Box sx={{ mt: 3 }}>

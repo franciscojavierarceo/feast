@@ -62,8 +62,15 @@ const Index = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <DataSourceIcon />
             <Typography variant="h4" component="h1">
               Data Sources
@@ -75,15 +82,17 @@ const Index = () => {
             formats={["json"]}
           />
         </Box>
-        
+
         <Box>
           {isLoading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <CircularProgress size="small" />
               <Typography>Loading</Typography>
             </Box>
           )}
-          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isError && (
+            <Typography>We encountered an error while loading.</Typography>
+          )}
           {isSuccess && !data && <DataSourceIndexEmptyState />}
           {isSuccess && data && data.length > 0 && filterResult && (
             <React.Fragment>

@@ -19,7 +19,7 @@ const NoProjectGuard = () => {
 
   if (isError) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
+      <Box sx={{ p: 3, textAlign: "center" }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           <Typography variant="h5" component="h2" gutterBottom>
             Error Loading Project List
@@ -27,14 +27,20 @@ const NoProjectGuard = () => {
           <Typography variant="body1">
             {projectListContext?.isCustom ? (
               <>
-                Unable to fetch project list. Check the promise provided to Feast
-                UI in <Typography component="code" sx={{ fontFamily: 'monospace' }}>projectListPromise</Typography>.
+                Unable to fetch project list. Check the promise provided to
+                Feast UI in{" "}
+                <Typography component="code" sx={{ fontFamily: "monospace" }}>
+                  projectListPromise
+                </Typography>
+                .
               </>
             ) : (
               <>
                 Unable to find
-                <Typography component="code" sx={{ fontFamily: 'monospace' }}>projects-list.json</Typography>. Check that you have a project
-                list file defined.
+                <Typography component="code" sx={{ fontFamily: "monospace" }}>
+                  projects-list.json
+                </Typography>
+                . Check that you have a project list file defined.
               </>
             )}
           </Typography>
@@ -49,15 +55,17 @@ const NoProjectGuard = () => {
 
   if (currentProject === undefined) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
+      <Box sx={{ p: 3, textAlign: "center" }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           <Typography variant="h5" component="h2" gutterBottom>
             Error Loading Project
           </Typography>
           <Typography variant="body1" gutterBottom>
             There is no project with id <strong>{projectName}</strong> in{" "}
-            <Typography component="code" sx={{ fontFamily: 'monospace' }}>projects-list.json</Typography>. Check that you have the correct
-            project id.
+            <Typography component="code" sx={{ fontFamily: "monospace" }}>
+              projects-list.json
+            </Typography>
+            . Check that you have the correct project id.
           </Typography>
           <Typography variant="body1" gutterBottom>
             You can also select one of the project in the following list:

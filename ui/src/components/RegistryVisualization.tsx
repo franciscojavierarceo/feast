@@ -789,9 +789,7 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
           alignItems: "center",
         }}
       >
-        <Typography variant="subtitle1">
-          Lineage
-        </Typography>
+        <Typography variant="subtitle1">Lineage</Typography>
         <div style={{ display: "flex", gap: "20px" }}>
           <label>
             <input

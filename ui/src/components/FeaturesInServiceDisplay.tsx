@@ -1,5 +1,13 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import CustomLink from "./CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../protos";
@@ -36,14 +44,21 @@ const FeaturesInServiceList = ({ featureViews }: FeatureViewsListInterace) => {
         </TableHead>
         <TableBody>
           {items.map((item, index) => (
-            <TableRow key={index} data-test-subj={`row-${item.featureViewName}`}>
+            <TableRow
+              key={index}
+              data-test-subj={`row-${item.featureViewName}`}
+            >
               <TableCell>
-                <CustomLink to={`/p/${projectName}/feature-view/${item.featureViewName}`}>
+                <CustomLink
+                  to={`/p/${projectName}/feature-view/${item.featureViewName}`}
+                >
                   {item.featureViewName}
                 </CustomLink>
               </TableCell>
               <TableCell>{item.name}</TableCell>
-              <TableCell>{feast.types.ValueType.Enum[item.valueType]}</TableCell>
+              <TableCell>
+                {feast.types.ValueType.Enum[item.valueType]}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -40,7 +40,9 @@ const FeatureViewListingTable = ({
         return (
           <CustomLink to={`/p/${projectName}/feature-view/${name}`}>
             {name}{" "}
-            {(item.type === "ondemand" && <Chip label="ondemand" size="small" />) ||
+            {(item.type === "ondemand" && (
+              <Chip label="ondemand" size="small" />
+            )) ||
               (item.type === "stream" && <Chip label="stream" size="small" />)}
           </CustomLink>
         );
@@ -100,10 +102,15 @@ const FeatureViewListingTable = ({
               {columns.map((column) => (
                 <TableCell key={column.name}>
                   {column.render
-                    ? column.render(column.field ? item[column.field as keyof genericFVType] : item, item)
+                    ? column.render(
+                        column.field
+                          ? item[column.field as keyof genericFVType]
+                          : item,
+                        item,
+                      )
                     : column.field
-                    ? String(item[column.field as keyof genericFVType])
-                    : ""}
+                      ? String(item[column.field as keyof genericFVType])
+                      : ""}
                 </TableCell>
               ))}
             </TableRow>

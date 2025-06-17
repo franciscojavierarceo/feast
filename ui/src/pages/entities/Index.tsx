@@ -34,7 +34,14 @@ const Index = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <EntityIcon />
             <Typography variant="h4" component="h1">
@@ -54,7 +61,9 @@ const Index = () => {
               <Typography>Loading</Typography>
             </Box>
           )}
-          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isError && (
+            <Typography>We encountered an error while loading.</Typography>
+          )}
           {isSuccess && !data && <EntityIndexEmptyState />}
           {isSuccess && data && <EntitiesListingTable entities={data} />}
         </Box>

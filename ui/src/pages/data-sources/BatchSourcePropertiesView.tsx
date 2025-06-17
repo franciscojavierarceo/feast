@@ -1,8 +1,5 @@
 import React from "react";
-import {
-  Box,
-  Typography,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { CopyBlock, atomOneDark } from "react-code-blocks";
 import { feast } from "../../protos";
 import { toDate } from "../../utils/timestamp";
@@ -15,12 +12,17 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
   const batchSource = props.batchSource;
   return (
     <React.Fragment>
-      <Box sx={{ display: 'flex' }}>
+      <Box sx={{ display: "flex" }}>
         <Box sx={{ flexShrink: 0 }}>
           <Box>
             {(batchSource.dataSourceClassType || batchSource.type) && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Source Type</Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
+                  Source Type
+                </Typography>
                 {batchSource.dataSourceClassType ? (
                   <Typography variant="body2" sx={{ mb: 2 }}>
                     {batchSource.dataSourceClassType.split(".").at(-1)}
@@ -37,7 +39,12 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
 
             {batchSource.owner && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Owner</Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
+                  Owner
+                </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.owner}
                 </Typography>
@@ -45,7 +52,12 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.description && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Description</Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
+                  Description
+                </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.description}
                 </Typography>
@@ -53,7 +65,12 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.fileOptions && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>File URL</Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
+                  File URL
+                </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.fileOptions ? batchSource.fileOptions.uri : ""}
                 </Typography>
@@ -61,7 +78,10 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.bigqueryOptions && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
                   Source {batchSource.bigqueryOptions.table ? "Table" : "Query"}
                 </Typography>
                 {batchSource.bigqueryOptions.table ? (
@@ -81,7 +101,12 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.meta?.latestEventTimestamp && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Latest Event</Typography>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
+                  Latest Event
+                </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   {toDate(
                     batchSource.meta.latestEventTimestamp,
@@ -91,7 +116,10 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.meta?.earliestEventTimestamp && (
               <React.Fragment>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: "bold", mb: 0.5 }}
+                >
                   Earliest Event
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>

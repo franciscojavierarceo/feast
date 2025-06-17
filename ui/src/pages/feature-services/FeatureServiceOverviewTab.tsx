@@ -53,24 +53,28 @@ const FeatureServiceOverviewTab = () => {
         <Stack direction="column" spacing={2}>
           <Stack direction="row" alignItems="center" spacing={2}>
             <Box sx={{ flexShrink: 0 }}>
-              <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ textAlign: "center" }}>
                 <Typography variant="h4">{numFeatures}</Typography>
                 <Typography variant="body1">Total Features</Typography>
               </Box>
             </Box>
-            <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{ textAlign: "center" }}>
               <p>from</p>
             </Box>
             <Box>
-              <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ textAlign: "center" }}>
                 <Typography variant="h4">{numFeatureViews}</Typography>
                 <Typography variant="body1">Feature Views</Typography>
               </Box>
             </Box>
             {data?.meta?.lastUpdatedTimestamp ? (
               <Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h4">{toDate(data?.meta?.lastUpdatedTimestamp!).toLocaleDateString("en-CA")}</Typography>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography variant="h4">
+                    {toDate(
+                      data?.meta?.lastUpdatedTimestamp!,
+                    ).toLocaleDateString("en-CA")}
+                  </Typography>
                   <Typography variant="body1">Last updated</Typography>
                 </Box>
               </Box>
@@ -113,7 +117,9 @@ const FeatureServiceOverviewTab = () => {
                     }}
                   />
                 ) : (
-                  <Typography variant="body1">No Tags specified on this feature service.</Typography>
+                  <Typography variant="body1">
+                    No Tags specified on this feature service.
+                  </Typography>
                 )}
               </Paper>
               <Box sx={{ my: 2 }} />
@@ -123,7 +129,7 @@ const FeatureServiceOverviewTab = () => {
                 </Typography>
                 <Divider sx={{ my: 0.5 }} />
                 {entities ? (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {entities.map((entity) => {
                       return (
                         <Box sx={{ flexShrink: 0 }} key={entity.name}>
@@ -162,7 +168,9 @@ const FeatureServiceOverviewTab = () => {
                     }
                   />
                 ) : (
-                  <Typography variant="body1">No feature views in this feature service</Typography>
+                  <Typography variant="body1">
+                    No feature views in this feature service
+                  </Typography>
                 )}
               </Paper>
               <Box sx={{ my: 2 }} />

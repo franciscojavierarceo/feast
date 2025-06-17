@@ -46,15 +46,15 @@ const StreamFeatureViewOverviewTab = ({
               Transformation
             </Typography>
             <Divider sx={{ my: 0.5 }} />
-            <Typography 
-              component="pre" 
-              sx={{ 
-                fontFamily: 'monospace', 
-                bgcolor: 'grey.100', 
-                p: 2, 
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 2,
                 borderRadius: 1,
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap'
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
               }}
             >
               {data.spec?.userDefinedFunction?.bodyText}
@@ -77,7 +77,9 @@ const StreamFeatureViewOverviewTab = ({
                 link={false}
               />
             ) : (
-              <Typography variant="body1">No Tags sepcified on this feature view.</Typography>
+              <Typography variant="body1">
+                No Tags sepcified on this feature view.
+              </Typography>
             )}
           </Paper>
         </Box>
@@ -102,15 +104,15 @@ const StreamFeatureViewOverviewTab = ({
                       </CustomLink>
                     </Typography>
                     <Box key={key}>
-                      <Typography 
-                        component="pre" 
-                        sx={{ 
-                          fontFamily: 'monospace', 
-                          bgcolor: 'grey.100', 
-                          p: 2, 
+                      <Typography
+                        component="pre"
+                        sx={{
+                          fontFamily: "monospace",
+                          bgcolor: "grey.100",
+                          p: 2,
                           borderRadius: 1,
-                          overflow: 'auto',
-                          whiteSpace: 'pre-wrap'
+                          overflow: "auto",
+                          whiteSpace: "pre-wrap",
                         }}
                       >
                         {JSON.stringify(inputGroup, null, 2)}
@@ -130,7 +132,9 @@ const StreamFeatureViewOverviewTab = ({
             {fsNames.length > 0 ? (
               <ConsumingFeatureServicesList fsNames={fsNames} />
             ) : (
-              <Typography variant="body1">No services consume this feature view</Typography>
+              <Typography variant="body1">
+                No services consume this feature view
+              </Typography>
             )}
           </Paper>
         </Box>

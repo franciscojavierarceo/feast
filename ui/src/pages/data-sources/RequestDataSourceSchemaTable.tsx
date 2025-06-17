@@ -1,5 +1,13 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import { feast } from "../../protos";
 
 interface RequestDataSourceSchemaField {
@@ -23,9 +31,14 @@ const RequestDataSourceSchemaTable = ({ fields }: RequestDataSourceSchema) => {
         </TableHead>
         <TableBody>
           {fields.map((item) => (
-            <TableRow key={item.fieldName} data-test-subj={`row-${item.fieldName}`}>
+            <TableRow
+              key={item.fieldName}
+              data-test-subj={`row-${item.fieldName}`}
+            >
               <TableCell>{item.fieldName}</TableCell>
-              <TableCell>{feast.types.ValueType.Enum[item.valueType]}</TableCell>
+              <TableCell>
+                {feast.types.ValueType.Enum[item.valueType]}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

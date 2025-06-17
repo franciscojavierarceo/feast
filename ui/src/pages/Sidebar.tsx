@@ -1,6 +1,13 @@
 import React, { useContext, useState } from "react";
 
-import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Collapse } from "@mui/material";
+import {
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Collapse,
+} from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { Link, useParams } from "react-router-dom";
 import { useMatchSubpath } from "../hooks/useMatchSubpath";
@@ -70,97 +77,137 @@ const SideNav = () => {
   return (
     <List component="nav" aria-label="Project Level">
       <ListItem>
-        <ListItemButton component={Link} to={`${baseUrl}`} selected={useMatchSubpath(`${baseUrl}$`)}>
+        <ListItemButton
+          component={Link}
+          to={`${baseUrl}`}
+          selected={useMatchSubpath(`${baseUrl}$`)}
+        >
           <ListItemIcon>
             <HomeIcon />
           </ListItemIcon>
           <ListItemText primary="Home" />
         </ListItemButton>
       </ListItem>
-      
+
       <ListItem>
         <ListItemButton onClick={() => setResourcesOpen(!resourcesOpen)}>
           <ListItemText primary="Resources" />
           {resourcesOpen ? <ExpandLess /> : <ExpandMore />}
         </ListItemButton>
       </ListItem>
-      
+
       <Collapse in={resourcesOpen} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/lineage`} selected={useMatchSubpath(`${baseUrl}/lineage`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/lineage`}
+              selected={useMatchSubpath(`${baseUrl}/lineage`)}
+            >
               <ListItemIcon>
                 <DataSourceIcon />
               </ListItemIcon>
               <ListItemText primary="Lineage" />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/data-source`} selected={useMatchSubpath(`${baseUrl}/data-source`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/data-source`}
+              selected={useMatchSubpath(`${baseUrl}/data-source`)}
+            >
               <ListItemIcon>
                 <DataSourceIcon />
               </ListItemIcon>
               <ListItemText primary={dataSourcesLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/entity`} selected={useMatchSubpath(`${baseUrl}/entity`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/entity`}
+              selected={useMatchSubpath(`${baseUrl}/entity`)}
+            >
               <ListItemIcon>
                 <EntityIcon />
               </ListItemIcon>
               <ListItemText primary={entitiesLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/features`} selected={useMatchSubpath(`${baseUrl}/features`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/features`}
+              selected={useMatchSubpath(`${baseUrl}/features`)}
+            >
               <ListItemIcon>
                 <FeatureIcon />
               </ListItemIcon>
               <ListItemText primary={featureListLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/feature-view`} selected={useMatchSubpath(`${baseUrl}/feature-view`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/feature-view`}
+              selected={useMatchSubpath(`${baseUrl}/feature-view`)}
+            >
               <ListItemIcon>
                 <FeatureViewIcon />
               </ListItemIcon>
               <ListItemText primary={featureViewsLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/feature-service`} selected={useMatchSubpath(`${baseUrl}/feature-service`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/feature-service`}
+              selected={useMatchSubpath(`${baseUrl}/feature-service`)}
+            >
               <ListItemIcon>
                 <FeatureServiceIcon />
               </ListItemIcon>
               <ListItemText primary={featureServicesLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/data-set`} selected={useMatchSubpath(`${baseUrl}/data-set`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/data-set`}
+              selected={useMatchSubpath(`${baseUrl}/data-set`)}
+            >
               <ListItemIcon>
                 <DatasetIcon />
               </ListItemIcon>
               <ListItemText primary={savedDatasetsLabel} />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/data-labeling`} selected={useMatchSubpath(`${baseUrl}/data-labeling`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/data-labeling`}
+              selected={useMatchSubpath(`${baseUrl}/data-labeling`)}
+            >
               <ListItemIcon>
                 <DataSourceIcon />
               </ListItemIcon>
               <ListItemText primary="Data Labeling" />
             </ListItemButton>
           </ListItem>
-          
+
           <ListItem sx={{ pl: 4 }}>
-            <ListItemButton component={Link} to={`${baseUrl}/permissions`} selected={useMatchSubpath(`${baseUrl}/permissions`)}>
+            <ListItemButton
+              component={Link}
+              to={`${baseUrl}/permissions`}
+              selected={useMatchSubpath(`${baseUrl}/permissions`)}
+            >
               <ListItemIcon>
                 <PermissionsIcon />
               </ListItemIcon>

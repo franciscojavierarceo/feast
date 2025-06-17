@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  Button,
-  Popover,
-  MenuList,
-  MenuItem,
-} from "@mui/material";
+import { Button, Popover, MenuList, MenuItem } from "@mui/material";
 
 interface ExportButtonProps {
   data: any[];
@@ -66,11 +61,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
   return (
     <>
-      <Button
-        color="primary"
-        variant="contained"
-        onClick={handleClick}
-      >
+      <Button color="primary" variant="contained" onClick={handleClick}>
         Export
       </Button>
       <Popover
@@ -78,8 +69,8 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         anchorEl={anchorEl}
         onClose={handleClose}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
+          vertical: "bottom",
+          horizontal: "left",
         }}
       >
         {exportMenu}

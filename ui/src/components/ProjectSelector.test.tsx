@@ -53,9 +53,11 @@ test("in a full App render, it shows the right initial project", async () => {
     name: /credit_scoring_aws/i,
   });
 
-  const selectElement = within(topLevelNavigation).getByLabelText("Select a Feast Project");
+  const selectElement = within(topLevelNavigation).getByLabelText(
+    "Select a Feast Project",
+  );
   await user.click(selectElement);
-  
+
   // Find and click the option
   const option = await screen.findByText("Credit Score Project");
   await user.click(option);

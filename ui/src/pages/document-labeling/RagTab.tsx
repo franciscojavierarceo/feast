@@ -309,10 +309,7 @@ The final paragraph contains information about feature stores and real-time mach
 
   return (
     <Box sx={{ p: 3 }}>
-      <Alert
-        severity="info"
-        sx={{ mb: 3 }}
-      >
+      <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="h6" component="div" sx={{ mb: 1 }}>
           Label document chunks for RAG
         </Typography>
@@ -366,10 +363,7 @@ The final paragraph contains information about feature stores and real-time mach
       )}
 
       {error && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2 }}
-        >
+        <Alert severity="error" sx={{ mb: 2 }}>
           <Typography variant="h6" component="div" sx={{ mb: 1 }}>
             Error loading document
           </Typography>
@@ -380,9 +374,7 @@ The final paragraph contains information about feature stores and real-time mach
       {documentContent && (
         <>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6">
-              RAG Context
-            </Typography>
+            <Typography variant="h6">RAG Context</Typography>
 
             <Stack direction="row" spacing={2}>
               <Box sx={{ flexGrow: 1 }}>
@@ -466,23 +458,28 @@ The final paragraph contains information about feature stores and real-time mach
           <Box sx={{ my: 3 }} />
 
           {selectedText && (
-            <Alert
-              severity="info"
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
                 Text selected for labeling
               </Typography>
-              <Typography sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', px: 0.5, borderRadius: 1, display: 'inline' }}>{selectedText.text}</Typography>
+              <Typography
+                sx={{
+                  fontFamily: "monospace",
+                  bgcolor: "grey.100",
+                  px: 0.5,
+                  borderRadius: 1,
+                  display: "inline",
+                }}
+              >
+                {selectedText.text}
+              </Typography>
             </Alert>
           )}
 
           <Box sx={{ my: 2 }} />
 
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6">
-              Document Content
-            </Typography>
+            <Typography variant="h6">Document Content</Typography>
 
             <Typography variant="body1">
               <div
@@ -501,9 +498,7 @@ The final paragraph contains information about feature stores and real-time mach
 
           <Box sx={{ my: 3 }} />
 
-          <Typography variant="h6">
-            Step 2: Label for Generation
-          </Typography>
+          <Typography variant="h6">Step 2: Label for Generation</Typography>
           <Box sx={{ my: 2 }} />
 
           <FormControl fullWidth>
@@ -545,10 +540,7 @@ The final paragraph contains information about feature stores and real-time mach
 
           {(labels.length > 0 || groundTruthLabel || prompt || query) && (
             <>
-              <Alert
-                severity="success"
-                sx={{ mb: 2 }}
-              >
+              <Alert severity="success" sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
                   Ready to save
                 </Typography>
@@ -565,10 +557,7 @@ The final paragraph contains information about feature stores and real-time mach
 
           {hasUnsavedChanges && (
             <>
-              <Alert
-                severity="warning"
-                sx={{ mb: 2 }}
-              >
+              <Alert severity="warning" sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
                   Unsaved changes
                 </Typography>
@@ -590,16 +579,27 @@ The final paragraph contains information about feature stores and real-time mach
                 </Typography>
 
                 {labels.map((label, index) => (
-                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                  <Stack
+                    key={index}
+                    direction="row"
+                    alignItems="center"
+                    spacing={1}
+                  >
                     <Box sx={{ flexShrink: 0 }}>
-                      <Typography 
-                        sx={{ 
-                          fontFamily: 'monospace', 
-                          bgcolor: label.label === "relevant" ? 'success.light' : 'error.light',
-                          color: label.label === "relevant" ? 'success.dark' : 'error.dark',
-                          px: 0.5, 
-                          borderRadius: 1, 
-                          display: 'inline' 
+                      <Typography
+                        sx={{
+                          fontFamily: "monospace",
+                          bgcolor:
+                            label.label === "relevant"
+                              ? "success.light"
+                              : "error.light",
+                          color:
+                            label.label === "relevant"
+                              ? "success.dark"
+                              : "error.dark",
+                          px: 0.5,
+                          borderRadius: 1,
+                          display: "inline",
                         }}
                       >
                         Chunk: {label.label}
@@ -607,7 +607,16 @@ The final paragraph contains information about feature stores and real-time mach
                     </Box>
                     {label.groundTruthLabel && (
                       <Box sx={{ flexShrink: 0 }}>
-                        <Typography sx={{ fontFamily: 'monospace', bgcolor: 'primary.light', color: 'primary.dark', px: 0.5, borderRadius: 1, display: 'inline' }}>
+                        <Typography
+                          sx={{
+                            fontFamily: "monospace",
+                            bgcolor: "primary.light",
+                            color: "primary.dark",
+                            px: 0.5,
+                            borderRadius: 1,
+                            display: "inline",
+                          }}
+                        >
                           GT: {label.groundTruthLabel}
                         </Typography>
                       </Box>

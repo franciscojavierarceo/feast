@@ -31,7 +31,16 @@ const FeatureViewDataRow = ({ name, value }: FeatureViewDataRowType) => {
     <TableRow>
       <TableCell>{name}</TableCell>
       <TableCell>
-        <Typography component="pre" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 0.5, borderRadius: 1, ...LineHeightProp }}>
+        <Typography
+          component="pre"
+          sx={{
+            fontFamily: "monospace",
+            bgcolor: "grey.100",
+            p: 0.5,
+            borderRadius: 1,
+            ...LineHeightProp,
+          }}
+        >
           {value}
         </Typography>
       </TableCell>

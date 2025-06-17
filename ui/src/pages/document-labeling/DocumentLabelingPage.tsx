@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Box,
-  Container,
-  Typography,
-  Tabs,
-  Tab,
-} from "@mui/material";
+import { Box, Container, Typography, Tabs, Tab } from "@mui/material";
 import RagTab from "./RagTab";
 import ClassificationTab from "./ClassificationTab";
 
@@ -44,17 +38,11 @@ const DocumentLabelingPage = () => {
             onChange={(event, newValue) => setSelectedTab(newValue)}
           >
             {tabs.map((tab) => (
-              <Tab
-                key={tab.id}
-                value={tab.id}
-                label={tab.name}
-              />
+              <Tab key={tab.id} value={tab.id} label={tab.name} />
             ))}
           </Tabs>
 
-          <Box sx={{ mt: 3 }}>
-            {selectedTabContent}
-          </Box>
+          <Box sx={{ mt: 3 }}>{selectedTabContent}</Box>
         </Box>
       </Container>
     </Box>

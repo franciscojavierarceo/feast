@@ -80,15 +80,15 @@ const ProjectOverviewPage = () => {
                   Error Loading Project Configs
                 </Typography>
                 <Typography>
-                  There was an error loading the Project Configurations.
-                  Please check that <code>feature_store.yaml</code> file is
-                  available and well-formed.
+                  There was an error loading the Project Configurations. Please
+                  check that <code>feature_store.yaml</code> file is available
+                  and well-formed.
                 </Typography>
               </Alert>
             )}
             {isSuccess &&
               (data?.description ? (
-                <Typography component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+                <Typography component="pre" sx={{ whiteSpace: "pre-wrap" }}>
                   {data.description}
                 </Typography>
               ) : (

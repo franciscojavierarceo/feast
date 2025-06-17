@@ -129,11 +129,13 @@ const Index = () => {
       <Box>
         {isLoading && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CircularProgress size="medium" /> 
+            <CircularProgress size="medium" />
             <Typography>Loading</Typography>
           </Box>
         )}
-        {isError && <Typography>We encountered an error while loading.</Typography>}
+        {isError && (
+          <Typography>We encountered an error while loading.</Typography>
+        )}
         {isSuccess && !data && <FeatureServiceIndexEmptyState />}
         {isSuccess && filterResult && (
           <React.Fragment>

@@ -52,7 +52,7 @@ const RegularFeatureViewOverviewTab = ({
   return (
     <React.Fragment>
       <Stack direction="row">
-        <Box sx={{ textAlign: 'center', p: 2 }}>
+        <Box sx={{ textAlign: "center", p: 2 }}>
           <Typography variant="h4" component="div">
             {numOfFs}
           </Typography>
@@ -77,7 +77,9 @@ const RegularFeatureViewOverviewTab = ({
                 link={true}
               />
             ) : (
-              <Typography variant="body1">No features specified on this feature view.</Typography>
+              <Typography variant="body1">
+                No features specified on this feature view.
+              </Typography>
             )}
           </Paper>
         </Box>
@@ -88,7 +90,7 @@ const RegularFeatureViewOverviewTab = ({
             </Typography>
             <Divider sx={{ my: 0.5 }} />
             {data?.spec?.entities ? (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                 {data.spec.entities.map((entity) => {
                   return (
                     <Box sx={{ flexShrink: 0 }} key={entity}>
@@ -118,7 +120,9 @@ const RegularFeatureViewOverviewTab = ({
             {fsNames.length > 0 ? (
               <ConsumingFeatureServicesList fsNames={fsNames} />
             ) : (
-              <Typography variant="body1">No services consume this feature view</Typography>
+              <Typography variant="body1">
+                No services consume this feature view
+              </Typography>
             )}
           </Paper>
           <Box sx={{ my: 2 }} />
@@ -140,7 +144,9 @@ const RegularFeatureViewOverviewTab = ({
                 description={data?.spec?.description!}
               />
             ) : (
-              <Typography variant="body1">No Tags specified on this feature view.</Typography>
+              <Typography variant="body1">
+                No Tags specified on this feature view.
+              </Typography>
             )}
           </Paper>
           <Box sx={{ my: 2 }} />
@@ -158,7 +164,9 @@ const RegularFeatureViewOverviewTab = ({
                 )}
               />
             ) : (
-              <Typography variant="body1">No permissions defined for this feature view.</Typography>
+              <Typography variant="body1">
+                No permissions defined for this feature view.
+              </Typography>
             )}
           </Paper>
         </Box>

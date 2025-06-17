@@ -18,11 +18,7 @@ const PermissionsDisplay: React.FC<PermissionsDisplayProps> = ({
   permissions,
 }) => {
   if (!permissions || permissions.length === 0) {
-    return (
-      <Typography>
-        No permissions defined for this resource.
-      </Typography>
-    );
+    return <Typography>No permissions defined for this resource.</Typography>;
   }
 
   const getActionColor = (action: string) => {
@@ -85,19 +81,24 @@ const PermissionsDisplay: React.FC<PermissionsDisplayProps> = ({
                 </Box>
               }
             >
-              <Typography variant="h6">
-                {permission.spec?.name}
-              </Typography>
+              <Typography variant="h6">{permission.spec?.name}</Typography>
             </Tooltip>
             <Stack direction="row" spacing={0.5} flexWrap="wrap">
               {actions.map((action: string, actionIndex: number) => (
-                <Chip 
+                <Chip
                   key={actionIndex}
                   label={action}
-                  color={getActionColor(action) === 'success' ? 'success' : 
-                         getActionColor(action) === 'warning' ? 'warning' :
-                         getActionColor(action) === 'primary' ? 'primary' :
-                         getActionColor(action) === 'danger' ? 'error' : 'default'}
+                  color={
+                    getActionColor(action) === "success"
+                      ? "success"
+                      : getActionColor(action) === "warning"
+                        ? "warning"
+                        : getActionColor(action) === "primary"
+                          ? "primary"
+                          : getActionColor(action) === "danger"
+                            ? "error"
+                            : "default"
+                  }
                   size="small"
                 />
               ))}

@@ -162,7 +162,9 @@ const FeatureListPage = () => {
     setPageIndex(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     setPageSize(parseInt(event.target.value, 10));
     setPageIndex(0);
   };
@@ -170,7 +172,14 @@ const FeatureListPage = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <FeatureIcon style={{ marginRight: 8 }} />
             <Typography variant="h4">Feature List</Typography>
@@ -178,93 +187,98 @@ const FeatureListPage = () => {
           <ExportButton data={filteredFeatures} fileName="features" />
         </Box>
         <Box>
-        {isLoading ? (
-          <p>Loading...</p>
-        ) : isError ? (
-          <p>We encountered an error while loading.</p>
-        ) : (
-          <>
-            <Stack direction="row" spacing={2} alignItems="flex-end">
-              <Box sx={{ flexGrow: 1 }}>
-                <TextField
-                  placeholder="Search features"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  fullWidth
-                  variant="outlined"
-                />
-              </Box>
-              <Box sx={{ width: 300, flexShrink: 0 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Filter by permission action</InputLabel>
-                  <Select
-                    value={selectedPermissionAction}
-                    onChange={(e) =>
-                      setSelectedPermissionAction(e.target.value)
-                    }
-                    label="Filter by permission action"
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    <MenuItem value="CREATE">CREATE</MenuItem>
-                    <MenuItem value="DESCRIBE">DESCRIBE</MenuItem>
-                    <MenuItem value="UPDATE">UPDATE</MenuItem>
-                    <MenuItem value="DELETE">DELETE</MenuItem>
-                    <MenuItem value="READ_ONLINE">READ_ONLINE</MenuItem>
-                    <MenuItem value="READ_OFFLINE">READ_OFFLINE</MenuItem>
-                    <MenuItem value="WRITE_ONLINE">WRITE_ONLINE</MenuItem>
-                    <MenuItem value="WRITE_OFFLINE">WRITE_OFFLINE</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-            </Stack>
-            <Box sx={{ my: 2 }} />
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    {columns.map((column) => (
-                      <TableCell key={column.id}>
-                        {column.sortable ? (
-                          <TableSortLabel
-                            active={sortField === column.id}
-                            direction={sortField === column.id ? sortDirection : "asc"}
-                            onClick={() => handleSort(column.id)}
-                          >
-                            {column.label}
-                          </TableSortLabel>
-                        ) : (
-                          column.label
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedFeatures.map((feature) => (
-                    <TableRow key={feature.name} data-test-subj={`row-${feature.name}`}>
+          {isLoading ? (
+            <p>Loading...</p>
+          ) : isError ? (
+            <p>We encountered an error while loading.</p>
+          ) : (
+            <>
+              <Stack direction="row" spacing={2} alignItems="flex-end">
+                <Box sx={{ flexGrow: 1 }}>
+                  <TextField
+                    placeholder="Search features"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                  />
+                </Box>
+                <Box sx={{ width: 300, flexShrink: 0 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Filter by permission action</InputLabel>
+                    <Select
+                      value={selectedPermissionAction}
+                      onChange={(e) =>
+                        setSelectedPermissionAction(e.target.value)
+                      }
+                      label="Filter by permission action"
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="CREATE">CREATE</MenuItem>
+                      <MenuItem value="DESCRIBE">DESCRIBE</MenuItem>
+                      <MenuItem value="UPDATE">UPDATE</MenuItem>
+                      <MenuItem value="DELETE">DELETE</MenuItem>
+                      <MenuItem value="READ_ONLINE">READ_ONLINE</MenuItem>
+                      <MenuItem value="READ_OFFLINE">READ_OFFLINE</MenuItem>
+                      <MenuItem value="WRITE_ONLINE">WRITE_ONLINE</MenuItem>
+                      <MenuItem value="WRITE_OFFLINE">WRITE_OFFLINE</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Stack>
+              <Box sx={{ my: 2 }} />
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
                       {columns.map((column) => (
                         <TableCell key={column.id}>
-                          {column.render
-                            ? column.render(feature[column.id], feature)
-                            : feature[column.id]}
+                          {column.sortable ? (
+                            <TableSortLabel
+                              active={sortField === column.id}
+                              direction={
+                                sortField === column.id ? sortDirection : "asc"
+                              }
+                              onClick={() => handleSort(column.id)}
+                            >
+                              {column.label}
+                            </TableSortLabel>
+                          ) : (
+                            column.label
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <TablePagination
-                rowsPerPageOptions={[20, 50, 100]}
-                component="div"
-                count={sortedFeatures.length}
-                rowsPerPage={pageSize}
-                page={pageIndex}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-              />
-            </TableContainer>
-          </>
-        )}
+                  </TableHead>
+                  <TableBody>
+                    {paginatedFeatures.map((feature) => (
+                      <TableRow
+                        key={feature.name}
+                        data-test-subj={`row-${feature.name}`}
+                      >
+                        {columns.map((column) => (
+                          <TableCell key={column.id}>
+                            {column.render
+                              ? column.render(feature[column.id], feature)
+                              : feature[column.id]}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <TablePagination
+                  rowsPerPageOptions={[20, 50, 100]}
+                  component="div"
+                  count={sortedFeatures.length}
+                  rowsPerPage={pageSize}
+                  page={pageIndex}
+                  onPageChange={handleChangePage}
+                  onRowsPerPageChange={handleChangeRowsPerPage}
+                />
+              </TableContainer>
+            </>
+          )}
         </Box>
       </Box>
     </Container>

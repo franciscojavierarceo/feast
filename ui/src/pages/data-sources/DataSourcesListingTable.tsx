@@ -1,5 +1,13 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../../protos";
@@ -55,12 +63,8 @@ const DatasourcesListingTable = ({
         <TableBody>
           {dataSources.map((item) => (
             <TableRow key={item.name} {...getRowProps(item)}>
-              <TableCell>
-                {columns[0].render(item.name!)}
-              </TableCell>
-              <TableCell>
-                {columns[1].render(item.type!)}
-              </TableCell>
+              <TableCell>{columns[0].render(item.name!)}</TableCell>
+              <TableCell>{columns[1].render(item.type!)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

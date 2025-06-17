@@ -38,9 +38,7 @@ const FeatureViewProjectionDisplayPanel = (
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="caption">
-        Feature View
-      </Typography>
+      <Typography variant="caption">Feature View</Typography>
       <Box sx={{ mt: 0.5 }} />
       <Typography variant="subtitle1">
         <CustomLink
@@ -64,10 +62,9 @@ const FeatureViewProjectionDisplayPanel = (
               <TableRow key={index}>
                 {columns.map((column) => (
                   <TableCell key={column.field}>
-                    {column.render 
+                    {column.render
                       ? column.render((item as any)[column.field])
-                      : (item as any)[column.field]
-                    }
+                      : (item as any)[column.field]}
                   </TableCell>
                 ))}
               </TableRow>

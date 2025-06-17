@@ -33,17 +33,13 @@ const StreamFeatureInstance = ({ data }: StreamFeatureInstanceProps) => {
             {featureViewName}
           </Typography>
         </Box>
-        <Tabs value={useMatchExact("") ? 0 : 1} sx={{ borderBottom: 1, borderColor: "divider" }}>
-          <Tab
-            label="Overview"
-            onClick={() => navigate("")}
-          />
+        <Tabs
+          value={useMatchExact("") ? 0 : 1}
+          sx={{ borderBottom: 1, borderColor: "divider" }}
+        >
+          <Tab label="Overview" onClick={() => navigate("")} />
           {customNavigationTabs.map((tab, index) => (
-            <Tab
-              key={index}
-              label={tab.label}
-              onClick={tab.onClick}
-            />
+            <Tab key={index} label={tab.label} onClick={tab.onClick} />
           ))}
         </Tabs>
         <Box sx={{ mt: 3 }}>

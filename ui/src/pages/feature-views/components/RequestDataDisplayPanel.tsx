@@ -43,9 +43,7 @@ const RequestDataDisplayPanel = ({
 
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="caption">
-        Request Data
-      </Typography>
+      <Typography variant="caption">Request Data</Typography>
       <Box sx={{ mt: 0.5 }} />
       <Typography variant="subtitle1">
         <CustomLink

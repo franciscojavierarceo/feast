@@ -1,5 +1,13 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import CustomLink from "../../components/CustomLink";
 import useFeatureViewEdgesByEntity from "./useFeatureViewEdgesByEntity";
 import { useParams } from "react-router-dom";
@@ -37,9 +45,14 @@ const EntitiesListingTable = ({ entities }: EntitiesListingTableProps) => {
         </TableHead>
         <TableBody>
           {entities.map((entity) => (
-            <TableRow key={entity?.spec?.name} data-test-subj={`row-${entity?.spec?.name}`}>
+            <TableRow
+              key={entity?.spec?.name}
+              data-test-subj={`row-${entity?.spec?.name}`}
+            >
               <TableCell>
-                <CustomLink to={`/p/${projectName}/entity/${entity?.spec?.name}`}>
+                <CustomLink
+                  to={`/p/${projectName}/entity/${entity?.spec?.name}`}
+                >
                   {entity?.spec?.name}
                 </CustomLink>
               </TableCell>
@@ -47,10 +60,11 @@ const EntitiesListingTable = ({ entities }: EntitiesListingTableProps) => {
                 {feast.types.ValueType.Enum[entity?.spec?.valueType!]}
               </TableCell>
               <TableCell>
-                {isSuccess && data 
-                  ? (data[entity?.spec?.name!] ? data[entity?.spec?.name!].length : "0")
-                  : "."
-                }
+                {isSuccess && data
+                  ? data[entity?.spec?.name!]
+                    ? data[entity?.spec?.name!].length
+                    : "0"
+                  : "."}
               </TableCell>
             </TableRow>
           ))}

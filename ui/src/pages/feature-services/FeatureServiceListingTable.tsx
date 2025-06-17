@@ -102,12 +102,33 @@ const FeatureServiceListingTable = ({
                 <TableCell key={colIndex}>
                   {column.render
                     ? column.render(
-                        column.field ? item.spec?.[column.field.split('.')[1] as keyof typeof item.spec] || item.meta?.[column.field.split('.')[1] as keyof typeof item.meta] : item,
-                        item
+                        column.field
+                          ? item.spec?.[
+                              column.field.split(
+                                ".",
+                              )[1] as keyof typeof item.spec
+                            ] ||
+                              item.meta?.[
+                                column.field.split(
+                                  ".",
+                                )[1] as keyof typeof item.meta
+                              ]
+                          : item,
+                        item,
                       )
                     : column.field
-                    ? String(item.spec?.[column.field.split('.')[1] as keyof typeof item.spec] || item.meta?.[column.field.split('.')[1] as keyof typeof item.meta] || '')
-                    : ''}
+                      ? String(
+                          item.spec?.[
+                            column.field.split(".")[1] as keyof typeof item.spec
+                          ] ||
+                            item.meta?.[
+                              column.field.split(
+                                ".",
+                              )[1] as keyof typeof item.meta
+                            ] ||
+                            "",
+                        )
+                      : ""}
                 </TableCell>
               ))}
             </TableRow>

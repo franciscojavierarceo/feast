@@ -1,4 +1,12 @@
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
 import CustomLink from "./CustomLink";
 import { feast } from "../protos";
 
@@ -61,10 +69,11 @@ const FeaturesList = ({
             <TableRow key={feature.name || index} {...getRowProps(feature)}>
               {columns.map((column) => (
                 <TableCell key={column.name}>
-                  {column.render 
-                    ? column.render(feature[column.field as keyof typeof feature])
-                    : feature[column.field as keyof typeof feature]
-                  }
+                  {column.render
+                    ? column.render(
+                        feature[column.field as keyof typeof feature],
+                      )
+                    : feature[column.field as keyof typeof feature]}
                 </TableCell>
               ))}
             </TableRow>

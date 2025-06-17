@@ -139,10 +139,7 @@ const ClassificationTab = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
-      <Alert
-        severity="info"
-        sx={{ mb: 3 }}
-      >
+      <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="h6" component="div" sx={{ mb: 1 }}>
           Classify sample data
         </Typography>
@@ -194,10 +191,7 @@ const ClassificationTab = () => {
       )}
 
       {error && (
-        <Alert
-          severity="error"
-          sx={{ mb: 3 }}
-        >
+        <Alert severity="error" sx={{ mb: 3 }}>
           <Typography variant="h6" component="div" sx={{ mb: 1 }}>
             Error loading CSV data
           </Typography>
@@ -207,7 +201,11 @@ const ClassificationTab = () => {
 
       {data.length > 0 && (
         <>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <Box sx={{ flexShrink: 0 }}>
               <Typography variant="subtitle1">
                 Classification Data ({data.length} samples)
@@ -296,10 +294,7 @@ const ClassificationTab = () => {
           {getChangedItems().length > 0 && (
             <>
               <Box sx={{ my: 3 }} />
-              <Alert
-                severity="warning"
-                sx={{ mb: 3 }}
-              >
+              <Alert severity="warning" sx={{ mb: 3 }}>
                 <Typography variant="h6" component="div" sx={{ mb: 1 }}>
                   {getChangedItems().length} items have been modified
                 </Typography>

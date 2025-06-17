@@ -21,8 +21,8 @@ const FeatureViewIndexEmptyState = () => {
         There are no feature views
       </Typography>
       <Typography variant="body1" sx={{ mb: 4, maxWidth: 600 }}>
-        This project does not have any Feature Views. Learn more about
-        creating Feature Views in Feast Docs.
+        This project does not have any Feature Views. Learn more about creating
+        Feature Views in Feast Docs.
       </Typography>
       <Button
         variant="contained"

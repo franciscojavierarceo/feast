@@ -1,11 +1,5 @@
 import React, { useContext } from "react";
-import {
-  Container,
-  Box,
-  Typography,
-  Skeleton,
-  Alert,
-} from "@mui/material";
+import { Container, Box, Typography, Skeleton, Alert } from "@mui/material";
 
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import useLoadRegistry from "../../queries/useLoadRegistry";
@@ -28,14 +22,14 @@ const LineagePage = () => {
         </Typography>
 
         {isError && (
-          <Alert 
-            severity="error" 
-            sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              textAlign: 'center',
-              p: 4 
+          <Alert
+            severity="error"
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              p: 4,
             }}
           >
             <Typography variant="h6" component="h2" gutterBottom>

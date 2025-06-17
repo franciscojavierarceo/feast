@@ -24,7 +24,7 @@ const ExplorePanel = () => {
         Explore this Project
       </Typography>
       <Divider sx={{ my: 0.5 }} />
-      {isLoading && <Skeleton variant="text" sx={{ fontSize: '1rem' }} />}
+      {isLoading && <Skeleton variant="text" sx={{ fontSize: "1rem" }} />}
       {isSuccess &&
         data &&
         data.map((suggestionGroup, i) => {
@@ -33,7 +33,11 @@ const ExplorePanel = () => {
               <Typography variant="caption" component="h4">
                 {suggestionGroup.title}
               </Typography>
-              <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{ flexWrap: "wrap", gap: 0.5 }}
+              >
                 {suggestionGroup.items.map((item, j) => {
                   return (
                     <Chip

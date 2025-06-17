@@ -1,10 +1,4 @@
-import {
-  Stack,
-  Box,
-  Divider,
-  Typography,
-  Paper,
-} from "@mui/material";
+import { Stack, Box, Divider, Typography, Paper } from "@mui/material";
 import React from "react";
 import FeaturesListDisplay from "../../components/FeaturesListDisplay";
 import { useParams } from "react-router-dom";
@@ -53,15 +47,15 @@ const OnDemandFeatureViewOverviewTab = ({
               Transformation
             </Typography>
             <Divider sx={{ my: 0.5 }} />
-            <Typography 
-              component="pre" 
-              sx={{ 
-                fontFamily: 'monospace', 
-                bgcolor: 'grey.100', 
-                p: 2, 
+            <Typography
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                bgcolor: "grey.100",
+                p: 2,
                 borderRadius: 1,
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap'
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
               }}
             >
               {data?.spec?.featureTransformation?.userDefinedFunction?.bodyText}
@@ -123,15 +117,15 @@ const OnDemandFeatureViewOverviewTab = ({
 
                 return (
                   <Box key={key}>
-                    <Typography 
-                      component="pre" 
-                      sx={{ 
-                        fontFamily: 'monospace', 
-                        bgcolor: 'grey.100', 
-                        p: 2, 
+                    <Typography
+                      component="pre"
+                      sx={{
+                        fontFamily: "monospace",
+                        bgcolor: "grey.100",
+                        p: 2,
                         borderRadius: 1,
-                        overflow: 'auto',
-                        whiteSpace: 'pre-wrap'
+                        overflow: "auto",
+                        whiteSpace: "pre-wrap",
                       }}
                     >
                       {JSON.stringify(inputGroup, null, 2)}

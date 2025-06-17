@@ -1,11 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-import {
-  Box,
-  Drawer,
-  Divider,
-  Stack,
-} from "@mui/material";
+import { Box, Drawer, Divider, Stack } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import { Outlet } from "react-router-dom";
 
@@ -149,7 +144,10 @@ const Layout = () => {
           )}
         </Drawer>
 
-        <Box component="main" sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        <Box
+          component="main"
+          sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}
+        >
           <ErrorBoundary fallback={<div>Something went wrong</div>}>
             {data && (
               <Box
