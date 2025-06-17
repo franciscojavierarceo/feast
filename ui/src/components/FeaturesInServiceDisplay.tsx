@@ -1,6 +1,6 @@
 import React from "react";
-import { EuiBasicTable } from "@elastic/eui";
-import EuiCustomLink from "./EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import CustomLink from "./CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../protos";
 
@@ -24,39 +24,31 @@ const FeaturesInServiceList = ({ featureViews }: FeatureViewsListInterace) => {
     })),
   );
 
-  const columns = [
-    {
-      name: "Feature View",
-      field: "featureViewName",
-      render: (name: string) => {
-        return (
-          <EuiCustomLink to={`/p/${projectName}/feature-view/${name}`}>
-            {name}
-          </EuiCustomLink>
-        );
-      },
-    },
-    {
-      name: "Feature Column",
-      field: "name",
-    },
-    {
-      name: "Value Type",
-      field: "valueType",
-      render: (valueType: feast.types.ValueType.Enum) => {
-        return feast.types.ValueType.Enum[valueType];
-      },
-    },
-  ];
-
-  const getRowProps = (item: IFeatureColumnInService) => {
-    return {
-      "data-test-subj": `row-${item.featureViewName}`,
-    };
-  };
-
   return (
-    <EuiBasicTable columns={columns} items={items} rowProps={getRowProps} />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Feature View</TableCell>
+            <TableCell>Feature Column</TableCell>
+            <TableCell>Value Type</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {items.map((item, index) => (
+            <TableRow key={index} data-test-subj={`row-${item.featureViewName}`}>
+              <TableCell>
+                <CustomLink to={`/p/${projectName}/feature-view/${item.featureViewName}`}>
+                  {item.featureViewName}
+                </CustomLink>
+              </TableCell>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>{feast.types.ValueType.Enum[item.valueType]}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

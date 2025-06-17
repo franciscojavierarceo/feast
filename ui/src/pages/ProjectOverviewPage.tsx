@@ -1,15 +1,13 @@
 import React, { useContext } from "react";
 import {
-  EuiPageTemplate,
-  EuiText,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiTitle,
-  EuiSpacer,
-  EuiSkeletonText,
-  EuiEmptyPrompt,
-  EuiFieldSearch,
-} from "@elastic/eui";
+  Container,
+  Box,
+  Typography,
+  Stack,
+  Skeleton,
+  Alert,
+  TextField,
+} from "@mui/material";
 
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import ObjectsCountStats from "../components/ObjectsCountStats";
@@ -66,69 +64,64 @@ const ProjectOverviewPage = () => {
   ];
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Section>
-        <EuiTitle size="l">
-          <h1>
-            {isLoading && <EuiSkeletonText lines={1} />}
-            {isSuccess && data?.project && `Project: ${data.project}`}
-          </h1>
-        </EuiTitle>
-        <EuiSpacer />
+    <Container maxWidth="xl">
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {isLoading && <Skeleton width="50%" />}
+          {isSuccess && data?.project && `Project: ${data.project}`}
+        </Typography>
 
-        <EuiFlexGroup>
-          <EuiFlexItem grow={2}>
-            {isLoading && <EuiSkeletonText lines={4} />}
+        <Stack direction="row" spacing={3} sx={{ mt: 3 }}>
+          <Box sx={{ flexGrow: 2 }}>
+            {isLoading && <Skeleton variant="rectangular" height={200} />}
             {isError && (
-              <EuiEmptyPrompt
-                iconType="alert"
-                color="danger"
-                title={<h2>Error Loading Project Configs</h2>}
-                body={
-                  <p>
-                    There was an error loading the Project Configurations.
-                    Please check that <code>feature_store.yaml</code> file is
-                    available and well-formed.
-                  </p>
-                }
-              />
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Error Loading Project Configs
+                </Typography>
+                <Typography>
+                  There was an error loading the Project Configurations.
+                  Please check that <code>feature_store.yaml</code> file is
+                  available and well-formed.
+                </Typography>
+              </Alert>
             )}
             {isSuccess &&
               (data?.description ? (
-                <EuiText>
-                  <pre>{data.description}</pre>
-                </EuiText>
+                <Typography component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {data.description}
+                </Typography>
               ) : (
-                <EuiText>
-                  <p>
+                <Box>
+                  <Typography paragraph>
                     Welcome to your new Feast project. In this UI, you can see
                     Data Sources, Entities, Features, Feature Views, and Feature
                     Services registered in Feast.
-                  </p>
-                  <p>
+                  </Typography>
+                  <Typography paragraph>
                     It looks like this project already has some objects
                     registered. If you are new to this project, we suggest
                     starting by exploring the Feature Services, as they
                     represent the collection of Feature Views serving a
                     particular model.
-                  </p>
-                  <p>
+                  </Typography>
+                  <Typography paragraph>
                     <strong>Note</strong>: We encourage you to replace this
                     welcome message with more suitable content for your team.
                     You can do so by specifying a{" "}
                     <code>project_description</code> in your{" "}
                     <code>feature_store.yaml</code> file.
-                  </p>
-                </EuiText>
+                  </Typography>
+                </Box>
               ))}
             <ObjectsCountStats />
-          </EuiFlexItem>
-          <EuiFlexItem grow={1}>
+          </Box>
+          <Box sx={{ flexGrow: 1 }}>
             <ExplorePanel />
-          </EuiFlexItem>
-        </EuiFlexGroup>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+          </Box>
+        </Stack>
+      </Box>
+    </Container>
   );
 };
 

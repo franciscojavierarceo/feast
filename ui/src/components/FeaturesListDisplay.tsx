@@ -1,5 +1,5 @@
-import { EuiBasicTable } from "@elastic/eui";
-import EuiCustomLink from "./EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import CustomLink from "./CustomLink";
 import { feast } from "../protos";
 
 interface FeaturesListProps {
@@ -20,11 +20,11 @@ const FeaturesList = ({
       name: "Name",
       field: "name",
       render: (item: string) => (
-        <EuiCustomLink
+        <CustomLink
           to={`/p/${projectName}/feature-view/${featureViewName}/feature/${item}`}
         >
           {item}
-        </EuiCustomLink>
+        </CustomLink>
       ),
     },
     {
@@ -47,7 +47,31 @@ const FeaturesList = ({
   };
 
   return (
-    <EuiBasicTable columns={columns} items={features} rowProps={getRowProps} />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell key={column.name}>{column.name}</TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {features.map((feature, index) => (
+            <TableRow key={feature.name || index} {...getRowProps(feature)}>
+              {columns.map((column) => (
+                <TableCell key={column.name}>
+                  {column.render 
+                    ? column.render(feature[column.field as keyof typeof feature])
+                    : feature[column.field as keyof typeof feature]
+                  }
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

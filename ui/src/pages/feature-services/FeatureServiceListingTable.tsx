@@ -1,10 +1,14 @@
 import React from "react";
 import {
-  EuiBasicTable,
-  EuiTableComputedColumnType,
-  EuiTableFieldDataColumnType,
-} from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../../protos";
 import { toDate } from "../../utils/timestamp";
@@ -14,9 +18,11 @@ interface FeatureServiceListingTableProps {
   featureServices: feast.core.IFeatureService[];
 }
 
-type FeatureServiceTypeColumn =
-  | EuiTableFieldDataColumnType<feast.core.IFeatureService>
-  | EuiTableComputedColumnType<feast.core.IFeatureService>;
+interface FeatureServiceTypeColumn {
+  name: string;
+  field?: string;
+  render?: (value: any, item?: feast.core.IFeatureService) => React.ReactNode;
+}
 
 const FeatureServiceListingTable = ({
   tagKeysSet,
@@ -30,9 +36,9 @@ const FeatureServiceListingTable = ({
       field: "spec.name",
       render: (name: string) => {
         return (
-          <EuiCustomLink to={`/p/${projectName}/feature-service/${name}`}>
+          <CustomLink to={`/p/${projectName}/feature-service/${name}`}>
             {name}
-          </EuiCustomLink>
+          </CustomLink>
         );
       },
     },
@@ -80,11 +86,35 @@ const FeatureServiceListingTable = ({
   };
 
   return (
-    <EuiBasicTable
-      columns={columns}
-      items={featureServices}
-      rowProps={getRowProps}
-    />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {columns.map((column, index) => (
+              <TableCell key={index}>{column.name}</TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {featureServices.map((item, rowIndex) => (
+            <TableRow key={rowIndex} {...getRowProps(item)}>
+              {columns.map((column, colIndex) => (
+                <TableCell key={colIndex}>
+                  {column.render
+                    ? column.render(
+                        column.field ? item.spec?.[column.field.split('.')[1] as keyof typeof item.spec] || item.meta?.[column.field.split('.')[1] as keyof typeof item.meta] : item,
+                        item
+                      )
+                    : column.field
+                    ? String(item.spec?.[column.field.split('.')[1] as keyof typeof item.spec] || item.meta?.[column.field.split('.')[1] as keyof typeof item.meta] || '')
+                    : ''}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

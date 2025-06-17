@@ -1,11 +1,8 @@
 import React from "react";
 import {
-  EuiDescriptionList,
-  EuiDescriptionListDescription,
-  EuiDescriptionListTitle,
-  EuiFlexGroup,
-  EuiFlexItem,
-} from "@elastic/eui";
+  Box,
+  Typography,
+} from "@mui/material";
 import { CopyBlock, atomOneDark } from "react-code-blocks";
 import { feast } from "../../protos";
 import { toDate } from "../../utils/timestamp";
@@ -18,20 +15,20 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
   const batchSource = props.batchSource;
   return (
     <React.Fragment>
-      <EuiFlexGroup>
-        <EuiFlexItem grow={false}>
-          <EuiDescriptionList>
+      <Box sx={{ display: 'flex' }}>
+        <Box sx={{ flexShrink: 0 }}>
+          <Box>
             {(batchSource.dataSourceClassType || batchSource.type) && (
               <React.Fragment>
-                <EuiDescriptionListTitle>Source Type</EuiDescriptionListTitle>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Source Type</Typography>
                 {batchSource.dataSourceClassType ? (
-                  <EuiDescriptionListDescription>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
                     {batchSource.dataSourceClassType.split(".").at(-1)}
-                  </EuiDescriptionListDescription>
+                  </Typography>
                 ) : feast.core.DataSource.SourceType[batchSource.type!] ? (
-                  <EuiDescriptionListDescription>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
                     {batchSource.type}
-                  </EuiDescriptionListDescription>
+                  </Typography>
                 ) : (
                   ""
                 )}
@@ -40,37 +37,37 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
 
             {batchSource.owner && (
               <React.Fragment>
-                <EuiDescriptionListTitle>Owner</EuiDescriptionListTitle>
-                <EuiDescriptionListDescription>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Owner</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.owner}
-                </EuiDescriptionListDescription>
+                </Typography>
               </React.Fragment>
             )}
             {batchSource.description && (
               <React.Fragment>
-                <EuiDescriptionListTitle>Description</EuiDescriptionListTitle>
-                <EuiDescriptionListDescription>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Description</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.description}
-                </EuiDescriptionListDescription>
+                </Typography>
               </React.Fragment>
             )}
             {batchSource.fileOptions && (
               <React.Fragment>
-                <EuiDescriptionListTitle>File URL</EuiDescriptionListTitle>
-                <EuiDescriptionListDescription>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>File URL</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
                   {batchSource.fileOptions ? batchSource.fileOptions.uri : ""}
-                </EuiDescriptionListDescription>
+                </Typography>
               </React.Fragment>
             )}
             {batchSource.bigqueryOptions && (
               <React.Fragment>
-                <EuiDescriptionListTitle>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                   Source {batchSource.bigqueryOptions.table ? "Table" : "Query"}
-                </EuiDescriptionListTitle>
+                </Typography>
                 {batchSource.bigqueryOptions.table ? (
-                  <EuiDescriptionListDescription>
+                  <Typography variant="body2" sx={{ mb: 2 }}>
                     {batchSource.bigqueryOptions.table}
-                  </EuiDescriptionListDescription>
+                  </Typography>
                 ) : (
                   <CopyBlock
                     text={batchSource.bigqueryOptions.query ?? ""}
@@ -84,29 +81,29 @@ const BatchSourcePropertiesView = (props: BatchSourcePropertiesViewProps) => {
             )}
             {batchSource.meta?.latestEventTimestamp && (
               <React.Fragment>
-                <EuiDescriptionListTitle>Latest Event</EuiDescriptionListTitle>
-                <EuiDescriptionListDescription>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>Latest Event</Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
                   {toDate(
                     batchSource.meta.latestEventTimestamp,
                   ).toLocaleDateString("en-CA")}
-                </EuiDescriptionListDescription>
+                </Typography>
               </React.Fragment>
             )}
             {batchSource.meta?.earliestEventTimestamp && (
               <React.Fragment>
-                <EuiDescriptionListTitle>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                   Earliest Event
-                </EuiDescriptionListTitle>
-                <EuiDescriptionListDescription>
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
                   {toDate(
                     batchSource.meta?.earliestEventTimestamp,
                   ).toLocaleDateString("en-CA")}
-                </EuiDescriptionListDescription>
+                </Typography>
               </React.Fragment>
             )}
-          </EuiDescriptionList>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+          </Box>
+        </Box>
+      </Box>
     </React.Fragment>
   );
 };

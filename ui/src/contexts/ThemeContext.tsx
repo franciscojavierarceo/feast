@@ -1,4 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { lightTheme, darkTheme } from '../theme/materialTheme';
 
 type ThemeMode = "light" | "dark";
 
@@ -24,21 +27,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     localStorage.setItem("feast-theme", colorMode);
-
-    if (colorMode === "dark") {
-      document.body.classList.add("euiTheme--dark");
-    } else {
-      document.body.classList.remove("euiTheme--dark");
-    }
   }, [colorMode]);
 
   const toggleColorMode = () => {
     setColorMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
   };
 
+  const theme = colorMode === "dark" ? darkTheme : lightTheme;
+
   return (
     <ThemeContext.Provider value={{ colorMode, setColorMode, toggleColorMode }}>
-      {children}
+      <MuiThemeProvider theme={theme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
     </ThemeContext.Provider>
   );
 };

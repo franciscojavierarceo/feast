@@ -1,7 +1,7 @@
 import React from "react";
 
 import { useParams } from "react-router-dom";
-import { EuiLoadingSpinner } from "@elastic/eui";
+import { CircularProgress } from "@mui/material";
 
 import RegularFeatureInstance from "./RegularFeatureViewInstance";
 import { FEAST_FV_TYPES } from "../../parsers/mergedFVTypes";
@@ -26,7 +26,7 @@ const FeatureViewInstance = () => {
   if (isLoading) {
     return (
       <React.Fragment>
-        <EuiLoadingSpinner size="m" /> Loading
+        <CircularProgress size="medium" /> Loading
       </React.Fragment>
     );
   }

@@ -11,7 +11,7 @@ html {
 }
 
 /* Add dark mode specific styles */
-body.euiTheme--dark html {
+body[data-theme="dark"] html {
   background: url("assets/feast-icon-grey.svg") no-repeat -6vh 56vh;
   background-size: 50vh;
   filter: brightness(0.7); /* Darken the background image for dark mode */

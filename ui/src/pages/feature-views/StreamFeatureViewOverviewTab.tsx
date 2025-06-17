@@ -1,13 +1,4 @@
-import {
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiHorizontalRule,
-  EuiText,
-  EuiTitle,
-  EuiPanel,
-  EuiCodeBlock,
-  EuiSpacer,
-} from "@elastic/eui";
+import { Paper, Stack, Box, Typography, Divider } from "@mui/material";
 import React from "react";
 import FeaturesListDisplay from "../../components/FeaturesListDisplay";
 import { useParams } from "react-router-dom";
@@ -15,7 +6,7 @@ import { EntityRelation } from "../../parsers/parseEntityRelationships";
 import { FEAST_FCO_TYPES } from "../../parsers/types";
 import useLoadRelationshipData from "../../queries/useLoadRelationshipsData";
 import ConsumingFeatureServicesList from "./ConsumingFeatureServicesList";
-import EuiCustomLink from "../../components/EuiCustomLink";
+import CustomLink from "../../components/CustomLink";
 import { feast } from "../../protos";
 
 interface StreamFeatureViewOverviewTabProps {
@@ -47,27 +38,37 @@ const StreamFeatureViewOverviewTab = ({
     : [];
 
   return (
-    <EuiFlexGroup direction="column">
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="s">
-              <h3>Transformation</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
-            <EuiCodeBlock language="py" fontSize="m" paddingSize="m">
+    <Stack direction="column" spacing={2}>
+      <Box>
+        <Box sx={{ flexGrow: 1 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" component="h3">
+              Transformation
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
+            <Typography 
+              component="pre" 
+              sx={{ 
+                fontFamily: 'monospace', 
+                bgcolor: 'grey.100', 
+                p: 2, 
+                borderRadius: 1,
+                overflow: 'auto',
+                whiteSpace: 'pre-wrap'
+              }}
+            >
               {data.spec?.userDefinedFunction?.bodyText}
-            </EuiCodeBlock>
-          </EuiPanel>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Features ({data.spec?.features?.length})</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+            </Typography>
+          </Paper>
+        </Box>
+      </Box>
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Features ({data.spec?.features?.length})
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {projectName && data.spec?.features ? (
               <FeaturesListDisplay
                 projectName={projectName}
@@ -76,59 +77,65 @@ const StreamFeatureViewOverviewTab = ({
                 link={false}
               />
             ) : (
-              <EuiText>No Tags sepcified on this feature view.</EuiText>
+              <Typography variant="body1">No Tags sepcified on this feature view.</Typography>
             )}
-          </EuiPanel>
-        </EuiFlexItem>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Inputs ({inputs.length})</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
-            <EuiFlexGroup direction="column">
+          </Paper>
+        </Box>
+        <Box sx={{ flexGrow: 1 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Inputs ({inputs.length})
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
+            <Stack direction="column" spacing={2}>
               {inputs.map(([key, inputGroup]) => {
                 return (
-                  <EuiPanel hasBorder={true} key={key}>
-                    <EuiText size="xs">
+                  <Paper variant="outlined" sx={{ p: 2 }} key={key}>
+                    <Typography variant="caption">
                       <span>Stream Source</span>
-                    </EuiText>
-                    <EuiTitle size="s">
-                      <EuiCustomLink
+                    </Typography>
+                    <Typography variant="subtitle1">
+                      <CustomLink
                         to={`/p/${projectName}/data-source/${inputGroup?.name}`}
                       >
                         {inputGroup?.name}
-                      </EuiCustomLink>
-                    </EuiTitle>
-                    <EuiFlexItem key={key}>
-                      <EuiCodeBlock
-                        language="json"
-                        fontSize="m"
-                        paddingSize="m"
+                      </CustomLink>
+                    </Typography>
+                    <Box key={key}>
+                      <Typography 
+                        component="pre" 
+                        sx={{ 
+                          fontFamily: 'monospace', 
+                          bgcolor: 'grey.100', 
+                          p: 2, 
+                          borderRadius: 1,
+                          overflow: 'auto',
+                          whiteSpace: 'pre-wrap'
+                        }}
                       >
                         {JSON.stringify(inputGroup, null, 2)}
-                      </EuiCodeBlock>
-                    </EuiFlexItem>
-                  </EuiPanel>
+                      </Typography>
+                    </Box>
+                  </Paper>
                 );
               })}
-            </EuiFlexGroup>
-          </EuiPanel>
-          <EuiSpacer size="m" />
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Consuming Feature Services</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+            </Stack>
+          </Paper>
+          <Box sx={{ my: 2 }} />
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Consuming Feature Services
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {fsNames.length > 0 ? (
               <ConsumingFeatureServicesList fsNames={fsNames} />
             ) : (
-              <EuiText>No services consume this feature view</EuiText>
+              <Typography variant="body1">No services consume this feature view</Typography>
             )}
-          </EuiPanel>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-    </EuiFlexGroup>
+          </Paper>
+        </Box>
+      </Stack>
+    </Stack>
   );
 };
 

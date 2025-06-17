@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { FeatureViewIcon } from "../../graphics/FeatureViewIcon";
 import { useMatchExact } from "../../hooks/useMatchSubpath";
@@ -25,33 +25,38 @@ const StreamFeatureInstance = ({ data }: StreamFeatureInstanceProps) => {
   const CustomTabRoutes = useStreamFeatureViewCustomTabRoutes();
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        paddingSize="l"
-        iconType={FeatureViewIcon}
-        pageTitle={`${featureViewName}`}
-        tabs={[
-          {
-            label: "Overview",
-            isSelected: useMatchExact(""),
-            onClick: () => {
-              navigate("");
-            },
-          },
-          ...customNavigationTabs,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route
-            path="/"
-            element={<StreamFeatureViewOverviewTab data={data} />}
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <FeatureViewIcon />
+          <Typography variant="h4" sx={{ ml: 1 }}>
+            {featureViewName}
+          </Typography>
+        </Box>
+        <Tabs value={useMatchExact("") ? 0 : 1} sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tab
+            label="Overview"
+            onClick={() => navigate("")}
           />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+          {customNavigationTabs.map((tab, index) => (
+            <Tab
+              key={index}
+              label={tab.label}
+              onClick={tab.onClick}
+            />
+          ))}
+        </Tabs>
+        <Box sx={{ mt: 3 }}>
+          <Routes>
+            <Route
+              path="/"
+              element={<StreamFeatureViewOverviewTab data={data} />}
+            />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

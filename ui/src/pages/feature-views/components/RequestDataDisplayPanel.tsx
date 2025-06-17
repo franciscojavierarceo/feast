@@ -1,13 +1,17 @@
 import React from "react";
 import {
-  EuiBasicTable,
-  EuiPanel,
-  EuiSpacer,
-  EuiText,
-  EuiTitle,
-} from "@elastic/eui";
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Typography,
+} from "@mui/material";
 import { useParams } from "react-router-dom";
-import EuiCustomLink from "../../../components/EuiCustomLink";
+import CustomLink from "../../../components/CustomLink";
 import { feast } from "../../../protos";
 
 interface RequestDataDisplayPanelProps extends feast.core.IOnDemandSource {}
@@ -38,21 +42,42 @@ const RequestDataDisplayPanel = ({
   ];
 
   return (
-    <EuiPanel hasBorder={true}>
-      <EuiText size="xs">
-        <span>Request Data</span>
-      </EuiText>
-      <EuiSpacer size="xs" />
-      <EuiTitle size="s">
-        <EuiCustomLink
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Typography variant="caption">
+        Request Data
+      </Typography>
+      <Box sx={{ mt: 0.5 }} />
+      <Typography variant="subtitle1">
+        <CustomLink
           to={`/p/${projectName}/data-source/${requestDataSource?.name}`}
         >
           {requestDataSource?.name}
-        </EuiCustomLink>
-      </EuiTitle>
-      <EuiSpacer size="s" />
-      <EuiBasicTable columns={columns} items={items} />
-    </EuiPanel>
+        </CustomLink>
+      </Typography>
+      <Box sx={{ mt: 1 }} />
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell key={column.field}>{column.name}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {items.map((item, index) => (
+              <TableRow key={index}>
+                {columns.map((column) => (
+                  <TableCell key={column.field}>
+                    {String(item[column.field as keyof typeof item])}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 };
 

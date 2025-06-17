@@ -1,4 +1,4 @@
-import { EuiBasicTable } from "@elastic/eui";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
 import React from "react";
 
 interface DatasetJoinKey {
@@ -10,14 +10,24 @@ interface DatasetJoinKeysTableProps {
 }
 
 const DatasetJoinKeysTable = ({ joinKeys }: DatasetJoinKeysTableProps) => {
-  const columns = [
-    {
-      name: "Name",
-      field: "name",
-    },
-  ];
-
-  return <EuiBasicTable columns={columns} items={joinKeys} />;
+  return (
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Name</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {joinKeys.map((joinKey, index) => (
+            <TableRow key={index}>
+              <TableCell>{joinKey.name}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 };
 
 export default DatasetJoinKeysTable;

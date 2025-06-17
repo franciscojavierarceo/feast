@@ -1,6 +1,6 @@
 import React from "react";
-import { EuiBasicTable, EuiLoadingSpinner } from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 import useLoadRelationshipData from "../../queries/useLoadRelationshipsData";
 import { EntityRelation } from "../../parsers/parseEntityRelationships";
@@ -53,9 +53,9 @@ const FeatureViewEdgesList = ({ fvNames }: FeatureViewEdgesListInterace) => {
       field: "",
       render: ({ name }: { name: string }) => {
         return (
-          <EuiCustomLink to={`/p/${projectName}/feature-view/${name}`}>
+          <CustomLink to={`/p/${projectName}/feature-view/${name}`}>
             {name}
-          </EuiCustomLink>
+          </CustomLink>
         );
       },
     },
@@ -65,7 +65,7 @@ const FeatureViewEdgesList = ({ fvNames }: FeatureViewEdgesListInterace) => {
       render: ({ name }: { name: string }) => {
         return (
           <React.Fragment>
-            {isLoading && <EuiLoadingSpinner size="s" />}
+            {isLoading && <CircularProgress size={16} />}
             {data && data[name].length}
           </React.Fragment>
         );
@@ -80,11 +80,28 @@ const FeatureViewEdgesList = ({ fvNames }: FeatureViewEdgesListInterace) => {
   };
 
   return (
-    <EuiBasicTable
-      columns={columns}
-      items={fvNames.map((name) => ({ name }))}
-      rowProps={getRowProps}
-    />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell key={column.name}>{column.name}</TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {fvNames.map((name) => (
+            <TableRow key={name} {...getRowProps(name)}>
+              {columns.map((column) => (
+                <TableCell key={column.name}>
+                  {column.render({ name })}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

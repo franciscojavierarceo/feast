@@ -1,14 +1,4 @@
-import {
-  EuiBadge,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiHorizontalRule,
-  EuiPanel,
-  EuiSpacer,
-  EuiStat,
-  EuiText,
-  EuiTitle,
-} from "@elastic/eui";
+import { Paper, Stack, Box, Typography, Divider, Chip } from "@mui/material";
 import React from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -61,19 +51,24 @@ const RegularFeatureViewOverviewTab = ({
 
   return (
     <React.Fragment>
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiStat title={`${numOfFs}`} description="Consuming Services" />
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiSpacer size="l" />
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Features ({data?.spec?.features?.length})</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+      <Stack direction="row">
+        <Box sx={{ textAlign: 'center', p: 2 }}>
+          <Typography variant="h4" component="div">
+            {numOfFs}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Consuming Services
+          </Typography>
+        </Box>
+      </Stack>
+      <Box sx={{ my: 3 }} />
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Features ({data?.spec?.features?.length})
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {projectName && data?.spec?.features ? (
               <FeaturesListDisplay
                 projectName={projectName}
@@ -82,57 +77,56 @@ const RegularFeatureViewOverviewTab = ({
                 link={true}
               />
             ) : (
-              <EuiText>No features specified on this feature view.</EuiText>
+              <Typography variant="body1">No features specified on this feature view.</Typography>
             )}
-          </EuiPanel>
-        </EuiFlexItem>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true} grow={false}>
-            <EuiTitle size="xs">
-              <h3>Entities</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+          </Paper>
+        </Box>
+        <Box sx={{ flexShrink: 0 }}>
+          <Paper variant="outlined" sx={{ p: 2, flexShrink: 0 }}>
+            <Typography variant="subtitle2" component="h3">
+              Entities
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {data?.spec?.entities ? (
-              <EuiFlexGroup wrap responsive={false} gutterSize="xs">
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {data.spec.entities.map((entity) => {
                   return (
-                    <EuiFlexItem grow={false} key={entity}>
-                      <EuiBadge
+                    <Box sx={{ flexShrink: 0 }} key={entity}>
+                      <Chip
                         color="primary"
                         onClick={() => {
                           navigate(`/p/${projectName}/entity/${entity}`);
                         }}
-                        onClickAriaLabel={entity}
+                        aria-label={entity}
                         data-test-sub="testExample1"
-                      >
-                        {entity}
-                      </EuiBadge>
-                    </EuiFlexItem>
+                        label={entity}
+                      />
+                    </Box>
                   );
                 })}
-              </EuiFlexGroup>
+              </Box>
             ) : (
-              <EuiText>No Entities.</EuiText>
+              <Typography variant="body1">No Entities.</Typography>
             )}
-          </EuiPanel>
-          <EuiSpacer size="m" />
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Consuming Feature Services</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+          </Paper>
+          <Box sx={{ my: 2 }} />
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Consuming Feature Services
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {fsNames.length > 0 ? (
               <ConsumingFeatureServicesList fsNames={fsNames} />
             ) : (
-              <EuiText>No services consume this feature view</EuiText>
+              <Typography variant="body1">No services consume this feature view</Typography>
             )}
-          </EuiPanel>
-          <EuiSpacer size="m" />
-          <EuiPanel hasBorder={true} grow={false}>
-            <EuiTitle size="xs">
-              <h3>Tags</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+          </Paper>
+          <Box sx={{ my: 2 }} />
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Tags
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {data?.spec?.tags ? (
               <TagsDisplay
                 tags={data.spec.tags}
@@ -146,15 +140,15 @@ const RegularFeatureViewOverviewTab = ({
                 description={data?.spec?.description!}
               />
             ) : (
-              <EuiText>No Tags specified on this feature view.</EuiText>
+              <Typography variant="body1">No Tags specified on this feature view.</Typography>
             )}
-          </EuiPanel>
-          <EuiSpacer size="m" />
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Permissions</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+          </Paper>
+          <Box sx={{ my: 2 }} />
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Permissions
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             {permissions ? (
               <PermissionsDisplay
                 permissions={getEntityPermissions(
@@ -164,28 +158,28 @@ const RegularFeatureViewOverviewTab = ({
                 )}
               />
             ) : (
-              <EuiText>No permissions defined for this feature view.</EuiText>
+              <Typography variant="body1">No permissions defined for this feature view.</Typography>
             )}
-          </EuiPanel>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiSpacer size="l" />
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiPanel hasBorder={true}>
-            <EuiTitle size="xs">
-              <h3>Batch Source</h3>
-            </EuiTitle>
-            <EuiHorizontalRule margin="xs" />
+          </Paper>
+        </Box>
+      </Stack>
+      <Box sx={{ my: 3 }} />
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle2" component="h3">
+              Batch Source
+            </Typography>
+            <Divider sx={{ my: 0.5 }} />
             <BatchSourcePropertiesView batchSource={data?.spec?.batchSource!} />
-          </EuiPanel>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiSpacer size="l" />
-      <EuiPanel>
-        <EuiTitle size="xs">
-          <h3>Materialization Intervals</h3>
-        </EuiTitle>
+          </Paper>
+        </Box>
+      </Stack>
+      <Box sx={{ my: 3 }} />
+      <Paper sx={{ p: 2 }}>
+        <Typography variant="subtitle2" component="h3">
+          Materialization Intervals
+        </Typography>
         <React.Fragment>
           {data?.meta?.materializationIntervals?.map((interval, i) => {
             return (
@@ -196,7 +190,7 @@ const RegularFeatureViewOverviewTab = ({
             );
           })}
         </React.Fragment>
-      </EuiPanel>
+      </Paper>
     </React.Fragment>
   );
 };

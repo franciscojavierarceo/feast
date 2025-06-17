@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { FeatureServiceIcon } from "../../graphics/FeatureServiceIcon";
 import { useMatchExact } from "../../hooks/useMatchSubpath";
@@ -22,29 +22,35 @@ const FeatureServiceInstance = () => {
   const CustomTabRoutes = useFeatureServiceCustomTabRoutes();
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={FeatureServiceIcon}
-        pageTitle={`Feature Service: ${featureServiceName}`}
-        tabs={[
-          {
-            label: "Overview",
-            isSelected: useMatchExact(""),
-            onClick: () => {
-              navigate("");
-            },
-          },
-          ...customNavigationTabs,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route path="/" element={<FeatureServiceOverviewTab />} />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <FeatureServiceIcon />
+          <Typography variant="h4" component="h1" sx={{ ml: 2 }}>
+            Feature Service: {featureServiceName}
+          </Typography>
+        </Box>
+        <Tabs value={useMatchExact("") ? 0 : 1} sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tab
+            label="Overview"
+            onClick={() => navigate("")}
+          />
+          {customNavigationTabs.map((tab, index) => (
+            <Tab
+              key={index}
+              label={tab.label}
+              onClick={tab.onClick}
+            />
+          ))}
+        </Tabs>
+        <Box sx={{ mt: 3 }}>
+          <Routes>
+            <Route path="/" element={<FeatureServiceOverviewTab />} />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

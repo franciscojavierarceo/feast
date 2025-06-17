@@ -1,14 +1,13 @@
 import React from "react";
 import {
-  EuiBadge,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiPanel,
-  EuiText,
-  EuiTitle,
-  EuiHorizontalRule,
-  EuiToolTip,
-} from "@elastic/eui";
+  Chip,
+  Stack,
+  Box,
+  Paper,
+  Typography,
+  Divider,
+  Tooltip,
+} from "@mui/material";
 import { formatPermissions } from "../utils/permissionUtils";
 
 interface PermissionsDisplayProps {
@@ -20,9 +19,9 @@ const PermissionsDisplay: React.FC<PermissionsDisplayProps> = ({
 }) => {
   if (!permissions || permissions.length === 0) {
     return (
-      <EuiText>
-        <p>No permissions defined for this resource.</p>
-      </EuiText>
+      <Typography>
+        No permissions defined for this resource.
+      </Typography>
     );
   }
 
@@ -53,51 +52,57 @@ const PermissionsDisplay: React.FC<PermissionsDisplayProps> = ({
         });
 
         return (
-          <div key={index} style={{ marginBottom: "8px" }}>
-            <EuiToolTip
-              position="top"
-              content={
-                <div>
-                  <p>
+          <Box key={index} sx={{ mb: 1 }}>
+            <Tooltip
+              placement="top"
+              title={
+                <Box>
+                  <Typography variant="body2">
                     <strong>Name:</strong> {permission.spec?.name}
-                  </p>
-                  <p>
+                  </Typography>
+                  <Typography variant="body2">
                     <strong>Policy:</strong>{" "}
                     {permission.spec?.policy?.roles
                       ? `Roles: ${permission.spec.policy.roles.join(", ")}`
                       : "No policy defined"}
-                  </p>
+                  </Typography>
                   {permission.spec?.name_patterns && (
-                    <p>
+                    <Typography variant="body2">
                       <strong>Name Patterns:</strong>{" "}
                       {Array.isArray(permission.spec.name_patterns)
                         ? permission.spec.name_patterns.join(", ")
                         : permission.spec.name_patterns}
-                    </p>
+                    </Typography>
                   )}
                   {permission.spec?.required_tags && (
-                    <p>
+                    <Typography variant="body2">
                       <strong>Required Tags:</strong>{" "}
                       {Object.entries(permission.spec.required_tags)
                         .map(([key, value]) => `${key}: ${value}`)
                         .join(", ")}
-                    </p>
+                    </Typography>
                   )}
-                </div>
+                </Box>
               }
             >
-              <EuiText>
-                <h4>{permission.spec?.name}</h4>
-              </EuiText>
-            </EuiToolTip>
-            <EuiFlexGroup wrap responsive={false} gutterSize="xs">
+              <Typography variant="h6">
+                {permission.spec?.name}
+              </Typography>
+            </Tooltip>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap">
               {actions.map((action: string, actionIndex: number) => (
-                <EuiFlexItem grow={false} key={actionIndex}>
-                  <EuiBadge color={getActionColor(action)}>{action}</EuiBadge>
-                </EuiFlexItem>
+                <Chip 
+                  key={actionIndex}
+                  label={action}
+                  color={getActionColor(action) === 'success' ? 'success' : 
+                         getActionColor(action) === 'warning' ? 'warning' :
+                         getActionColor(action) === 'primary' ? 'primary' :
+                         getActionColor(action) === 'danger' ? 'error' : 'default'}
+                  size="small"
+                />
               ))}
-            </EuiFlexGroup>
-          </div>
+            </Stack>
+          </Box>
         );
       })}
     </React.Fragment>

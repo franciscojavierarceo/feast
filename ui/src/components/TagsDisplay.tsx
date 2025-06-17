@@ -1,10 +1,6 @@
 import React from "react";
-import {
-  EuiDescriptionList,
-  EuiDescriptionListDescription,
-  EuiDescriptionListTitle,
-} from "@elastic/eui";
-import EuiCustomLink from "./EuiCustomLink";
+import { Typography, Box } from "@mui/material";
+import CustomLink from "./CustomLink";
 
 interface TagsDisplayProps {
   createLink?: (key: string, value: string) => string;
@@ -20,42 +16,38 @@ const TagsDisplay = ({
   description,
 }: TagsDisplayProps) => {
   return (
-    <EuiDescriptionList textStyle="reverse">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       {owner ? (
-        <React.Fragment key={"owner"}>
-          <EuiDescriptionListTitle>owner</EuiDescriptionListTitle>
-          <EuiDescriptionListDescription>{owner}</EuiDescriptionListDescription>
-        </React.Fragment>
-      ) : (
-        ""
-      )}
+        <Box key={"owner"}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>owner</Typography>
+          <Typography variant="body2">{owner}</Typography>
+        </Box>
+      ) : null}
       {description ? (
-        <React.Fragment key={"description"}>
-          <EuiDescriptionListTitle>description</EuiDescriptionListTitle>
-          <EuiDescriptionListDescription>
+        <Box key={"description"}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>description</Typography>
+          <Typography variant="body2">
             {description}
-          </EuiDescriptionListDescription>
-        </React.Fragment>
-      ) : (
-        ""
-      )}
+          </Typography>
+        </Box>
+      ) : null}
       {Object.entries(tags).map(([key, value]) => {
         return (
-          <React.Fragment key={key}>
-            <EuiDescriptionListTitle>{key}</EuiDescriptionListTitle>
-            <EuiDescriptionListDescription>
+          <Box key={key}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>{key}</Typography>
+            <Typography variant="body2">
               {createLink ? (
-                <EuiCustomLink to={createLink(key, value)}>
+                <CustomLink to={createLink(key, value)}>
                   {value}
-                </EuiCustomLink>
+                </CustomLink>
               ) : (
                 value
               )}
-            </EuiDescriptionListDescription>
-          </React.Fragment>
+            </Typography>
+          </Box>
         );
       })}
-    </EuiDescriptionList>
+    </Box>
   );
 };
 

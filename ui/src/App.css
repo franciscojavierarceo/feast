@@ -3,7 +3,7 @@ html {
   background-size: 20vh;
 }
 
-body.euiTheme--dark html {
+body[data-theme="dark"] html {
   background: url("assets/feast-icon-white.svg") no-repeat bottom left;
   background-size: 20vh;
 }

@@ -4,18 +4,9 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
-import {
-  EuiText,
-  EuiFieldSearch,
-  EuiSpacer,
-  EuiHorizontalRule,
-  EuiPanel,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiBadge,
-  EuiTitle,
-} from "@elastic/eui";
-import EuiCustomLink from "./EuiCustomLink";
+import { Paper, Stack, Box, Typography, Divider, Chip, TextField, InputAdornment } from "@mui/material";
+import { Search } from "@mui/icons-material";
+import CustomLink from "./CustomLink";
 
 import { css } from "@emotion/react";
 
@@ -123,30 +114,37 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
 
     return (
       <>
-        <EuiFieldSearch
+        <TextField
           placeholder="Search across Feature Views, Features, Entities, etc."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          isClearable
           fullWidth
-          inputRef={(node) => {
-            inputRef.current = node;
-          }}
+          inputRef={inputRef}
           aria-label="Search registry"
-          compressed
-          append={
-            <EuiText size="xs" color="subdued">
-              <span style={{ whiteSpace: "nowrap" }}>⌘K</span>
-            </EuiText>
-          }
+          variant="outlined"
+          size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <Typography variant="caption" color="text.secondary">
+                  <span style={{ whiteSpace: "nowrap" }}>⌘K</span>
+                </Typography>
+              </InputAdornment>
+            ),
+          }}
         />
-        <EuiSpacer size="s" />
+        <Box sx={{ my: 1 }} />
         {searchText && (
           <div style={searchResultsStyles.searchResults}>
-            <EuiText>
-              <h4>Search Results</h4>
-            </EuiText>
-            <EuiSpacer size="xs" />
+            <Typography variant="h6" component="h4">
+              Search Results
+            </Typography>
+            <Box sx={{ my: 0.5 }} />
             {searchResults.filter((result) => result.items.length > 0).length >
             0 ? (
               searchResults
@@ -156,13 +154,11 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
                     key={result.title}
                     style={searchResultsStyles.categoryGroup}
                   >
-                    <EuiPanel hasBorder={true} paddingSize="m">
-                      <EuiTitle size="xs">
-                        <h3>
-                          {result.title} ({result.items.length})
-                        </h3>
-                      </EuiTitle>
-                      <EuiHorizontalRule margin="xs" />
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2" component="h3">
+                        {result.title} ({result.items.length})
+                      </Typography>
+                      <Divider sx={{ my: 0.5 }} />
                       {result.items.map((item, idx) => (
                         <div
                           key={item.name}
@@ -172,14 +168,14 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
                               : searchResultsStyles.searchResultItem
                           }
                         >
-                          <EuiFlexGroup>
-                            <EuiFlexItem>
-                              <EuiCustomLink
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                            <div style={{ flexGrow: 1 }}>
+                              <CustomLink
                                 to={item.link}
                                 onClick={() => setSearchText("")}
                               >
                                 <strong>{item.name}</strong>
-                              </EuiCustomLink>
+                              </CustomLink>
                               {item.description && (
                                 <div
                                   style={searchResultsStyles.itemDescription}
@@ -187,25 +183,25 @@ const RegistrySearch = forwardRef<RegistrySearchRef, RegistrySearchProps>(
                                   {item.description}
                                 </div>
                               )}
-                            </EuiFlexItem>
+                            </div>
                             {item.type && (
-                              <EuiFlexItem grow={false}>
-                                <EuiBadge>{item.type}</EuiBadge>
-                              </EuiFlexItem>
+                              <div style={{ flexShrink: 0 }}>
+                                <Chip label={item.type} size="small" />
+                              </div>
                             )}
-                          </EuiFlexGroup>
+                          </Stack>
                         </div>
                       ))}
-                    </EuiPanel>
-                    <EuiSpacer size="m" />
+                    </Paper>
+                    <Box sx={{ my: 2 }} />
                   </div>
                 ))
             ) : (
-              <EuiPanel hasBorder={true} paddingSize="m" color="subdued">
-                <EuiText textAlign="center">
-                  <p>No matches found for "{searchText}"</p>
-                </EuiText>
-              </EuiPanel>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.100' }}>
+                <Typography variant="body1" textAlign="center">
+                  No matches found for "{searchText}"
+                </Typography>
+              </Paper>
             )}
           </div>
         )}

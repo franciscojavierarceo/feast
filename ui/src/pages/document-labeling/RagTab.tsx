@@ -1,21 +1,19 @@
 import React, { useState } from "react";
 import {
-  EuiPageSection,
-  EuiCallOut,
-  EuiSpacer,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiFormRow,
-  EuiFieldText,
-  EuiButton,
-  EuiPanel,
-  EuiTitle,
-  EuiText,
-  EuiLoadingSpinner,
-  EuiButtonGroup,
-  EuiCode,
-  EuiTextArea,
-} from "@elastic/eui";
+  Box,
+  Alert,
+  Stack,
+  FormControl,
+  FormLabel,
+  TextField,
+  Button,
+  Paper,
+  Typography,
+  CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
+} from "@mui/material";
+import { Save } from "@mui/icons-material";
 import { useTheme } from "../../contexts/ThemeContext";
 
 interface DocumentContent {
@@ -310,82 +308,88 @@ The final paragraph contains information about feature stores and real-time mach
   ];
 
   return (
-    <EuiPageSection>
-      <EuiCallOut
-        title="Label document chunks for RAG"
-        color="primary"
-        iconType="iInCircle"
+    <Box sx={{ p: 3 }}>
+      <Alert
+        severity="info"
+        sx={{ mb: 3 }}
       >
-        <p>
+        <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+          Label document chunks for RAG
+        </Typography>
+        <Typography variant="body2">
           Load a document and highlight text chunks to label them for chunk
           extraction/retrieval. Add prompt and query context, then provide
           ground truth labels for generation evaluation.
-        </p>
-      </EuiCallOut>
+        </Typography>
+      </Alert>
 
-      <EuiSpacer size="l" />
+      <Box sx={{ my: 3 }} />
 
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiFormRow label="Document file path">
-            <EuiFieldText
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
+          <FormControl fullWidth>
+            <FormLabel>Document file path</FormLabel>
+            <TextField
               placeholder="./src/your-document.txt"
               value={filePath}
               onChange={(e) => setFilePath(e.target.value)}
+              variant="outlined"
             />
-          </EuiFormRow>
-        </EuiFlexItem>
-        <EuiFlexItem grow={false}>
-          <EuiFormRow hasEmptyLabelSpace>
-            <EuiButton
-              fill
+          </FormControl>
+        </Box>
+        <Box sx={{ flexShrink: 0 }}>
+          <FormControl>
+            <Button
+              variant="contained"
               onClick={loadDocument}
-              disabled={!filePath}
-              isLoading={isLoading}
+              disabled={!filePath || isLoading}
+              startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
+              sx={{ mt: 3 }}
             >
               Load Document
-            </EuiButton>
-          </EuiFormRow>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+            </Button>
+          </FormControl>
+        </Box>
+      </Stack>
 
-      <EuiSpacer size="l" />
+      <Box sx={{ my: 3 }} />
 
       {isLoading && (
-        <EuiFlexGroup alignItems="center" gutterSize="s">
-          <EuiFlexItem grow={false}>
-            <EuiLoadingSpinner size="m" />
-          </EuiFlexItem>
-          <EuiFlexItem>
-            <EuiText>Loading document...</EuiText>
-          </EuiFlexItem>
-        </EuiFlexGroup>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box sx={{ flexShrink: 0 }}>
+            <CircularProgress size="medium" />
+          </Box>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="body1">Loading document...</Typography>
+          </Box>
+        </Stack>
       )}
 
       {error && (
-        <EuiCallOut
-          title="Error loading document"
-          color="danger"
-          iconType="alert"
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
         >
-          <p>{error}</p>
-        </EuiCallOut>
+          <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+            Error loading document
+          </Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
       )}
 
       {documentContent && (
         <>
-          <EuiPanel paddingSize="l">
-            <EuiTitle size="s">
-              <h3>RAG Context</h3>
-            </EuiTitle>
-            <EuiSpacer size="m" />
-            <EuiFlexGroup>
-              <EuiFlexItem>
-                <EuiFormRow
-                  label="Prompt"
-                  helpText="System context for the RAG system"
-                >
-                  <EuiTextArea
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6">
+              RAG Context
+            </Typography>
+
+            <Stack direction="row" spacing={2}>
+              <Box sx={{ flexGrow: 1 }}>
+                <FormControl fullWidth>
+                  <FormLabel>Prompt</FormLabel>
+                  <TextField
+                    multiline
                     placeholder="Enter system prompt..."
                     value={prompt}
                     onChange={(e) => {
@@ -393,15 +397,17 @@ The final paragraph contains information about feature stores and real-time mach
                       setHasUnsavedChanges(true);
                     }}
                     rows={3}
+                    fullWidth
+                    variant="outlined"
+                    helperText="System context for the RAG system"
                   />
-                </EuiFormRow>
-              </EuiFlexItem>
-              <EuiFlexItem>
-                <EuiFormRow
-                  label="Query"
-                  helpText="User query for retrieval testing"
-                >
-                  <EuiTextArea
+                </FormControl>
+              </Box>
+              <Box sx={{ flexGrow: 1 }}>
+                <FormControl fullWidth>
+                  <FormLabel>Query</FormLabel>
+                  <TextField
+                    multiline
                     placeholder="Enter user query..."
                     value={query}
                     onChange={(e) => {
@@ -409,64 +415,76 @@ The final paragraph contains information about feature stores and real-time mach
                       setHasUnsavedChanges(true);
                     }}
                     rows={3}
+                    fullWidth
+                    variant="outlined"
+                    helperText="User query for retrieval testing"
                   />
-                </EuiFormRow>
-              </EuiFlexItem>
-            </EuiFlexGroup>
-          </EuiPanel>
+                </FormControl>
+              </Box>
+            </Stack>
+          </Paper>
 
-          <EuiSpacer size="l" />
+          <Box sx={{ my: 3 }} />
 
-          <EuiTitle size="m">
-            <h2>Step 1: Label for Chunk Extraction</h2>
-          </EuiTitle>
-          <EuiSpacer size="m" />
+          <Typography variant="h6">
+            Step 1: Label for Chunk Extraction
+          </Typography>
+          <Box sx={{ my: 2 }} />
 
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiFormRow label="Chunk extraction label">
-                <EuiButtonGroup
-                  legend="Choose chunk extraction label"
-                  options={labelingOptions}
-                  idSelected={labelingMode}
-                  onChange={(id) => setLabelingMode(id)}
-                  buttonSize="s"
-                />
-              </EuiFormRow>
-            </EuiFlexItem>
-            <EuiFlexItem grow={false}>
-              <EuiFormRow hasEmptyLabelSpace>
-                <EuiButton
-                  fill
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flexGrow: 1 }}>
+              <FormControl>
+                <FormLabel>Chunk extraction label</FormLabel>
+                <ToggleButtonGroup
+                  value={labelingMode}
+                  exclusive
+                  onChange={(_, value) => value && setLabelingMode(value)}
+                  size="small"
+                >
+                  {labelingOptions.map((option) => (
+                    <ToggleButton key={option.id} value={option.id}>
+                      {option.label}
+                    </ToggleButton>
+                  ))}
+                </ToggleButtonGroup>
+              </FormControl>
+            </Box>
+            <Box sx={{ flexShrink: 0 }}>
+              <FormControl>
+                <Button
+                  variant="contained"
                   onClick={handleLabelSelection}
                   disabled={!selectedText}
+                  sx={{ mt: 3 }}
                 >
                   Label Selected Text
-                </EuiButton>
-              </EuiFormRow>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+                </Button>
+              </FormControl>
+            </Box>
+          </Stack>
 
-          <EuiSpacer size="l" />
+          <Box sx={{ my: 3 }} />
 
           {selectedText && (
-            <EuiCallOut
-              title="Text selected for labeling"
-              color="primary"
-              size="s"
+            <Alert
+              severity="info"
+              sx={{ mb: 2 }}
             >
-              <EuiCode>{selectedText.text}</EuiCode>
-            </EuiCallOut>
+              <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
+                Text selected for labeling
+              </Typography>
+              <Typography sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', px: 0.5, borderRadius: 1, display: 'inline' }}>{selectedText.text}</Typography>
+            </Alert>
           )}
 
-          <EuiSpacer size="m" />
+          <Box sx={{ my: 2 }} />
 
-          <EuiPanel paddingSize="l">
-            <EuiTitle size="s">
-              <h3>Document Content</h3>
-            </EuiTitle>
-            <EuiSpacer size="m" />
-            <EuiText>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6">
+              Document Content
+            </Typography>
+
+            <Typography variant="body1">
               <div
                 style={{
                   whiteSpace: "pre-wrap",
@@ -478,21 +496,20 @@ The final paragraph contains information about feature stores and real-time mach
               >
                 {renderDocumentWithHighlights(documentContent.content)}
               </div>
-            </EuiText>
-          </EuiPanel>
+            </Typography>
+          </Paper>
 
-          <EuiSpacer size="l" />
+          <Box sx={{ my: 3 }} />
 
-          <EuiTitle size="m">
-            <h2>Step 2: Label for Generation</h2>
-          </EuiTitle>
-          <EuiSpacer size="m" />
+          <Typography variant="h6">
+            Step 2: Label for Generation
+          </Typography>
+          <Box sx={{ my: 2 }} />
 
-          <EuiFormRow
-            label="Ground Truth Label"
-            helpText="Text for generation evaluation"
-          >
-            <EuiTextArea
+          <FormControl fullWidth>
+            <FormLabel>Ground Truth Label</FormLabel>
+            <TextField
+              multiline
               placeholder="Enter ground truth label for generation evaluation..."
               value={groundTruthLabel}
               onChange={(e) => {
@@ -500,115 +517,124 @@ The final paragraph contains information about feature stores and real-time mach
                 setHasUnsavedChanges(true);
               }}
               rows={3}
+              fullWidth
+              variant="outlined"
+              helperText="Text for generation evaluation"
             />
-          </EuiFormRow>
+          </FormControl>
 
-          <EuiSpacer size="m" />
+          <Box sx={{ my: 2 }} />
 
-          <EuiFlexGroup justifyContent="flexEnd">
-            <EuiFlexItem grow={false}>
-              <EuiButton
-                fill
+          <Stack direction="row" justifyContent="flex-end">
+            <Box sx={{ flexShrink: 0 }}>
+              <Button
+                variant="contained"
                 color="success"
                 onClick={saveLabels}
                 disabled={
                   labels.length === 0 && !groundTruthLabel && !prompt && !query
                 }
-                isLoading={isSaving}
-                iconType="save"
+                startIcon={isSaving ? <CircularProgress size={16} /> : <Save />}
               >
                 Save Labels
-              </EuiButton>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+              </Button>
+            </Box>
+          </Stack>
 
-          <EuiSpacer size="m" />
+          <Box sx={{ my: 2 }} />
 
           {(labels.length > 0 || groundTruthLabel || prompt || query) && (
             <>
-              <EuiCallOut
-                title="Ready to save"
-                color="success"
-                iconType="check"
-                size="s"
+              <Alert
+                severity="success"
+                sx={{ mb: 2 }}
               >
-                <p>
+                <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
+                  Ready to save
+                </Typography>
+                <Typography variant="body2">
                   Click "Save Labels" to download your labeled data as a JSON
                   file.
-                </p>
-              </EuiCallOut>
-              <EuiSpacer size="m" />
+                </Typography>
+              </Alert>
+              <Box sx={{ my: 2 }} />
             </>
           )}
 
-          <EuiSpacer size="m" />
+          <Box sx={{ my: 2 }} />
 
           {hasUnsavedChanges && (
             <>
-              <EuiCallOut
-                title="Unsaved changes"
-                color="warning"
-                iconType="alert"
-                size="s"
+              <Alert
+                severity="warning"
+                sx={{ mb: 2 }}
               >
-                <p>
+                <Typography variant="subtitle2" component="div" sx={{ mb: 1 }}>
+                  Unsaved changes
+                </Typography>
+                <Typography variant="body2">
                   You have unsaved changes. Click "Save Labels" to persist your
                   work.
-                </p>
-              </EuiCallOut>
-              <EuiSpacer size="m" />
+                </Typography>
+              </Alert>
+              <Box sx={{ my: 2 }} />
             </>
           )}
 
           {labels.length > 0 && (
             <>
-              <EuiSpacer size="l" />
-              <EuiPanel paddingSize="l">
-                <EuiTitle size="s">
-                  <h3>Extracted Chunk Labels ({labels.length})</h3>
-                </EuiTitle>
-                <EuiSpacer size="m" />
+              <Box sx={{ my: 3 }} />
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6">
+                  Extracted Chunk Labels ({labels.length})
+                </Typography>
+
                 {labels.map((label, index) => (
-                  <EuiFlexGroup key={index} alignItems="center" gutterSize="s">
-                    <EuiFlexItem grow={false}>
-                      <EuiCode
-                        color={
-                          label.label === "relevant" ? "success" : "danger"
-                        }
+                  <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                    <Box sx={{ flexShrink: 0 }}>
+                      <Typography 
+                        sx={{ 
+                          fontFamily: 'monospace', 
+                          bgcolor: label.label === "relevant" ? 'success.light' : 'error.light',
+                          color: label.label === "relevant" ? 'success.dark' : 'error.dark',
+                          px: 0.5, 
+                          borderRadius: 1, 
+                          display: 'inline' 
+                        }}
                       >
                         Chunk: {label.label}
-                      </EuiCode>
-                    </EuiFlexItem>
+                      </Typography>
+                    </Box>
                     {label.groundTruthLabel && (
-                      <EuiFlexItem grow={false}>
-                        <EuiCode color="primary">
+                      <Box sx={{ flexShrink: 0 }}>
+                        <Typography sx={{ fontFamily: 'monospace', bgcolor: 'primary.light', color: 'primary.dark', px: 0.5, borderRadius: 1, display: 'inline' }}>
                           GT: {label.groundTruthLabel}
-                        </EuiCode>
-                      </EuiFlexItem>
+                        </Typography>
+                      </Box>
                     )}
-                    <EuiFlexItem>
-                      <EuiText size="s">
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2">
                         "{label.text.substring(0, 80)}
                         {label.text.length > 80 ? "..." : ""}"
-                      </EuiText>
-                    </EuiFlexItem>
-                    <EuiFlexItem grow={false}>
-                      <EuiButton
-                        size="s"
-                        color="danger"
+                      </Typography>
+                    </Box>
+                    <Box sx={{ flexShrink: 0 }}>
+                      <Button
+                        size="small"
+                        color="error"
                         onClick={() => handleRemoveLabel(index)}
                       >
                         Remove
-                      </EuiButton>
-                    </EuiFlexItem>
-                  </EuiFlexGroup>
+                      </Button>
+                    </Box>
+                  </Stack>
                 ))}
-              </EuiPanel>
+              </Paper>
             </>
           )}
         </>
       )}
-    </EuiPageSection>
+    </Box>
   );
 };
 

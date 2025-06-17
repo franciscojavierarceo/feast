@@ -1,14 +1,13 @@
 import React, { useContext } from "react";
 
 import {
-  EuiPageTemplate,
-  EuiLoadingSpinner,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiTitle,
-  EuiFieldSearch,
-  EuiSpacer,
-} from "@elastic/eui";
+  Container,
+  Box,
+  CircularProgress,
+  Stack,
+  Typography,
+  TextField,
+} from "@mui/material";
 
 import useLoadRegistry from "../../queries/useLoadRegistry";
 import DatasourcesListingTable from "./DataSourcesListingTable";
@@ -61,49 +60,54 @@ const Index = () => {
   const filterResult = data ? filterFn(data, searchTokens) : data;
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={DataSourceIcon}
-        pageTitle="Data Sources"
-        rightSideItems={[
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <DataSourceIcon />
+            <Typography variant="h4" component="h1">
+              Data Sources
+            </Typography>
+          </Box>
           <ExportButton
             data={filterResult ?? []}
             fileName="data_sources"
             formats={["json"]}
-          />,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        {isLoading && (
-          <p>
-            <EuiLoadingSpinner size="m" /> Loading
-          </p>
-        )}
-        {isError && <p>We encountered an error while loading.</p>}
-        {isSuccess && !data && <DataSourceIndexEmptyState />}
-        {isSuccess && data && data.length > 0 && filterResult && (
-          <React.Fragment>
-            <EuiFlexGroup>
-              <EuiFlexItem grow={2}>
-                <EuiTitle size="xs">
-                  <h2>Search</h2>
-                </EuiTitle>
-                <EuiFieldSearch
-                  value={searchString}
-                  fullWidth={true}
-                  onChange={(e) => {
-                    setSearchString(e.target.value);
-                  }}
-                />
-              </EuiFlexItem>
-            </EuiFlexGroup>
-            <EuiSpacer size="m" />
-            <DatasourcesListingTable dataSources={filterResult} />
-          </React.Fragment>
-        )}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+          />
+        </Box>
+        
+        <Box>
+          {isLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size="small" />
+              <Typography>Loading</Typography>
+            </Box>
+          )}
+          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isSuccess && !data && <DataSourceIndexEmptyState />}
+          {isSuccess && data && data.length > 0 && filterResult && (
+            <React.Fragment>
+              <Stack spacing={2} sx={{ mb: 3 }}>
+                <Box sx={{ flexGrow: 2 }}>
+                  <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
+                    Search
+                  </Typography>
+                  <TextField
+                    value={searchString}
+                    fullWidth
+                    variant="outlined"
+                    onChange={(e) => {
+                      setSearchString(e.target.value);
+                    }}
+                  />
+                </Box>
+              </Stack>
+              <DatasourcesListingTable dataSources={filterResult} />
+            </React.Fragment>
+          )}
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

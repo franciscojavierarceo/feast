@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { DatasetIcon } from "../../graphics/DatasetIcon";
 
@@ -23,37 +23,40 @@ const DatasetInstance = () => {
   const CustomTabRoutes = useDataSourceCustomTabRoutes();
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={DatasetIcon}
-        pageTitle={`Entity: ${datasetName}`}
-        tabs={[
-          {
-            label: "Overview",
-            isSelected: useMatchExact(""),
-            onClick: () => {
-              navigate("");
-            },
-          },
-          {
-            label: "Expectations",
-            isSelected: useMatchSubpath("expectations"),
-            onClick: () => {
-              navigate("expectations");
-            },
-          },
-          ...customNavigationTabs,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route path="/" element={<DatasetOverviewTab />} />
-          <Route path="/expectations" element={<DatasetExpectationsTab />} />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <DatasetIcon />
+          <Typography variant="h4" sx={{ ml: 2 }}>
+            Entity: {datasetName}
+          </Typography>
+        </Box>
+        <Tabs value={useMatchExact("") ? 0 : useMatchSubpath("expectations") ? 1 : 0}>
+          <Tab
+            label="Overview"
+            onClick={() => navigate("")}
+          />
+          <Tab
+            label="Expectations"
+            onClick={() => navigate("expectations")}
+          />
+          {customNavigationTabs.map((tab, index) => (
+            <Tab
+              key={index}
+              label={tab.label}
+              onClick={tab.onClick}
+            />
+          ))}
+        </Tabs>
+        <Box sx={{ mt: 3 }}>
+          <Routes>
+            <Route path="/" element={<DatasetOverviewTab />} />
+            <Route path="/expectations" element={<DatasetExpectationsTab />} />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

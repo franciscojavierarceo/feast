@@ -1,12 +1,16 @@
 import React from "react";
 import {
-  EuiBasicTable,
-  EuiBadge,
-  EuiTableFieldDataColumnType,
-} from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Paper,
+} from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import { genericFVType } from "../../parsers/mergedFVTypes";
-import { EuiTableComputedColumnType } from "@elastic/eui/src/components/basic_table";
 import { useParams } from "react-router-dom";
 
 interface FeatureViewListingTableProps {
@@ -14,9 +18,12 @@ interface FeatureViewListingTableProps {
   featureViews: genericFVType[];
 }
 
-type genericFVTypeColumn =
-  | EuiTableFieldDataColumnType<genericFVType>
-  | EuiTableComputedColumnType<genericFVType>;
+interface ColumnDef {
+  name: string;
+  field?: string;
+  sortable?: boolean;
+  render?: (value: any, item: genericFVType) => React.ReactNode;
+}
 
 const FeatureViewListingTable = ({
   tagKeysSet,
@@ -24,18 +31,18 @@ const FeatureViewListingTable = ({
 }: FeatureViewListingTableProps) => {
   const { projectName } = useParams();
 
-  const columns: genericFVTypeColumn[] = [
+  const columns: ColumnDef[] = [
     {
       name: "Name",
       field: "name",
       sortable: true,
       render: (name: string, item: genericFVType) => {
         return (
-          <EuiCustomLink to={`/p/${projectName}/feature-view/${name}`}>
+          <CustomLink to={`/p/${projectName}/feature-view/${name}`}>
             {name}{" "}
-            {(item.type === "ondemand" && <EuiBadge>ondemand</EuiBadge>) ||
-              (item.type === "stream" && <EuiBadge>stream</EuiBadge>)}
-          </EuiCustomLink>
+            {(item.type === "ondemand" && <Chip label="ondemand" size="small" />) ||
+              (item.type === "stream" && <Chip label="stream" size="small" />)}
+          </CustomLink>
         );
       },
     },
@@ -78,11 +85,32 @@ const FeatureViewListingTable = ({
   };
 
   return (
-    <EuiBasicTable
-      columns={columns}
-      items={featureViews}
-      rowProps={getRowProps}
-    />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell key={column.name}>{column.name}</TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {featureViews.map((item) => (
+            <TableRow key={item.name} {...getRowProps(item)}>
+              {columns.map((column) => (
+                <TableCell key={column.name}>
+                  {column.render
+                    ? column.render(column.field ? item[column.field as keyof genericFVType] : item, item)
+                    : column.field
+                    ? String(item[column.field as keyof genericFVType])
+                    : ""}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

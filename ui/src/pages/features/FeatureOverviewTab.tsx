@@ -1,17 +1,15 @@
 import {
-  EuiFlexGroup,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiTitle,
-  EuiSpacer,
-  EuiPanel,
-  EuiFlexItem,
-  EuiText,
-  EuiDescriptionList,
-  EuiDescriptionListTitle,
-  EuiDescriptionListDescription,
-} from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+  Stack,
+  Divider,
+  CircularProgress,
+  Typography,
+  Box,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import TagsDisplay from "../../components/TagsDisplay";
 import React from "react";
 import { useParams } from "react-router-dom";
@@ -33,7 +31,7 @@ const FeatureOverviewTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && (
@@ -48,53 +46,72 @@ const FeatureOverviewTab = () => {
       )}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
+          <Stack spacing={2}>
+            <Box>
+              <Paper variant="outlined">
+                <Typography variant="subtitle1" sx={{ p: 2, pb: 1 }}>
                   <h3>Properties</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
-                <EuiDescriptionList>
-                  <EuiDescriptionListTitle>Name</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {featureData?.name}
-                  </EuiDescriptionListDescription>
+                </Typography>
+                <Divider sx={{ mx: 2 }} />
+                <List sx={{ p: 2 }}>
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemText 
+                      primary="Name"
+                      secondary={featureData?.name}
+                      primaryTypographyProps={{ variant: "subtitle2" }}
+                      secondaryTypographyProps={{ variant: "body2" }}
+                    />
+                  </ListItem>
 
-                  <EuiDescriptionListTitle>Value Type</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {feast.types.ValueType.Enum[featureData?.valueType!]}
-                  </EuiDescriptionListDescription>
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemText 
+                      primary="Value Type"
+                      secondary={feast.types.ValueType.Enum[featureData?.valueType!]}
+                      primaryTypographyProps={{ variant: "subtitle2" }}
+                      secondaryTypographyProps={{ variant: "body2" }}
+                    />
+                  </ListItem>
 
-                  <EuiDescriptionListTitle>Description</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {featureData?.description}
-                  </EuiDescriptionListDescription>
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemText 
+                      primary="Description"
+                      secondary={featureData?.description}
+                      primaryTypographyProps={{ variant: "subtitle2" }}
+                      secondaryTypographyProps={{ variant: "body2" }}
+                    />
+                  </ListItem>
 
-                  <EuiDescriptionListTitle>FeatureView</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    <EuiCustomLink
-                      to={`/p/${projectName}/feature-view/${FeatureViewName}`}
-                    >
-                      {FeatureViewName}
-                    </EuiCustomLink>
-                  </EuiDescriptionListDescription>
-                </EuiDescriptionList>
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true} grow={false}>
-                <EuiTitle size="xs">
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemText 
+                      primary="FeatureView"
+                      secondary={
+                        <CustomLink
+                          to={`/p/${projectName}/feature-view/${FeatureViewName}`}
+                        >
+                          {FeatureViewName}
+                        </CustomLink>
+                      }
+                      primaryTypographyProps={{ variant: "subtitle2" }}
+                      secondaryTypographyProps={{ variant: "body2" }}
+                    />
+                  </ListItem>
+                </List>
+              </Paper>
+              <Paper variant="outlined" sx={{ flexShrink: 0 }}>
+                <Typography variant="subtitle1" sx={{ p: 2, pb: 1 }}>
                   <h3>Tags</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
-                {featureData?.tags ? (
-                  <TagsDisplay tags={featureData.tags} />
-                ) : (
-                  <EuiText>No Tags specified on this field.</EuiText>
-                )}
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+                </Typography>
+                <Divider sx={{ mx: 2 }} />
+                <Box sx={{ p: 2 }}>
+                  {featureData?.tags ? (
+                    <TagsDisplay tags={featureData.tags} />
+                  ) : (
+                    <Typography>No Tags specified on this field.</Typography>
+                  )}
+                </Box>
+              </Paper>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>

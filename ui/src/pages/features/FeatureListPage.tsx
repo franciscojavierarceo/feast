@@ -1,22 +1,27 @@
 import React, { useState, useContext } from "react";
 import {
-  EuiBasicTable,
-  EuiTableFieldDataColumnType,
-  EuiTableComputedColumnType,
-  EuiFieldSearch,
-  EuiPageTemplate,
-  CriteriaWithPagination,
-  Pagination,
-  EuiToolTip,
-  EuiIcon,
-  EuiText,
-  EuiSpacer,
-  EuiSelect,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiFormRow,
-} from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Container,
+  Box,
+  Tooltip,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Stack,
+  TableSortLabel,
+  TablePagination,
+} from "@mui/material";
+import { Lock } from "@mui/icons-material";
+import CustomLink from "../../components/CustomLink";
 import ExportButton from "../../components/ExportButton";
 import { useParams } from "react-router-dom";
 import useLoadRegistry from "../../queries/useLoadRegistry";
@@ -36,9 +41,12 @@ interface Feature {
   permissions?: any[];
 }
 
-type FeatureColumn =
-  | EuiTableFieldDataColumnType<Feature>
-  | EuiTableComputedColumnType<Feature>;
+interface FeatureColumn {
+  id: keyof Feature;
+  label: string;
+  sortable: boolean;
+  render?: (value: any, feature: Feature) => React.ReactNode;
+}
 
 const FeatureListPage = () => {
   const { projectName } = useParams();
@@ -92,144 +100,174 @@ const FeatureListPage = () => {
 
   const columns: FeatureColumn[] = [
     {
-      name: "Feature Name",
-      field: "name",
+      id: "name",
+      label: "Feature Name",
       sortable: true,
       render: (name: string, feature: Feature) => (
-        <EuiCustomLink
+        <CustomLink
           to={`/p/${projectName}/feature-view/${feature.featureView}/feature/${name}`}
         >
           {name}
-        </EuiCustomLink>
+        </CustomLink>
       ),
     },
     {
-      name: "Feature View",
-      field: "featureView",
+      id: "featureView",
+      label: "Feature View",
       sortable: true,
       render: (featureView: string) => (
-        <EuiCustomLink to={`/p/${projectName}/feature-view/${featureView}`}>
+        <CustomLink to={`/p/${projectName}/feature-view/${featureView}`}>
           {featureView}
-        </EuiCustomLink>
+        </CustomLink>
       ),
     },
-    { name: "Type", field: "type", sortable: true },
+    { id: "type", label: "Type", sortable: true },
     {
-      name: "Permissions",
-      field: "permissions",
+      id: "permissions",
+      label: "Permissions",
       sortable: false,
       render: (permissions: any[], feature: Feature) => {
         const hasPermissions = permissions && permissions.length > 0;
         return hasPermissions ? (
-          <EuiToolTip
-            position="top"
-            content={
+          <Tooltip
+            title={
               <pre style={{ margin: 0 }}>{formatPermissions(permissions)}</pre>
             }
+            placement="top"
           >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <EuiIcon type="lock" color="#5a7be0" />
-              <EuiText size="xs" style={{ marginLeft: "4px" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Lock sx={{ color: "#5a7be0", fontSize: 16 }} />
+              <Typography variant="caption" sx={{ ml: 0.5 }}>
                 {permissions.length} permission
                 {permissions.length !== 1 ? "s" : ""}
-              </EuiText>
-            </div>
-          </EuiToolTip>
+              </Typography>
+            </Box>
+          </Tooltip>
         ) : (
-          <EuiText size="xs" color="subdued">
+          <Typography variant="caption" color="text.secondary">
             None
-          </EuiText>
+          </Typography>
         );
       },
     },
   ];
 
-  const onTableChange = ({ page, sort }: CriteriaWithPagination<Feature>) => {
-    if (sort) {
-      setSortField(sort.field as keyof Feature);
-      setSortDirection(sort.direction);
-    }
-    if (page) {
-      setPageIndex(page.index);
-      setPageSize(page.size);
-    }
+  const handleSort = (field: keyof Feature) => {
+    const isAsc = sortField === field && sortDirection === "asc";
+    setSortDirection(isAsc ? "desc" : "asc");
+    setSortField(field);
   };
 
-  const getRowProps = (feature: Feature) => ({
-    "data-test-subj": `row-${feature.name}`,
-  });
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPageIndex(newPage);
+  };
 
-  const pagination: Pagination = {
-    pageIndex,
-    pageSize,
-    totalItemCount: sortedFeatures.length,
-    pageSizeOptions: [20, 50, 100],
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPageIndex(0);
   };
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={FeatureIcon}
-        pageTitle="Feature List"
-        rightSideItems={[
-          <ExportButton data={filteredFeatures} fileName="features" />,
-        ]}
-      />
-      <EuiPageTemplate.Section>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <FeatureIcon style={{ marginRight: 8 }} />
+            <Typography variant="h4">Feature List</Typography>
+          </Box>
+          <ExportButton data={filteredFeatures} fileName="features" />
+        </Box>
+        <Box>
         {isLoading ? (
           <p>Loading...</p>
         ) : isError ? (
           <p>We encountered an error while loading.</p>
         ) : (
           <>
-            <EuiFlexGroup>
-              <EuiFlexItem>
-                <EuiFieldSearch
+            <Stack direction="row" spacing={2} alignItems="flex-end">
+              <Box sx={{ flexGrow: 1 }}>
+                <TextField
                   placeholder="Search features"
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   fullWidth
+                  variant="outlined"
                 />
-              </EuiFlexItem>
-              <EuiFlexItem grow={false} style={{ width: 300 }}>
-                <EuiFormRow label="Filter by permission action">
-                  <EuiSelect
-                    options={[
-                      { value: "", text: "All" },
-                      { value: "CREATE", text: "CREATE" },
-                      { value: "DESCRIBE", text: "DESCRIBE" },
-                      { value: "UPDATE", text: "UPDATE" },
-                      { value: "DELETE", text: "DELETE" },
-                      { value: "READ_ONLINE", text: "READ_ONLINE" },
-                      { value: "READ_OFFLINE", text: "READ_OFFLINE" },
-                      { value: "WRITE_ONLINE", text: "WRITE_ONLINE" },
-                      { value: "WRITE_OFFLINE", text: "WRITE_OFFLINE" },
-                    ]}
+              </Box>
+              <Box sx={{ width: 300, flexShrink: 0 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Filter by permission action</InputLabel>
+                  <Select
                     value={selectedPermissionAction}
                     onChange={(e) =>
                       setSelectedPermissionAction(e.target.value)
                     }
-                    aria-label="Filter by permission action"
-                  />
-                </EuiFormRow>
-              </EuiFlexItem>
-            </EuiFlexGroup>
-            <EuiSpacer size="m" />
-            <EuiBasicTable
-              columns={columns}
-              items={paginatedFeatures}
-              rowProps={getRowProps}
-              sorting={{
-                sort: { field: sortField, direction: sortDirection },
-              }}
-              onChange={onTableChange}
-              pagination={pagination}
-            />
+                    label="Filter by permission action"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="CREATE">CREATE</MenuItem>
+                    <MenuItem value="DESCRIBE">DESCRIBE</MenuItem>
+                    <MenuItem value="UPDATE">UPDATE</MenuItem>
+                    <MenuItem value="DELETE">DELETE</MenuItem>
+                    <MenuItem value="READ_ONLINE">READ_ONLINE</MenuItem>
+                    <MenuItem value="READ_OFFLINE">READ_OFFLINE</MenuItem>
+                    <MenuItem value="WRITE_ONLINE">WRITE_ONLINE</MenuItem>
+                    <MenuItem value="WRITE_OFFLINE">WRITE_OFFLINE</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </Stack>
+            <Box sx={{ my: 2 }} />
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    {columns.map((column) => (
+                      <TableCell key={column.id}>
+                        {column.sortable ? (
+                          <TableSortLabel
+                            active={sortField === column.id}
+                            direction={sortField === column.id ? sortDirection : "asc"}
+                            onClick={() => handleSort(column.id)}
+                          >
+                            {column.label}
+                          </TableSortLabel>
+                        ) : (
+                          column.label
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedFeatures.map((feature) => (
+                    <TableRow key={feature.name} data-test-subj={`row-${feature.name}`}>
+                      {columns.map((column) => (
+                        <TableCell key={column.id}>
+                          {column.render
+                            ? column.render(feature[column.id], feature)
+                            : feature[column.id]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <TablePagination
+                rowsPerPageOptions={[20, 50, 100]}
+                component="div"
+                count={sortedFeatures.length}
+                rowsPerPage={pageSize}
+                page={pageIndex}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
+            </TableContainer>
           </>
         )}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

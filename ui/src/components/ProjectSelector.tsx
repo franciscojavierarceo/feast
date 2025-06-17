@@ -1,5 +1,5 @@
-import { EuiSelect, useGeneratedHtmlId } from "@elastic/eui";
-import React from "react";
+import { Select, MenuItem, FormControl, CircularProgress } from "@mui/material";
+import React, { useId } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLoadProjectsList } from "../contexts/ProjectListContext";
 
@@ -20,22 +20,28 @@ const ProjectSelector = () => {
     };
   });
 
-  const basicSelectId = useGeneratedHtmlId({ prefix: "basicSelect" });
-  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const basicSelectId = useId();
+  const onChange = (e: any) => {
     navigate(`/p/${e.target.value}`);
   };
 
   return (
-    <EuiSelect
-      isLoading={isLoading}
-      hasNoInitialSelection={currentProject === undefined}
-      fullWidth={true}
-      id={basicSelectId}
-      options={options}
-      value={currentProject?.id || ""}
-      onChange={(e) => onChange(e)}
-      aria-label="Select a Feast Project"
-    />
+    <FormControl fullWidth>
+      <Select
+        id={basicSelectId}
+        value={currentProject?.id || ""}
+        onChange={onChange}
+        displayEmpty={currentProject === undefined}
+        aria-label="Select a Feast Project"
+        endAdornment={isLoading ? <CircularProgress size={20} /> : null}
+      >
+        {options?.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.text}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
   );
 };
 

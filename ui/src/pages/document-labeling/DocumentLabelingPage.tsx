@@ -1,14 +1,11 @@
 import React, { useState } from "react";
 import {
-  EuiPage,
-  EuiPageBody,
-  EuiPageSection,
-  EuiPageHeader,
-  EuiTitle,
-  EuiSpacer,
-  EuiTabs,
-  EuiTab,
-} from "@elastic/eui";
+  Box,
+  Container,
+  Typography,
+  Tabs,
+  Tab,
+} from "@mui/material";
 import RagTab from "./RagTab";
 import ClassificationTab from "./ClassificationTab";
 
@@ -33,33 +30,34 @@ const DocumentLabelingPage = () => {
   )?.content;
 
   return (
-    <EuiPage>
-      <EuiPageBody>
-        <EuiPageHeader>
-          <EuiTitle size="l">
-            <h1>Data Labeling</h1>
-          </EuiTitle>
-        </EuiPageHeader>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <Container>
+        <Box sx={{ py: 2 }}>
+          <Typography variant="h4" component="h1">
+            Data Labeling
+          </Typography>
+        </Box>
 
-        <EuiPageSection>
-          <EuiTabs>
+        <Box>
+          <Tabs
+            value={selectedTab}
+            onChange={(event, newValue) => setSelectedTab(newValue)}
+          >
             {tabs.map((tab) => (
-              <EuiTab
+              <Tab
                 key={tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                isSelected={tab.id === selectedTab}
-              >
-                {tab.name}
-              </EuiTab>
+                value={tab.id}
+                label={tab.name}
+              />
             ))}
-          </EuiTabs>
+          </Tabs>
 
-          <EuiSpacer size="l" />
-
-          {selectedTabContent}
-        </EuiPageSection>
-      </EuiPageBody>
-    </EuiPage>
+          <Box sx={{ mt: 3 }}>
+            {selectedTabContent}
+          </Box>
+        </Box>
+      </Container>
+    </Box>
   );
 };
 

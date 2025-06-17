@@ -1,14 +1,16 @@
 import React, { useContext, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  EuiEmptyPrompt,
-  EuiLoadingSpinner,
-  EuiSpacer,
-  EuiSelect,
-  EuiFormRow,
-  EuiFlexGroup,
-  EuiFlexItem,
-} from "@elastic/eui";
+  Box,
+  CircularProgress,
+  Alert,
+  Typography,
+  Select,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Stack,
+} from "@mui/material";
 import { feast } from "../../protos";
 import useLoadRegistry from "../../queries/useLoadRegistry";
 import RegistryPathContext from "../../contexts/RegistryPathContext";
@@ -39,48 +41,50 @@ const FeatureViewLineageTab = ({ data }: FeatureViewLineageTabProps) => {
   return (
     <>
       {isLoading && (
-        <div style={{ display: "flex", justifyContent: "center", padding: 25 }}>
-          <EuiLoadingSpinner size="xl" />
-        </div>
+        <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+          <CircularProgress size="large" />
+        </Box>
       )}
       {isError && (
-        <EuiEmptyPrompt
-          iconType="alert"
-          color="danger"
-          title={<h2>Error Loading Registry Data</h2>}
-          body={
-            <p>
-              There was an error loading the Registry Data. Please check that{" "}
-              <code>feature_store.yaml</code> file is available and well-formed.
-            </p>
-          }
-        />
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", p: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            <Typography variant="h6" component="h2">Error Loading Registry Data</Typography>
+          </Alert>
+          <Typography variant="body1">
+            There was an error loading the Registry Data. Please check that{" "}
+            <Typography component="code" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', px: 0.5, borderRadius: 1 }}>
+              feature_store.yaml
+            </Typography>{" "}
+            file is available and well-formed.
+          </Typography>
+        </Box>
       )}
       {isSuccess && registryData && (
         <>
-          <EuiSpacer size="l" />
-          <EuiFlexGroup style={{ marginBottom: 16 }}>
-            <EuiFlexItem grow={false} style={{ width: 300 }}>
-              <EuiFormRow label="Filter by permissions">
-                <EuiSelect
-                  options={[
-                    { value: "", text: "All" },
-                    { value: "CREATE", text: "CREATE" },
-                    { value: "DESCRIBE", text: "DESCRIBE" },
-                    { value: "UPDATE", text: "UPDATE" },
-                    { value: "DELETE", text: "DELETE" },
-                    { value: "READ_ONLINE", text: "READ_ONLINE" },
-                    { value: "READ_OFFLINE", text: "READ_OFFLINE" },
-                    { value: "WRITE_ONLINE", text: "WRITE_ONLINE" },
-                    { value: "WRITE_OFFLINE", text: "WRITE_OFFLINE" },
-                  ]}
+          <Box sx={{ my: 3 }} />
+          <Stack direction="row" sx={{ mb: 2 }}>
+            <Box sx={{ flexShrink: 0, width: 300 }}>
+              <FormControl fullWidth>
+                <InputLabel>Filter by permissions</InputLabel>
+                <Select
                   value={selectedPermissionAction}
                   onChange={(e) => setSelectedPermissionAction(e.target.value)}
                   aria-label="Filter by permissions"
-                />
-              </EuiFormRow>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+                  label="Filter by permissions"
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="CREATE">CREATE</MenuItem>
+                  <MenuItem value="DESCRIBE">DESCRIBE</MenuItem>
+                  <MenuItem value="UPDATE">UPDATE</MenuItem>
+                  <MenuItem value="DELETE">DELETE</MenuItem>
+                  <MenuItem value="READ_ONLINE">READ_ONLINE</MenuItem>
+                  <MenuItem value="READ_OFFLINE">READ_OFFLINE</MenuItem>
+                  <MenuItem value="WRITE_ONLINE">WRITE_ONLINE</MenuItem>
+                  <MenuItem value="WRITE_OFFLINE">WRITE_OFFLINE</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Stack>
           <RegistryVisualization
             registryData={registryData.objects}
             relationships={registryData.relationships}

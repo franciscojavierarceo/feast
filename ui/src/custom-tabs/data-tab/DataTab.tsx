@@ -1,42 +1,41 @@
 import React from "react";
 import { z } from "zod";
 import {
-  EuiCode,
-  EuiFlexGroup,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiTable,
-  EuiTitle,
-  EuiTableHeader,
-  EuiTableHeaderCell,
-  EuiPanel,
-  EuiFlexItem,
-  EuiTableRow,
-  EuiTableRowCell,
-} from "@elastic/eui";
+  Typography,
+  Divider,
+  CircularProgress,
+  Table,
+  TableHead,
+  TableCell,
+  Paper,
+  Box,
+  TableRow,
+  TableBody,
+  Stack,
+} from "@mui/material";
 import DataQuery from "./DataQuery";
 
-const FeatureViewDataRow = z.object({
+const FeatureViewDataRowSchema = z.object({
   name: z.string(),
   value: z.string(),
 });
 
-type FeatureViewDataRowType = z.infer<typeof FeatureViewDataRow>;
+type FeatureViewDataRowType = z.infer<typeof FeatureViewDataRowSchema>;
 
 const LineHeightProp: React.CSSProperties = {
   lineHeight: 1,
 };
 
-const EuiFeatureViewDataRow = ({ name, value }: FeatureViewDataRowType) => {
+const FeatureViewDataRow = ({ name, value }: FeatureViewDataRowType) => {
   return (
-    <EuiTableRow>
-      <EuiTableRowCell>{name}</EuiTableRowCell>
-      <EuiTableRowCell textOnly={false}>
-        <EuiCode data-code-language="text">
-          <pre style={LineHeightProp}>{value}</pre>
-        </EuiCode>
-      </EuiTableRowCell>
-    </EuiTableRow>
+    <TableRow>
+      <TableCell>{name}</TableCell>
+      <TableCell>
+        <Typography component="pre" sx={{ fontFamily: 'monospace', bgcolor: 'grey.100', p: 0.5, borderRadius: 1, ...LineHeightProp }}>
+          {value}
+        </Typography>
+      </TableCell>
+    </TableRow>
   );
 };
 
@@ -53,15 +52,19 @@ const FeatureViewDataTable = (data: any) => {
   }
 
   return (
-    <EuiTable>
-      <EuiTableHeader>
-        <EuiTableHeaderCell>Data Item Name</EuiTableHeaderCell>
-        <EuiTableHeaderCell>Data Item Value</EuiTableHeaderCell>
-      </EuiTableHeader>
-      {items.map((item) => {
-        return <EuiFeatureViewDataRow name={item.name} value={item.value} />;
-      })}
-    </EuiTable>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Data Item Name</TableCell>
+          <TableCell>Data Item Value</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {items.map((item) => {
+          return <FeatureViewDataRow name={item.name} value={item.value} />;
+        })}
+      </TableBody>
+    </Table>
   );
 };
 
@@ -74,24 +77,24 @@ const DataTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && <p>No feature view with name: {fName}</p>}
       {isError && <p>Error loading feature view: {fName}</p>}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Properties</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+          <Stack direction="row">
+            <Box sx={{ flexGrow: 1 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h3">
+                  Properties
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 <FeatureViewDataTable data={data} />
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+              </Paper>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>

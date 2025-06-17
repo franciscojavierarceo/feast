@@ -1,18 +1,11 @@
 import {
-  EuiFlexGroup,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiText,
-  EuiTitle,
-} from "@elastic/eui";
-import {
-  EuiPanel,
-  EuiFlexItem,
-  EuiDescriptionList,
-  EuiDescriptionListTitle,
-  EuiDescriptionListDescription,
-  EuiSpacer,
-} from "@elastic/eui";
+  Stack,
+  Divider,
+  CircularProgress,
+  Typography,
+  Paper,
+  Box,
+} from "@mui/material";
 import React, { useContext } from "react";
 import { useParams } from "react-router-dom";
 import PermissionsDisplay from "../../components/PermissionsDisplay";
@@ -40,50 +33,47 @@ const DataSourceOverviewTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && <p>No data source with name: {dataSourceName}</p>}
       {isError && <p>Error loading data source: {dataSourceName}</p>}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiFlexGroup>
-                <EuiFlexItem>
-                  <EuiPanel hasBorder={true} hasShadow={false}>
-                    <EuiTitle size="xs">
-                      <h2>Properties</h2>
-                    </EuiTitle>
-                    <EuiHorizontalRule margin="xs" />
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Stack direction="column" spacing={2}>
+                <Box>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="subtitle2">
+                      Properties
+                    </Typography>
+                    <Divider sx={{ my: 0.5 }} />
                     {data.fileOptions || data.bigqueryOptions ? (
                       <BatchSourcePropertiesView batchSource={data} />
                     ) : data.type ? (
                       <React.Fragment>
-                        <EuiDescriptionList>
-                          <EuiDescriptionListTitle>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
                             Source Type
-                          </EuiDescriptionListTitle>
-                          <EuiDescriptionListDescription>
+                          </Typography>
+                          <Typography variant="body2">
                             {feast.core.DataSource.SourceType[data.type]}
-                          </EuiDescriptionListDescription>
-                        </EuiDescriptionList>
+                          </Typography>
+                        </Box>
                       </React.Fragment>
                     ) : (
                       ""
                     )}
-                  </EuiPanel>
-                </EuiFlexItem>
-              </EuiFlexGroup>
-              <EuiSpacer size="m" />
-              <EuiFlexGroup>
-                <EuiFlexItem>
+                  </Paper>
+                </Box>
+                <Box>
                   {data.requestDataOptions ? (
-                    <EuiPanel hasBorder={true}>
-                      <EuiTitle size="xs">
-                        <h2>Request Source Schema</h2>
-                      </EuiTitle>
-                      <EuiHorizontalRule margin="xs"></EuiHorizontalRule>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Typography variant="subtitle2">
+                        Request Source Schema
+                      </Typography>
+                      <Divider sx={{ my: 0.5 }} />
                       <RequestDataSourceSchemaTable
                         fields={
                           data?.requestDataOptions?.schema!.map((obj) => {
@@ -94,19 +84,19 @@ const DataSourceOverviewTab = () => {
                           })!
                         }
                       />
-                    </EuiPanel>
+                    </Paper>
                   ) : (
                     ""
                   )}
-                </EuiFlexItem>
-              </EuiFlexGroup>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h2>Consuming Feature Views</h2>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs"></EuiHorizontalRule>
+                </Box>
+              </Stack>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Consuming Feature Views
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {consumingFeatureViews && consumingFeatureViews.length > 0 ? (
                   <FeatureViewEdgesList
                     fvNames={consumingFeatureViews.map((f) => {
@@ -114,15 +104,15 @@ const DataSourceOverviewTab = () => {
                     })}
                   />
                 ) : (
-                  <EuiText>No consuming feature views</EuiText>
+                  <Typography variant="body1">No consuming feature views</Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h2>Permissions</h2>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs"></EuiHorizontalRule>
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Permissions
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {registryQuery.data?.permissions ? (
                   <PermissionsDisplay
                     permissions={getEntityPermissions(
@@ -132,13 +122,13 @@ const DataSourceOverviewTab = () => {
                     )}
                   />
                 ) : (
-                  <EuiText>
+                  <Typography variant="body1">
                     No permissions defined for this data source.
-                  </EuiText>
+                  </Typography>
                 )}
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+              </Paper>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>

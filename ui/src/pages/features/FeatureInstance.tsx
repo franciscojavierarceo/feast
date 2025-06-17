@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { FeatureIcon } from "../../graphics/FeatureIcon";
 import { useMatchExact } from "../../hooks/useMatchSubpath";
@@ -21,29 +21,35 @@ const FeatureInstance = () => {
   useDocumentTitle(`${FeatureName} | ${FeatureViewName} | Feast`);
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={FeatureIcon}
-        pageTitle={`Feature: ${FeatureName}`}
-        tabs={[
-          {
-            label: "Overview",
-            isSelected: useMatchExact(""),
-            onClick: () => {
-              navigate("");
-            },
-          },
-          ...customNavigationTabs,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route path="/" element={<FeatureOverviewTab />} />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <FeatureIcon />
+          <Typography variant="h4" component="h1" sx={{ ml: 2 }}>
+            Feature: {FeatureName}
+          </Typography>
+        </Box>
+        <Tabs value={useMatchExact("") ? 0 : -1} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tab 
+            label="Overview" 
+            onClick={() => navigate("")}
+          />
+          {customNavigationTabs.map((tab, index) => (
+            <Tab 
+              key={index + 1}
+              label={tab.label}
+              onClick={tab.onClick}
+            />
+          ))}
+        </Tabs>
+        <Box sx={{ mt: 3 }}>
+          <Routes>
+            <Route path="/" element={<FeatureOverviewTab />} />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

@@ -1,13 +1,17 @@
 import React from "react";
 import {
-  EuiBasicTable,
-  EuiPanel,
-  EuiSpacer,
-  EuiText,
-  EuiTitle,
-} from "@elastic/eui";
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Typography,
+} from "@mui/material";
 import { useParams } from "react-router-dom";
-import EuiCustomLink from "../../../components/EuiCustomLink";
+import CustomLink from "../../../components/CustomLink";
 import { feast } from "../../../protos";
 
 interface RequestDataDisplayPanelProps
@@ -33,24 +37,45 @@ const FeatureViewProjectionDisplayPanel = (
   ];
 
   return (
-    <EuiPanel hasBorder={true}>
-      <EuiText size="xs">
-        <span>Feature View</span>
-      </EuiText>
-      <EuiSpacer size="xs" />
-      <EuiTitle size="s">
-        <EuiCustomLink
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Typography variant="caption">
+        Feature View
+      </Typography>
+      <Box sx={{ mt: 0.5 }} />
+      <Typography variant="subtitle1">
+        <CustomLink
           to={`/p/${projectName}/feature-view/${featureViewProjection.featureViewName}`}
         >
           {featureViewProjection?.featureViewName}
-        </EuiCustomLink>
-      </EuiTitle>
-      <EuiSpacer size="s" />
-      <EuiBasicTable
-        columns={columns}
-        items={featureViewProjection?.featureColumns!}
-      />
-    </EuiPanel>
+        </CustomLink>
+      </Typography>
+      <Box sx={{ mt: 1 }} />
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell key={column.field}>{column.name}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {featureViewProjection?.featureColumns?.map((item, index) => (
+              <TableRow key={index}>
+                {columns.map((column) => (
+                  <TableCell key={column.field}>
+                    {column.render 
+                      ? column.render((item as any)[column.field])
+                      : (item as any)[column.field]
+                    }
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 };
 

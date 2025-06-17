@@ -6,13 +6,14 @@ import {
 } from "../types";
 
 import {
-  EuiSkeletonText,
-  EuiEmptyPrompt,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiCode,
-  EuiSpacer,
-} from "@elastic/eui";
+  Skeleton,
+  Box,
+  Typography,
+  Button,
+  Stack,
+} from "@mui/material";
+
+import { Error as ErrorIcon } from "@mui/icons-material";
 
 // Separating out the query is not required,
 // but encouraged for code readability
@@ -31,53 +32,82 @@ const DemoCustomTab = ({
 
   if (isLoading) {
     // Handle Loading State
-    // https://elastic.github.io/eui/#/display/loading
-    return <EuiSkeletonText lines={3} />;
+    return (
+      <Box>
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="100%" />
+        <Skeleton variant="text" width="60%" />
+      </Box>
+    );
   }
 
   if (isError) {
     // Handle Data Fetching Error
-    // https://elastic.github.io/eui/#/display/empty-prompt
     return (
-      <EuiEmptyPrompt
-        iconType="alert"
-        color="danger"
-        title={<h2>Unable to load your demo page</h2>}
-        body={
-          <p>
-            There was an error loading the Dashboard application. Contact your
-            administrator for help.
-          </p>
-        }
-      />
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          p: 4 
+        }}
+      >
+        <ErrorIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
+        <Typography variant="h5" component="h2" gutterBottom>
+          Unable to load your demo page
+        </Typography>
+        <Typography variant="body1" color="text.secondary" textAlign="center">
+          There was an error loading the Dashboard application. Contact your
+          administrator for help.
+        </Typography>
+      </Box>
     );
   }
 
-  // Feast UI uses the Elastic UI component system.
-  // <EuiFlexGroup> and <EuiFlexItem> are particularly
+  // Feast UI uses the MaterialUI component system.
+  // <Stack> and <Box> are particularly
   // useful for layouts.
   return (
     <React.Fragment>
-      <EuiFlexGroup>
-        <EuiFlexItem grow={1}>
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
           <p>Hello World. The following is fetched data.</p>
-          <EuiSpacer />
+          <Box sx={{ my: 2 }} />
           {isSuccess && data && (
-            <EuiCode>
-              <pre>{JSON.stringify(data, null, 2)}</pre>
-            </EuiCode>
+            <Typography 
+              component="pre" 
+              sx={{ 
+                fontFamily: 'monospace', 
+                bgcolor: 'grey.100', 
+                p: 1, 
+                borderRadius: 1,
+                overflow: 'auto'
+              }}
+            >
+              {JSON.stringify(data, null, 2)}
+            </Typography>
           )}
-        </EuiFlexItem>
-        <EuiFlexItem grow={2}>
+        </Box>
+        <Box sx={{ flexGrow: 2 }}>
           <p>... and this is data from Feast UI&rsquo;s own query.</p>
-          <EuiSpacer />
+          <Box sx={{ my: 2 }} />
           {feastObjectQuery.isSuccess && feastObjectQuery.data && (
-            <EuiCode>
-              <pre>{JSON.stringify(feastObjectQuery.data, null, 2)}</pre>
-            </EuiCode>
+            <Typography 
+              component="pre" 
+              sx={{ 
+                fontFamily: 'monospace', 
+                bgcolor: 'grey.100', 
+                p: 1, 
+                borderRadius: 1,
+                overflow: 'auto'
+              }}
+            >
+              {JSON.stringify(feastObjectQuery.data, null, 2)}
+            </Typography>
           )}
-        </EuiFlexItem>
-      </EuiFlexGroup>
+        </Box>
+      </Stack>
     </React.Fragment>
   );
 };

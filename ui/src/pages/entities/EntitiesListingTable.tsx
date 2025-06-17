@@ -1,6 +1,6 @@
 import React from "react";
-import { EuiBasicTable } from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import useFeatureViewEdgesByEntity from "./useFeatureViewEdgesByEntity";
 import { useParams } from "react-router-dom";
 import { feast } from "../../protos";
@@ -14,36 +14,9 @@ const EntitiesListingTable = ({ entities }: EntitiesListingTableProps) => {
   const { projectName } = useParams();
 
   const columns = [
-    {
-      name: "Name",
-      field: "spec.name",
-      sortable: true,
-      render: (name: string) => {
-        return (
-          <EuiCustomLink to={`/p/${projectName}/entity/${name}`}>
-            {name}
-          </EuiCustomLink>
-        );
-      },
-    },
-    {
-      name: "Type",
-      field: "spec.valueType",
-      sortable: true,
-      render: (valueType: feast.types.ValueType.Enum) => {
-        return feast.types.ValueType.Enum[valueType];
-      },
-    },
-    {
-      name: "# of FVs",
-      render: (item: feast.core.IEntity) => {
-        if (isSuccess && data) {
-          return data[item?.spec?.name!] ? data[item?.spec?.name!].length : "0";
-        } else {
-          return ".";
-        }
-      },
-    },
+    { id: "name", label: "Name", sortable: true },
+    { id: "type", label: "Type", sortable: true },
+    { id: "fvs", label: "# of FVs", sortable: false },
   ];
 
   const getRowProps = (item: feast.core.IEntity) => {
@@ -53,7 +26,37 @@ const EntitiesListingTable = ({ entities }: EntitiesListingTableProps) => {
   };
 
   return (
-    <EuiBasicTable columns={columns} items={entities} rowProps={getRowProps} />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            {columns.map((column) => (
+              <TableCell key={column.id}>{column.label}</TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {entities.map((entity) => (
+            <TableRow key={entity?.spec?.name} data-test-subj={`row-${entity?.spec?.name}`}>
+              <TableCell>
+                <CustomLink to={`/p/${projectName}/entity/${entity?.spec?.name}`}>
+                  {entity?.spec?.name}
+                </CustomLink>
+              </TableCell>
+              <TableCell>
+                {feast.types.ValueType.Enum[entity?.spec?.valueType!]}
+              </TableCell>
+              <TableCell>
+                {isSuccess && data 
+                  ? (data[entity?.spec?.name!] ? data[entity?.spec?.name!].length : "0")
+                  : "."
+                }
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

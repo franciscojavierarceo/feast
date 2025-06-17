@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 
-import { EuiPageTemplate, EuiLoadingSpinner } from "@elastic/eui";
+import { Container, Box, Typography, CircularProgress } from "@mui/material";
 
 import { EntityIcon } from "../../graphics/EntityIcon";
 
@@ -32,30 +32,34 @@ const Index = () => {
   useDocumentTitle(`Entities | Feast`);
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={EntityIcon}
-        pageTitle="Entities"
-        rightSideItems={[
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <EntityIcon />
+            <Typography variant="h4" component="h1">
+              Entities
+            </Typography>
+          </Box>
           <ExportButton
             data={data ?? []}
             fileName="entities"
             formats={["json"]}
-          />,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        {isLoading && (
-          <p>
-            <EuiLoadingSpinner size="m" /> Loading
-          </p>
-        )}
-        {isError && <p>We encountered an error while loading.</p>}
-        {isSuccess && !data && <EntityIndexEmptyState />}
-        {isSuccess && data && <EntitiesListingTable entities={data} />}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+          />
+        </Box>
+        <Box>
+          {isLoading && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography>Loading</Typography>
+            </Box>
+          )}
+          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isSuccess && !data && <EntityIndexEmptyState />}
+          {isSuccess && data && <EntitiesListingTable entities={data} />}
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

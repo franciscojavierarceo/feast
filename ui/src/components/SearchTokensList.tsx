@@ -1,5 +1,6 @@
 import React from "react";
-import { EuiBadge, EuiFlexGroup, EuiFlexItem } from "@elastic/eui";
+import { Chip, Stack, Box } from "@mui/material";
+import { Close } from "@mui/icons-material";
 
 interface SearchTokensListProps {
   tokens: string[];
@@ -11,27 +12,24 @@ const SearchTokensList = ({
   removeTokenByPosition,
 }: SearchTokensListProps) => {
   return (
-    <EuiFlexGroup wrap responsive={false} gutterSize="xs">
+    <Stack direction="row" spacing={1} flexWrap="wrap">
       {tokens.map((token, index) => {
-        const badgeColor = token.indexOf(":") > 0 ? "primary" : "hollow";
+        const chipColor = token.indexOf(":") > 0 ? "primary" : "default";
 
         return (
-          <EuiFlexItem key={token} grow={false}>
-            <EuiBadge
-              color={badgeColor}
-              iconType="cross"
-              iconSide="right"
-              iconOnClick={() => {
+          <Box key={token}>
+            <Chip
+              label={token}
+              color={chipColor}
+              onDelete={() => {
                 removeTokenByPosition(index);
               }}
-              iconOnClickAriaLabel="Example of onClick event for icon within the button"
-            >
-              {token}
-            </EuiBadge>
-          </EuiFlexItem>
+              deleteIcon={<Close />}
+            />
+          </Box>
         );
       })}
-    </EuiFlexGroup>
+    </Stack>
   );
 };
 

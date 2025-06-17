@@ -1,16 +1,12 @@
 import {
-  EuiBadge,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiPanel,
-  EuiSpacer,
-  EuiStat,
-  EuiText,
-  EuiTextAlign,
-  EuiTitle,
-} from "@elastic/eui";
+  Paper,
+  Chip,
+  Stack,
+  Box,
+  Divider,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
 import React from "react";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
@@ -48,63 +44,64 @@ const FeatureServiceOverviewTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && <p>No feature service with name: {featureServiceName}</p>}
       {isError && <p>Error loading feature service: {featureServiceName}</p>}
       {isSuccess && data && (
-        <EuiFlexGroup direction="column">
-          <EuiFlexGroup alignItems="center">
-            <EuiFlexItem grow={false}>
-              <EuiStat title={`${numFeatures}`} description="Total Features" />
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiTextAlign textAlign="center">
-                <p>from</p>
-              </EuiTextAlign>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiStat
-                title={`${numFeatureViews}`}
-                description="Feature Views"
-              />
-            </EuiFlexItem>
+        <Stack direction="column" spacing={2}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Box sx={{ flexShrink: 0 }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4">{numFeatures}</Typography>
+                <Typography variant="body1">Total Features</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ textAlign: 'center' }}>
+              <p>from</p>
+            </Box>
+            <Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4">{numFeatureViews}</Typography>
+                <Typography variant="body1">Feature Views</Typography>
+              </Box>
+            </Box>
             {data?.meta?.lastUpdatedTimestamp ? (
-              <EuiFlexItem>
-                <EuiStat
-                  title={`${toDate(data?.meta?.lastUpdatedTimestamp!).toLocaleDateString("en-CA")}`}
-                  description="Last updated"
-                />
-              </EuiFlexItem>
+              <Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4">{toDate(data?.meta?.lastUpdatedTimestamp!).toLocaleDateString("en-CA")}</Typography>
+                  <Typography variant="body1">Last updated</Typography>
+                </Box>
+              </Box>
             ) : (
-              <EuiText>
+              <Typography variant="body1">
                 No last updated timestamp specified on this feature service.
-              </EuiText>
+              </Typography>
             )}
-          </EuiFlexGroup>
-          <EuiFlexGroup>
-            <EuiFlexItem grow={2}>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h2>Features</h2>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+          </Stack>
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flexGrow: 2 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h2">
+                  Features
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {data?.spec?.features ? (
                   <FeaturesInServiceList featureViews={data?.spec?.features} />
                 ) : (
-                  <EuiText>
+                  <Typography variant="body1">
                     No features specified for this feature service.
-                  </EuiText>
+                  </Typography>
                 )}
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem grow={1}>
-              <EuiPanel hasBorder={true} grow={false}>
-                <EuiTitle size="xs">
-                  <h3>Tags</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h3">
+                  Tags
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {data?.spec?.tags ? (
                   <TagsDisplay
                     tags={data.spec.tags}
@@ -116,46 +113,46 @@ const FeatureServiceOverviewTab = () => {
                     }}
                   />
                 ) : (
-                  <EuiText>No Tags specified on this feature service.</EuiText>
+                  <Typography variant="body1">No Tags specified on this feature service.</Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Entities</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h3">
+                  Entities
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {entities ? (
-                  <EuiFlexGroup wrap responsive={false} gutterSize="xs">
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {entities.map((entity) => {
                       return (
-                        <EuiFlexItem grow={false} key={entity.name}>
-                          <EuiBadge
+                        <Box sx={{ flexShrink: 0 }} key={entity.name}>
+                          <Chip
                             color="primary"
+                            variant="filled"
                             onClick={() => {
                               navigate(
                                 `/p/${projectName}/entity/${entity.name}`,
                               );
                             }}
-                            onClickAriaLabel={entity.name}
+                            aria-label={entity.name}
                             data-test-sub="testExample1"
-                          >
-                            {entity.name}
-                          </EuiBadge>
-                        </EuiFlexItem>
+                            label={entity.name}
+                          />
+                        </Box>
                       );
                     })}
-                  </EuiFlexGroup>
+                  </Box>
                 ) : (
-                  <EuiText>No Entities.</EuiText>
+                  <Typography variant="body1">No Entities.</Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>All Feature Views</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h3">
+                  All Feature Views
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {data?.spec?.features?.length! > 0 ? (
                   <FeatureViewEdgesList
                     fvNames={
@@ -165,15 +162,15 @@ const FeatureServiceOverviewTab = () => {
                     }
                   />
                 ) : (
-                  <EuiText>No feature views in this feature service</EuiText>
+                  <Typography variant="body1">No feature views in this feature service</Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Permissions</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2" component="h3">
+                  Permissions
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {data?.permissions ? (
                   <PermissionsDisplay
                     permissions={getEntityPermissions(
@@ -183,14 +180,14 @@ const FeatureServiceOverviewTab = () => {
                     )}
                   />
                 ) : (
-                  <EuiText>
+                  <Typography variant="body1">
                     No permissions defined for this feature service.
-                  </EuiText>
+                  </Typography>
                 )}
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-        </EuiFlexGroup>
+              </Paper>
+            </Box>
+          </Stack>
+        </Stack>
       )}
     </React.Fragment>
   );

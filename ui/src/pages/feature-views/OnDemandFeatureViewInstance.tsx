@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { FeatureViewIcon } from "../../graphics/FeatureViewIcon";
 import { useMatchExact } from "../../hooks/useMatchSubpath";
@@ -25,32 +25,38 @@ const OnDemandFeatureInstance = ({ data }: OnDemandFeatureInstanceProps) => {
   const CustomTabRoutes = useOnDemandFeatureViewCustomTabRoutes();
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={FeatureViewIcon}
-        pageTitle={`${featureViewName}`}
-        tabs={[
-          {
-            label: "Overview",
-            isSelected: useMatchExact(""),
-            onClick: () => {
-              navigate("");
-            },
-          },
-          ...customNavigationTabs,
-        ]}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route
-            path="/"
-            element={<OnDemandFeatureViewOverviewTab data={data} />}
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <FeatureViewIcon />
+          <Typography variant="h4" component="h1" sx={{ ml: 2 }}>
+            {featureViewName}
+          </Typography>
+        </Box>
+        <Tabs value={useMatchExact("") ? 0 : -1} sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+          <Tab
+            label="Overview"
+            onClick={() => navigate("")}
           />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+          {customNavigationTabs.map((tab, index) => (
+            <Tab
+              key={index}
+              label={tab.label}
+              onClick={tab.onClick}
+            />
+          ))}
+        </Tabs>
+        <Box>
+          <Routes>
+            <Route
+              path="/"
+              element={<OnDemandFeatureViewOverviewTab data={data} />}
+            />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

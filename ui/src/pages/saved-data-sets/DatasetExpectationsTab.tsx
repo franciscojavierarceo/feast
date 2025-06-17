@@ -1,5 +1,5 @@
 import React from "react";
-import { EuiPanel } from "@elastic/eui";
+import { Paper } from "@mui/material";
 import { useParams } from "react-router-dom";
 import useLoadDataset from "./useLoadDataset";
 
@@ -13,20 +13,20 @@ const DatasetExpectationsTab = () => {
 
   if (!data || !data.spec?.name) {
     return (
-      <EuiPanel hasBorder={true} hasShadow={false}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
         No data so sad
-      </EuiPanel>
+      </Paper>
     );
   }
 
   return isSuccess ? (
-    <EuiPanel hasBorder={true} hasShadow={false}>
+    <Paper variant="outlined" sx={{ p: 2 }}>
       <pre>{JSON.stringify(data.spec, null, 2)}</pre>
-    </EuiPanel>
+    </Paper>
   ) : (
-    <EuiPanel hasBorder={true} hasShadow={false}>
+    <Paper variant="outlined" sx={{ p: 2 }}>
       No data so sad
-    </EuiPanel>
+    </Paper>
   );
 };
 

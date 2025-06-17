@@ -1,4 +1,4 @@
-import { EuiBasicTable } from "@elastic/eui";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
 import React from "react";
 
 interface DatasetFeatureEntry {
@@ -11,18 +11,26 @@ interface DatasetFeaturesTableProps {
 }
 
 const DatasetFeaturesTable = ({ features }: DatasetFeaturesTableProps) => {
-  const columns = [
-    {
-      name: "Feature",
-      field: "featureName",
-    },
-    {
-      name: "Sourc Feature View",
-      field: "featureViewName",
-    },
-  ];
-
-  return <EuiBasicTable columns={columns} items={features} />;
+  return (
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Feature</TableCell>
+            <TableCell>Source Feature View</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {features.map((feature, index) => (
+            <TableRow key={index}>
+              <TableCell>{feature.featureName}</TableCell>
+              <TableCell>{feature.featureViewName}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 };
 
 export default DatasetFeaturesTable;

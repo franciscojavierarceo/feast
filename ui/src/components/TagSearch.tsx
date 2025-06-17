@@ -1,4 +1,4 @@
-import { EuiTitle, EuiInputPopover, EuiSelectable } from "@elastic/eui";
+import { Typography, Popover, Autocomplete, TextField, List, ListItem, ListItemText, Box } from "@mui/material";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -177,44 +177,47 @@ const TagSearch = ({
   );
 
   return (
-    <>
-      <EuiTitle size="xs">
-        <h2>Filter by Tags</h2>
-      </EuiTitle>
-      <EuiSelectable
-        onFocus={() => {
-          setHasFocus(true);
-        }}
-        onBlur={() => {
-          setHasFocus(false);
-        }}
-        searchable={true}
-        isPreFiltered={true}
-        searchProps={searchProps}
-        aria-label="Filter by "
-        onChange={onSelectableChange}
+    <Box>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Filter by Tags
+      </Typography>
+      <Autocomplete
         options={options}
-        singleSelection={true}
-        listProps={{ bordered: true }}
-      >
-        {(list, search) => {
-          return (
-            <EuiInputPopover
-              fullWidth
-              disableFocusTrap={true}
-              input={<>{search}</>}
-              isOpen={hasFocus}
-              closePopover={() => {
-                setHasFocus(false);
-              }}
-            >
-              {resultsCount}
-              {list}
-            </EuiInputPopover>
-          );
+        getOptionLabel={(option) => typeof option === 'string' ? option : option.label}
+        value={null}
+        onChange={(event, newValue) => {
+          if (newValue && typeof newValue !== 'string') {
+            acceptSuggestion(newValue.suggestion);
+          }
         }}
-      </EuiSelectable>
-    </>
+        onFocus={() => setHasFocus(true)}
+        onBlur={() => setHasFocus(false)}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            {...searchProps}
+            fullWidth
+            placeholder={searchProps.placeholder}
+            aria-label="Filter by tags"
+          />
+        )}
+        renderOption={(props, option) => (
+          <ListItem {...props}>
+            <ListItemText 
+              primary={option.label}
+              secondary={option.suggestion.description}
+            />
+          </ListItem>
+        )}
+        open={hasFocus}
+        freeSolo
+      />
+      {resultsCount && (
+        <Typography variant="caption" sx={{ mt: 1 }}>
+          {resultsCount}
+        </Typography>
+      )}
+    </Box>
   );
 };
 

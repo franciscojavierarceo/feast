@@ -1,15 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import {
-  EuiPage,
-  EuiPageSidebar,
-  EuiPageBody,
-  EuiErrorBoundary,
-  EuiHorizontalRule,
-  EuiSpacer,
-  EuiFlexGroup,
-  EuiFlexItem,
-} from "@elastic/eui";
+  Box,
+  Drawer,
+  Divider,
+  Stack,
+} from "@mui/material";
+import { ErrorBoundary } from "react-error-boundary";
 import { Outlet } from "react-router-dom";
 
 import RegistryPathContext from "../contexts/RegistryPathContext";
@@ -123,81 +120,70 @@ const Layout = () => {
         onClose={() => setIsCommandPaletteOpen(false)}
         categories={categories}
       />
-      <EuiPage paddingSize="none" style={{ background: "transparent" }}>
-        <EuiPageSidebar
-          paddingSize="l"
-          sticky={{ offset: 0 }}
-          role={"navigation"}
-          aria-label={"Top Level"}
+      <Box sx={{ display: "flex", height: "100vh" }}>
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: 240,
+            flexShrink: 0,
+            "& .MuiDrawer-paper": {
+              width: 240,
+              boxSizing: "border-box",
+              padding: 3,
+            },
+          }}
         >
           <FeastWordMark />
-          <EuiSpacer size="s" />
+          <Box sx={{ mt: 1 }} />
           <ProjectSelector />
           {registryPath && (
             <React.Fragment>
-              <EuiHorizontalRule margin="s" />
+              <Divider sx={{ my: 1 }} />
               <Sidebar />
-              <EuiSpacer size="l" />
-              <EuiHorizontalRule margin="s" />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                }}
-              >
+              <Box sx={{ mt: 3 }} />
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
                 <ThemeToggle />
-              </div>
+              </Box>
             </React.Fragment>
           )}
-        </EuiPageSidebar>
+        </Drawer>
 
-        <EuiPageBody>
-          <EuiErrorBoundary>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                height: "100vh",
-              }}
-            >
-              {data && (
-                <div
-                  style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 100,
-                    backgroundColor: "var(--euiPageBackgroundColor)",
-                    borderBottom: "1px solid #D3DAE6",
-                    boxShadow: "0px 1px 5px rgba(0, 0, 0, 0.05)",
-                    padding: "16px",
-                    width: "100%",
-                  }}
-                >
-                  <EuiFlexGroup justifyContent="center">
-                    <EuiFlexItem
-                      grow={false}
-                      style={{ width: "600px", maxWidth: "90%" }}
-                    >
-                      <RegistrySearch ref={searchRef} categories={categories} />
-                    </EuiFlexItem>
-                  </EuiFlexGroup>
-                </div>
-              )}
-              <div
-                style={{
-                  flexGrow: 1,
-                  overflow: "auto",
-                  padding: "16px",
-                  height: "calc(100vh - 70px)",
+        <Box component="main" sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+          <ErrorBoundary fallback={<div>Something went wrong</div>}>
+            {data && (
+              <Box
+                sx={{
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 100,
+                  bgcolor: "background.paper",
+                  borderBottom: 1,
+                  borderColor: "divider",
+                  boxShadow: 1,
+                  p: 2,
                 }}
               >
-                <Outlet />
-              </div>
-            </div>
-          </EuiErrorBoundary>
-        </EuiPageBody>
-      </EuiPage>
+                <Stack direction="row" justifyContent="center">
+                  <Box sx={{ width: "600px", maxWidth: "90%" }}>
+                    <RegistrySearch ref={searchRef} categories={categories} />
+                  </Box>
+                </Stack>
+              </Box>
+            )}
+            <Box
+              sx={{
+                flexGrow: 1,
+                overflow: "auto",
+                p: 2,
+                height: "calc(100vh - 70px)",
+              }}
+            >
+              <Outlet />
+            </Box>
+          </ErrorBoundary>
+        </Box>
+      </Box>
     </RegistryPathContext.Provider>
   );
 };

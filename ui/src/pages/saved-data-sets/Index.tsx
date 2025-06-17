@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 
-import { EuiPageTemplate, EuiLoadingSpinner } from "@elastic/eui";
+import { Container, Box, Typography, CircularProgress } from "@mui/material";
 
 import { DatasetIcon } from "../../graphics/DatasetIcon";
 
@@ -31,23 +31,27 @@ const Index = () => {
   useDocumentTitle(`Saved Datasets | Feast`);
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={DatasetIcon}
-        pageTitle="Datasets"
-      />
-      <EuiPageTemplate.Section>
-        {isLoading && (
-          <p>
-            <EuiLoadingSpinner size="m" /> Loading
-          </p>
-        )}
-        {isError && <p>We encountered an error while loading.</p>}
-        {isSuccess && data && <DatasetsListingTable datasets={data} />}
-        {isSuccess && !data && <DatasetsIndexEmptyState />}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+          <DatasetIcon />
+          <Typography variant="h4" component="h1" sx={{ ml: 2 }}>
+            Datasets
+          </Typography>
+        </Box>
+        <Box>
+          {isLoading && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CircularProgress size={24} />
+              <Typography>Loading</Typography>
+            </Box>
+          )}
+          {isError && <Typography>We encountered an error while loading.</Typography>}
+          {isSuccess && data && <DatasetsListingTable datasets={data} />}
+          {isSuccess && !data && <DatasetsIndexEmptyState />}
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

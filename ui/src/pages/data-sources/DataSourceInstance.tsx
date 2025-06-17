@@ -1,6 +1,6 @@
 import React from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { EuiPageTemplate } from "@elastic/eui";
+import { Container, Box, Typography, Tabs, Tab } from "@mui/material";
 
 import { DataSourceIcon } from "../../graphics/DataSourceIcon";
 import { useMatchExact } from "../../hooks/useMatchSubpath";
@@ -35,21 +35,28 @@ const DataSourceInstance = () => {
   const CustomTabRoutes = useDataSourceCustomTabRoutes();
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={DataSourceIcon}
-        pageTitle={`Data Source: ${dataSourceName}`}
-        tabs={tabs}
-      />
-      <EuiPageTemplate.Section>
-        <Routes>
-          <Route path="/" element={<DataSourceOverviewTab />} />
-          <Route path="/raw-data" element={<DataSourceRawData />} />
-          {CustomTabRoutes}
-        </Routes>
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <DataSourceIcon />
+          <Typography variant="h4" sx={{ ml: 2 }}>
+            Data Source: {dataSourceName}
+          </Typography>
+        </Box>
+        <Tabs value={tabs.findIndex(tab => tab.isSelected)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          {tabs.map((tab, index) => (
+            <Tab key={index} label={tab.label} onClick={tab.onClick} />
+          ))}
+        </Tabs>
+        <Box sx={{ mt: 3 }}>
+          <Routes>
+            <Route path="/" element={<DataSourceOverviewTab />} />
+            <Route path="/raw-data" element={<DataSourceRawData />} />
+            {CustomTabRoutes}
+          </Routes>
+        </Box>
+      </Box>
+    </Container>
   );
 };
 

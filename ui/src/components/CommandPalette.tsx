@@ -1,16 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  EuiFieldSearch,
-  EuiText,
-  EuiSpacer,
-  EuiHorizontalRule,
-  EuiPanel,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiBadge,
-  EuiTitle,
-} from "@elastic/eui";
+import { Paper, Stack, Box, Typography, Divider, Chip, TextField, InputAdornment } from "@mui/material";
+import { Search } from "@mui/icons-material";
 
 const commandPaletteStyles: Record<string, React.CSSProperties> = {
   overlay: {
@@ -181,19 +172,24 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           <h2 style={{ margin: 0 }}>Search Registry</h2>
         </div>
         <div style={commandPaletteStyles.modalBody}>
-          <EuiFieldSearch
+          <TextField
             placeholder="Search across Feature Views, Features, Entities, etc."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            isClearable
             fullWidth
-            inputRef={(node) => {
-              inputRef.current = node;
-            }}
+            inputRef={inputRef}
             aria-label="Search registry"
             autoFocus
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            }}
           />
-          <EuiSpacer size="s" />
+          <Box sx={{ my: 1 }} />
           {searchText ? (
             <div style={commandPaletteStyles.searchResults}>
               {searchResults.filter((result) => result.items.length > 0)
@@ -205,13 +201,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                       key={result.title}
                       style={commandPaletteStyles.categoryGroup}
                     >
-                      <EuiPanel hasBorder={true} paddingSize="m">
-                        <EuiTitle size="xs">
-                          <h3>
-                            {result.title} ({result.items.length})
-                          </h3>
-                        </EuiTitle>
-                        <EuiHorizontalRule margin="xs" />
+                      <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="subtitle2" component="h3">
+                          {result.title} ({result.items.length})
+                        </Typography>
+                        <Divider sx={{ my: 0.5 }} />
                         {result.items.map((item, idx) => (
                           <div
                             key={item.name}
@@ -221,8 +215,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                                 : commandPaletteStyles.searchResultItem
                             }
                           >
-                            <EuiFlexGroup>
-                              <EuiFlexItem>
+                            <Stack direction="row" spacing={2} alignItems="flex-start">
+                              <Box sx={{ flexGrow: 1 }}>
                                 <a
                                   href={item.link}
                                   onClick={(e) => {
@@ -253,31 +247,31 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                                     {item.description}
                                   </div>
                                 )}
-                              </EuiFlexItem>
+                              </Box>
                               {item.type && (
-                                <EuiFlexItem grow={false}>
-                                  <EuiBadge>{item.type}</EuiBadge>
-                                </EuiFlexItem>
+                                <Box sx={{ flexShrink: 0 }}>
+                                  <Chip label={item.type} size="small" variant="filled" />
+                                </Box>
                               )}
-                            </EuiFlexGroup>
+                            </Stack>
                           </div>
                         ))}
-                      </EuiPanel>
-                      <EuiSpacer size="m" />
+                      </Paper>
+                      <Box sx={{ my: 2 }} />
                     </div>
                   ))
               ) : (
-                <EuiPanel hasBorder={true} paddingSize="m" color="subdued">
-                  <EuiText textAlign="center">
-                    <p>No matches found for "{searchText}"</p>
-                  </EuiText>
-                </EuiPanel>
+                <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.100' }}>
+                  <Typography variant="body1" textAlign="center">
+                    No matches found for "{searchText}"
+                  </Typography>
+                </Paper>
               )}
             </div>
           ) : (
-            <EuiText color="subdued" textAlign="center">
-              <p>Start typing to search...</p>
-            </EuiText>
+            <Typography variant="body1" color="text.secondary" textAlign="center">
+              Start typing to search...
+            </Typography>
           )}
         </div>
       </div>

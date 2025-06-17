@@ -1,6 +1,6 @@
 import React from "react";
-import { EuiBasicTable } from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 
 interface ConsumingFeatureServicesListInterace {
@@ -12,19 +12,13 @@ const ConsumingFeatureServicesList = ({
 }: ConsumingFeatureServicesListInterace) => {
   const { projectName } = useParams();
 
-  const columns = [
-    {
-      name: "Name",
-      field: "",
-      render: ({ name }: { name: string }) => {
-        return (
-          <EuiCustomLink to={`/p/${projectName}/feature-service/${name}`}>
-            {name}
-          </EuiCustomLink>
-        );
-      },
-    },
-  ];
+  const renderNameCell = (name: string) => {
+    return (
+      <CustomLink to={`/p/${projectName}/feature-service/${name}`}>
+        {name}
+      </CustomLink>
+    );
+  };
 
   const getRowProps = (item: string) => {
     return {
@@ -33,11 +27,22 @@ const ConsumingFeatureServicesList = ({
   };
 
   return (
-    <EuiBasicTable
-      columns={columns}
-      items={fsNames.map((name) => ({ name }))}
-      rowProps={getRowProps}
-    />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Name</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {fsNames.map((name) => (
+            <TableRow key={name} data-test-subj={`row-${name}`}>
+              <TableCell>{renderNameCell(name)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

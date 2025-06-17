@@ -3,8 +3,8 @@ import React from "react";
 import "./index.css";
 
 import { Routes, Route } from "react-router-dom";
-import { EuiProvider, EuiErrorBoundary } from "@elastic/eui";
-import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { ErrorBoundary } from "react-error-boundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import ProjectOverviewPage from "./pages/ProjectOverviewPage";
 import Layout from "./pages/Layout";
@@ -93,11 +93,8 @@ const FeastUISansProvidersInner = ({
   projectListContext: ProjectsListContextInterface;
   feastUIConfigs?: FeastUIConfigs;
 }) => {
-  const { colorMode } = useTheme();
-
   return (
-    <EuiProvider colorMode={colorMode}>
-      <EuiErrorBoundary>
+    <ErrorBoundary fallback={<div>Something went wrong</div>}>
         <TabsRegistryContext.Provider
           value={{
             RegularFeatureViewCustomTabs: [
@@ -184,8 +181,7 @@ const FeastUISansProvidersInner = ({
             </ProjectListContext.Provider>
           </FeatureFlagsContext.Provider>
         </TabsRegistryContext.Provider>
-      </EuiErrorBoundary>
-    </EuiProvider>
+      </ErrorBoundary>
   );
 };
 

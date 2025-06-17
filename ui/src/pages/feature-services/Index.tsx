@@ -1,14 +1,13 @@
 import React, { useContext } from "react";
 
 import {
-  EuiPageTemplate,
-  EuiLoadingSpinner,
-  EuiTitle,
-  EuiSpacer,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiFieldSearch,
-} from "@elastic/eui";
+  Container,
+  Box,
+  CircularProgress,
+  Typography,
+  Stack,
+  TextField,
+} from "@mui/material";
 
 import { FeatureServiceIcon } from "../../graphics/FeatureServiceIcon";
 
@@ -111,43 +110,48 @@ const Index = () => {
     : data;
 
   return (
-    <EuiPageTemplate panelled>
-      <EuiPageTemplate.Header
-        restrictWidth
-        iconType={FeatureServiceIcon}
-        pageTitle="Feature Services"
-        rightSideItems={[
-          <ExportButton
-            data={filterResult ?? []}
-            fileName="feature_services"
-            formats={["json"]}
-          />,
-        ]}
-      />
-      <EuiPageTemplate.Section>
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+          <FeatureServiceIcon />
+          <Typography variant="h4" component="h1">
+            Feature Services
+          </Typography>
+          <Box sx={{ ml: "auto" }}>
+            <ExportButton
+              data={filterResult ?? []}
+              fileName="feature_services"
+              formats={["json"]}
+            />
+          </Box>
+        </Stack>
+      </Box>
+      <Box>
         {isLoading && (
-          <p>
-            <EuiLoadingSpinner size="m" /> Loading
-          </p>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <CircularProgress size="medium" /> 
+            <Typography>Loading</Typography>
+          </Box>
         )}
-        {isError && <p>We encountered an error while loading.</p>}
+        {isError && <Typography>We encountered an error while loading.</Typography>}
         {isSuccess && !data && <FeatureServiceIndexEmptyState />}
         {isSuccess && filterResult && (
           <React.Fragment>
-            <EuiFlexGroup>
-              <EuiFlexItem grow={2}>
-                <EuiTitle size="xs">
-                  <h2>Search</h2>
-                </EuiTitle>
-                <EuiFieldSearch
+            <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+              <Box sx={{ flexGrow: 2 }}>
+                <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
+                  Search
+                </Typography>
+                <TextField
                   value={searchString}
-                  fullWidth={true}
+                  fullWidth
+                  variant="outlined"
                   onChange={(e) => {
                     setSearchString(e.target.value);
                   }}
                 />
-              </EuiFlexItem>
-              <EuiFlexItem grow={3}>
+              </Box>
+              <Box sx={{ flexGrow: 3 }}>
                 <TagSearch
                   currentTag={currentTag}
                   tagsString={tagsString}
@@ -157,17 +161,16 @@ const Index = () => {
                   suggestionMode={suggestionMode}
                   setCursorPosition={setCursorPosition}
                 />
-              </EuiFlexItem>
-            </EuiFlexGroup>
-            <EuiSpacer size="m" />
+              </Box>
+            </Stack>
             <FeatureServiceListingTable
               featureServices={filterResult}
               tagKeysSet={tagKeysSet}
             />
           </React.Fragment>
         )}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+      </Box>
+    </Container>
   );
 };
 

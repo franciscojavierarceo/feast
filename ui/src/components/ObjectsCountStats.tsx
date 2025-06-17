@@ -1,12 +1,10 @@
 import React, { useContext } from "react";
 import {
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiStat,
-  EuiHorizontalRule,
-  EuiTitle,
-  EuiSpacer,
-} from "@elastic/eui";
+  Stack,
+  Box,
+  Divider,
+  Typography,
+} from "@mui/material";
 import useLoadRegistry from "../queries/useLoadRegistry";
 import { useNavigate, useParams } from "react-router-dom";
 import RegistryPathContext from "../contexts/RegistryPathContext";
@@ -41,54 +39,54 @@ const ObjectsCountStats = () => {
 
   return (
     <React.Fragment>
-      <EuiSpacer size="l" />
-      <EuiHorizontalRule margin="xs" />
+      <Box sx={{ my: 3 }} />
+      <Divider sx={{ my: 0.5 }} />
       {isLoading && <p>Loading</p>}
       {isError && <p>There was an error in loading registry information.</p>}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiTitle size="xs">
-            <h3>Registered in this Feast project are &hellip;</h3>
-          </EuiTitle>
-          <EuiSpacer size="s" />
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiStat
-                style={statStyle}
+          <Typography variant="subtitle2">
+            Registered in this Feast project are &hellip;
+          </Typography>
+          <Box sx={{ my: 1 }} />
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/feature-service`)}
-                description="Feature Services→"
-                title={data.featureServices}
-                reverse
-              />
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiStat
-                style={statStyle}
-                description="Feature Views→"
+              >
+                <Typography variant="h4">{data.featureServices}</Typography>
+                <Typography variant="body2">Feature Services→</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/feature-view`)}
-                title={data.featureViews}
-                reverse
-              />
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiStat
-                style={statStyle}
-                description="Entities→"
+              >
+                <Typography variant="h4">{data.featureViews}</Typography>
+                <Typography variant="body2">Feature Views→</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/entity`)}
-                title={data.entities}
-                reverse
-              />
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiStat
-                style={statStyle}
-                description="Data Sources→"
+              >
+                <Typography variant="h4">{data.entities}</Typography>
+                <Typography variant="body2">Entities→</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Box
+                sx={{ ...statStyle, textAlign: 'center', p: 2 }}
                 onClick={() => navigate(`/p/${projectName}/data-source`)}
-                title={data.dataSources}
-                reverse
-              />
-            </EuiFlexItem>
-          </EuiFlexGroup>
+              >
+                <Typography variant="h4">{data.dataSources}</Typography>
+                <Typography variant="body2">Data Sources→</Typography>
+              </Box>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>

@@ -16,12 +16,12 @@ import {
 import "reactflow/dist/style.css";
 import dagre from "dagre";
 import {
-  EuiPanel,
-  EuiTitle,
-  EuiSpacer,
-  EuiLoadingSpinner,
-  EuiToolTip,
-} from "@elastic/eui";
+  Paper,
+  Typography,
+  Box,
+  CircularProgress,
+  Tooltip,
+} from "@mui/material";
 import { FEAST_FCO_TYPES } from "../parsers/types";
 import { EntityRelation } from "../parsers/parseEntityRelationships";
 import { feast } from "../protos";
@@ -185,9 +185,9 @@ const CustomNode = ({ data }: { data: NodeData }) => {
 
       {/* Permissions indicator */}
       {hasPermissions && (
-        <EuiToolTip
-          position="top"
-          content={<pre style={{ margin: 0 }}>{permissionsTooltipContent}</pre>}
+        <Tooltip
+          title={<pre style={{ margin: 0 }}>{permissionsTooltipContent}</pre>}
+          placement="top"
         >
           <div
             style={{
@@ -204,7 +204,7 @@ const CustomNode = ({ data }: { data: NodeData }) => {
           >
             P
           </div>
-        </EuiToolTip>
+        </Tooltip>
       )}
 
       <Handle
@@ -780,7 +780,7 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
   ]);
 
   return (
-    <EuiPanel>
+    <Paper>
       <style>{edgeAnimationStyle}</style>
       <div
         style={{
@@ -789,9 +789,9 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
           alignItems: "center",
         }}
       >
-        <EuiTitle size="s">
-          <h2>Lineage</h2>
-        </EuiTitle>
+        <Typography variant="subtitle1">
+          Lineage
+        </Typography>
         <div style={{ display: "flex", gap: "20px" }}>
           <label>
             <input
@@ -811,11 +811,11 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
           </label>
         </div>
       </div>
-      <EuiSpacer size="m" />
+      <Box sx={{ my: 2 }} />
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: 50 }}>
-          <EuiLoadingSpinner size="xl" />
+          <CircularProgress size="large" />
         </div>
       ) : (
         <div style={{ height: 600, border: "1px solid #ddd" }}>
@@ -836,7 +836,7 @@ const RegistryVisualization: React.FC<RegistryVisualizationProps> = ({
           </ReactFlow>
         </div>
       )}
-    </EuiPanel>
+    </Paper>
   );
 };
 

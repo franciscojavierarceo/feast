@@ -1,6 +1,6 @@
 import React from "react";
-import { EuiBasicTable } from "@elastic/eui";
-import EuiCustomLink from "../../components/EuiCustomLink";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
+import CustomLink from "../../components/CustomLink";
 import { useParams } from "react-router-dom";
 import { feast } from "../../protos";
 import { toDate } from "../../utils/timestamp";
@@ -12,39 +12,33 @@ interface DatasetsListingTableProps {
 const DatasetsListingTable = ({ datasets }: DatasetsListingTableProps) => {
   const { projectName } = useParams();
 
-  const columns = [
-    {
-      name: "Name",
-      field: "spec.name",
-      sortable: true,
-      render: (name: string) => {
-        return (
-          <EuiCustomLink to={`/p/${projectName}/data-set/${name}`}>
-            {name}
-          </EuiCustomLink>
-        );
-      },
-    },
-    {
-      name: "Source Feature Service",
-      field: "spec.featureService",
-    },
-    {
-      name: "Created",
-      render: (item: feast.core.ISavedDataset) => {
-        return toDate(item?.meta?.createdTimestamp!).toLocaleString("en-CA")!;
-      },
-    },
-  ];
-
-  const getRowProps = (item: feast.core.ISavedDataset) => {
-    return {
-      "data-test-subj": `row-${item.spec?.name}`,
-    };
-  };
-
   return (
-    <EuiBasicTable columns={columns} items={datasets} rowProps={getRowProps} />
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Name</TableCell>
+            <TableCell>Source Feature Service</TableCell>
+            <TableCell>Created</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {datasets.map((dataset) => (
+            <TableRow key={dataset.spec?.name} data-test-subj={`row-${dataset.spec?.name}`}>
+              <TableCell>
+                <CustomLink to={`/p/${projectName}/data-set/${dataset.spec?.name}`}>
+                  {dataset.spec?.name}
+                </CustomLink>
+              </TableCell>
+              <TableCell>{dataset.spec?.featureServiceName}</TableCell>
+              <TableCell>
+                {toDate(dataset?.meta?.createdTimestamp!).toLocaleString("en-CA")!}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 

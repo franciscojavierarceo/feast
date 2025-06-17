@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import {
-  EuiButton,
-  EuiPopover,
-  EuiContextMenuPanel,
-  EuiContextMenuItem,
-} from "@elastic/eui";
+  Button,
+  Popover,
+  MenuList,
+  MenuItem,
+} from "@mui/material";
 
 interface ExportButtonProps {
   data: any[];
@@ -43,32 +43,48 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   };
 
   const exportMenu = (
-    <EuiContextMenuPanel
-      items={formats.map((format) => (
-        <EuiContextMenuItem key={format} onClick={() => exportData(format)}>
+    <MenuList>
+      {formats.map((format) => (
+        <MenuItem key={format} onClick={() => exportData(format)}>
           Export {format.toUpperCase()}
-        </EuiContextMenuItem>
+        </MenuItem>
       ))}
-    />
+    </MenuList>
   );
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+    setIsPopoverOpen(!isPopoverOpen);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+    setIsPopoverOpen(false);
+  };
+
   return (
-    <EuiPopover
-      button={
-        <EuiButton
-          color="primary"
-          fill
-          onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-        >
-          Export
-        </EuiButton>
-      }
-      isOpen={isPopoverOpen}
-      closePopover={() => setIsPopoverOpen(false)}
-      panelPaddingSize="s"
-    >
-      {exportMenu}
-    </EuiPopover>
+    <>
+      <Button
+        color="primary"
+        variant="contained"
+        onClick={handleClick}
+      >
+        Export
+      </Button>
+      <Popover
+        open={isPopoverOpen}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+      >
+        {exportMenu}
+      </Popover>
+    </>
   );
 };
 export default ExportButton;

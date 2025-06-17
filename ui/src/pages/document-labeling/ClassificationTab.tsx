@@ -1,25 +1,22 @@
 import React, { useState } from "react";
 import {
-  EuiPageSection,
-  EuiCallOut,
-  EuiSpacer,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiFormRow,
-  EuiFieldText,
-  EuiButton,
-  EuiPanel,
-  EuiTitle,
-  EuiText,
-  EuiTable,
-  EuiTableHeader,
-  EuiTableHeaderCell,
-  EuiTableBody,
-  EuiTableRow,
-  EuiTableRowCell,
-  EuiSelect,
-  EuiLoadingSpinner,
-} from "@elastic/eui";
+  Container,
+  Alert,
+  Box,
+  Stack,
+  FormControl,
+  TextField,
+  Button,
+  Paper,
+  Typography,
+  Table,
+  TableHead,
+  TableCell,
+  TableBody,
+  TableRow,
+  Select,
+  CircularProgress,
+} from "@mui/material";
 
 interface ClassificationData {
   id: number;
@@ -141,169 +138,181 @@ const ClassificationTab = () => {
   ];
 
   return (
-    <EuiPageSection>
-      <EuiCallOut
-        title="Classify sample data"
-        color="primary"
-        iconType="iInCircle"
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Alert
+        severity="info"
+        sx={{ mb: 3 }}
       >
-        <p>
+        <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+          Classify sample data
+        </Typography>
+        <Typography variant="body2">
           Load a CSV file containing text samples and edit their classification
           labels. This helps improve your classification models by providing
           corrected training data.
-        </p>
-      </EuiCallOut>
+        </Typography>
+      </Alert>
 
-      <EuiSpacer size="l" />
+      <Box sx={{ my: 3 }} />
 
-      <EuiFlexGroup>
-        <EuiFlexItem>
-          <EuiFormRow label="CSV file path">
-            <EuiFieldText
+      <Stack direction="row" spacing={2}>
+        <Box sx={{ flexGrow: 1 }}>
+          <FormControl fullWidth>
+            <TextField
+              label="CSV file path"
               placeholder="./src/your-data.csv"
               value={csvPath}
               onChange={(e) => setCsvPath(e.target.value)}
+              variant="outlined"
             />
-          </EuiFormRow>
-        </EuiFlexItem>
-        <EuiFlexItem grow={false}>
-          <EuiFormRow hasEmptyLabelSpace>
-            <EuiButton
-              fill
+          </FormControl>
+        </Box>
+        <Box sx={{ flexShrink: 0 }}>
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
               onClick={loadCsvData}
-              disabled={!csvPath}
-              isLoading={isLoading}
+              disabled={!csvPath || isLoading}
             >
               Load CSV Data
-            </EuiButton>
-          </EuiFormRow>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+            </Button>
+          </Box>
+        </Box>
+      </Stack>
 
-      <EuiSpacer size="l" />
+      <Box sx={{ my: 3 }} />
 
       {isLoading && (
-        <EuiFlexGroup alignItems="center" gutterSize="s">
-          <EuiFlexItem grow={false}>
-            <EuiLoadingSpinner size="m" />
-          </EuiFlexItem>
-          <EuiFlexItem>
-            <EuiText>Loading CSV data...</EuiText>
-          </EuiFlexItem>
-        </EuiFlexGroup>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Box sx={{ flexShrink: 0 }}>
+            <CircularProgress size="medium" />
+          </Box>
+          <Box>
+            <Typography>Loading CSV data...</Typography>
+          </Box>
+        </Stack>
       )}
 
       {error && (
-        <EuiCallOut
-          title="Error loading CSV data"
-          color="danger"
-          iconType="alert"
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
         >
-          <p>{error}</p>
-        </EuiCallOut>
+          <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+            Error loading CSV data
+          </Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
       )}
 
       {data.length > 0 && (
         <>
-          <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
-            <EuiFlexItem grow={false}>
-              <EuiTitle size="s">
-                <h3>Classification Data ({data.length} samples)</h3>
-              </EuiTitle>
-            </EuiFlexItem>
-            <EuiFlexItem grow={false}>
-              <EuiFlexGroup gutterSize="s">
-                <EuiFlexItem grow={false}>
-                  <EuiButton
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Box sx={{ flexShrink: 0 }}>
+              <Typography variant="subtitle1">
+                Classification Data ({data.length} samples)
+              </Typography>
+            </Box>
+            <Box sx={{ flexShrink: 0 }}>
+              <Stack direction="row" spacing={1}>
+                <Box sx={{ flexShrink: 0 }}>
+                  <Button
                     color="warning"
                     onClick={resetChanges}
                     disabled={getChangedItems().length === 0}
                   >
                     Reset Changes
-                  </EuiButton>
-                </EuiFlexItem>
-                <EuiFlexItem grow={false}>
-                  <EuiButton
-                    fill
+                  </Button>
+                </Box>
+                <Box sx={{ flexShrink: 0 }}>
+                  <Button
+                    variant="contained"
                     onClick={saveChanges}
                     disabled={getChangedItems().length === 0}
                   >
                     Save Changes ({getChangedItems().length})
-                  </EuiButton>
-                </EuiFlexItem>
-              </EuiFlexGroup>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+                  </Button>
+                </Box>
+              </Stack>
+            </Box>
+          </Stack>
 
-          <EuiSpacer size="m" />
+          <Box sx={{ my: 2 }} />
 
-          <EuiPanel paddingSize="none">
-            <EuiTable>
-              <EuiTableHeader>
-                {columns.map((column, index) => (
-                  <EuiTableHeaderCell key={index} width={column.width}>
-                    {column.name}
-                  </EuiTableHeaderCell>
-                ))}
-              </EuiTableHeader>
-              <EuiTableBody>
+          <Paper sx={{ p: 0 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  {columns.map((column, index) => (
+                    <TableCell key={index} sx={{ width: column.width }}>
+                      {column.name}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {data.map((item) => (
-                  <EuiTableRow key={item.id}>
-                    <EuiTableRowCell>{item.id}</EuiTableRowCell>
-                    <EuiTableRowCell>
-                      <EuiText size="s">{item.text}</EuiText>
-                    </EuiTableRowCell>
-                    <EuiTableRowCell>
-                      <EuiText
-                        size="s"
+                  <TableRow key={item.id}>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{item.text}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
                         color={
                           item.originalClass === "positive"
-                            ? "success"
+                            ? "success.main"
                             : item.originalClass === "negative"
-                              ? "danger"
-                              : "default"
+                              ? "error.main"
+                              : "text.primary"
                         }
                       >
                         {item.originalClass}
-                      </EuiText>
-                    </EuiTableRowCell>
-                    <EuiTableRowCell>
-                      <EuiSelect
-                        options={availableClasses.map((cls) => ({
-                          value: cls,
-                          text: cls,
-                        }))}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Select
                         value={item.currentClass}
                         onChange={(e) =>
                           handleClassChange(item.id, e.target.value)
                         }
-                        compressed
-                      />
-                    </EuiTableRowCell>
-                  </EuiTableRow>
+                        size="small"
+                        sx={{ minWidth: 120 }}
+                      >
+                        {availableClasses.map((cls) => (
+                          <option key={cls} value={cls}>
+                            {cls}
+                          </option>
+                        ))}
+                      </Select>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </EuiTableBody>
-            </EuiTable>
-          </EuiPanel>
+              </TableBody>
+            </Table>
+          </Paper>
 
           {getChangedItems().length > 0 && (
             <>
-              <EuiSpacer size="l" />
-              <EuiCallOut
-                title={`${getChangedItems().length} items have been modified`}
-                color="warning"
-                iconType="alert"
+              <Box sx={{ my: 3 }} />
+              <Alert
+                severity="warning"
+                sx={{ mb: 3 }}
               >
-                <p>
+                <Typography variant="h6" component="div" sx={{ mb: 1 }}>
+                  {getChangedItems().length} items have been modified
+                </Typography>
+                <Typography variant="body2">
                   You have unsaved changes. Click "Save Changes" to persist your
                   modifications.
-                </p>
-              </EuiCallOut>
+                </Typography>
+              </Alert>
             </>
           )}
         </>
       )}
-    </EuiPageSection>
+    </Container>
   );
 };
 

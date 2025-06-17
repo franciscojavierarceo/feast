@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
-import { EuiIcon, EuiSideNav, htmlIdGenerator } from "@elastic/eui";
+import { List, ListItem, ListItemButton, ListItemIcon, ListItemText, Collapse } from "@mui/material";
+import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { Link, useParams } from "react-router-dom";
 import { useMatchSubpath } from "../hooks/useMatchSubpath";
 import useLoadRegistry from "../queries/useLoadRegistry";
@@ -64,103 +65,111 @@ const SideNav = () => {
 
   const baseUrl = `/p/${projectName}`;
 
-  const sideNav: React.ComponentProps<typeof EuiSideNav>["items"] = [
-    {
-      name: "Home",
-      id: htmlIdGenerator("home")(),
-      icon: <EuiIcon type={HomeIcon} />,
-      renderItem: (props) => <Link {...props} to={`${baseUrl}`} />,
-      isSelected: useMatchSubpath(`${baseUrl}$`),
-    },
-    {
-      name: "Resources",
-      id: htmlIdGenerator("resources")(),
-      items: [
-        {
-          name: "Lineage",
-          id: htmlIdGenerator("lineage")(),
-          icon: <EuiIcon type="graphApp" />,
-          renderItem: (props) => <Link {...props} to={`${baseUrl}/lineage`} />,
-          isSelected: useMatchSubpath(`${baseUrl}/lineage`),
-        },
-        {
-          name: dataSourcesLabel,
-          id: htmlIdGenerator("dataSources")(),
-          icon: <EuiIcon type={DataSourceIcon} />,
-          renderItem: (props) => (
-            <Link {...props} to={`${baseUrl}/data-source`} />
-          ),
-          isSelected: useMatchSubpath(`${baseUrl}/data-source`),
-        },
-        {
-          name: entitiesLabel,
-          id: htmlIdGenerator("entities")(),
-          icon: <EuiIcon type={EntityIcon} />,
-          renderItem: (props) => <Link {...props} to={`${baseUrl}/entity`} />,
-          isSelected: useMatchSubpath(`${baseUrl}/entity`),
-        },
-        {
-          name: featureListLabel,
-          id: htmlIdGenerator("featureList")(),
-          icon: <EuiIcon type={FeatureIcon} />,
-          renderItem: (props) => <Link {...props} to={`${baseUrl}/features`} />,
-          isSelected: useMatchSubpath(`${baseUrl}/features`),
-        },
-        {
-          name: featureViewsLabel,
-          id: htmlIdGenerator("featureView")(),
-          icon: <EuiIcon type={FeatureViewIcon} />,
-          renderItem: (props) => (
-            <Link {...props} to={`${baseUrl}/feature-view`} />
-          ),
-          isSelected: useMatchSubpath(`${baseUrl}/feature-view`),
-        },
-        {
-          name: featureServicesLabel,
-          id: htmlIdGenerator("featureService")(),
-          icon: <EuiIcon type={FeatureServiceIcon} />,
-          renderItem: (props) => (
-            <Link {...props} to={`${baseUrl}/feature-service`} />
-          ),
-          isSelected: useMatchSubpath(`${baseUrl}/feature-service`),
-        },
-        {
-          name: savedDatasetsLabel,
-          id: htmlIdGenerator("savedDatasets")(),
-          icon: <EuiIcon type={DatasetIcon} />,
-          renderItem: (props) => <Link {...props} to={`${baseUrl}/data-set`} />,
-          isSelected: useMatchSubpath(`${baseUrl}/data-set`),
-        },
-        {
-          name: "Data Labeling",
-          id: htmlIdGenerator("dataLabeling")(),
-          icon: <EuiIcon type="documentEdit" color="#006BB4" />,
-          renderItem: (props) => (
-            <Link {...props} to={`${baseUrl}/data-labeling`} />
-          ),
-          isSelected: useMatchSubpath(`${baseUrl}/data-labeling`),
-        },
-        {
-          name: "Permissions",
-          id: htmlIdGenerator("permissions")(),
-          icon: <EuiIcon type={PermissionsIcon} />,
-          renderItem: (props) => (
-            <Link {...props} to={`${baseUrl}/permissions`} />
-          ),
-          isSelected: useMatchSubpath(`${baseUrl}/permissions`),
-        },
-      ],
-    },
-  ];
+  const [resourcesOpen, setResourcesOpen] = useState(true);
 
   return (
-    <EuiSideNav
-      aria-label="Project Level"
-      mobileTitle="Feast"
-      toggleOpenOnMobile={() => toggleOpenOnMobile()}
-      isOpenOnMobile={isSideNavOpenOnMobile}
-      items={sideNav}
-    />
+    <List component="nav" aria-label="Project Level">
+      <ListItem>
+        <ListItemButton component={Link} to={`${baseUrl}`} selected={useMatchSubpath(`${baseUrl}$`)}>
+          <ListItemIcon>
+            <HomeIcon />
+          </ListItemIcon>
+          <ListItemText primary="Home" />
+        </ListItemButton>
+      </ListItem>
+      
+      <ListItem>
+        <ListItemButton onClick={() => setResourcesOpen(!resourcesOpen)}>
+          <ListItemText primary="Resources" />
+          {resourcesOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+      </ListItem>
+      
+      <Collapse in={resourcesOpen} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/lineage`} selected={useMatchSubpath(`${baseUrl}/lineage`)}>
+              <ListItemIcon>
+                <DataSourceIcon />
+              </ListItemIcon>
+              <ListItemText primary="Lineage" />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/data-source`} selected={useMatchSubpath(`${baseUrl}/data-source`)}>
+              <ListItemIcon>
+                <DataSourceIcon />
+              </ListItemIcon>
+              <ListItemText primary={dataSourcesLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/entity`} selected={useMatchSubpath(`${baseUrl}/entity`)}>
+              <ListItemIcon>
+                <EntityIcon />
+              </ListItemIcon>
+              <ListItemText primary={entitiesLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/features`} selected={useMatchSubpath(`${baseUrl}/features`)}>
+              <ListItemIcon>
+                <FeatureIcon />
+              </ListItemIcon>
+              <ListItemText primary={featureListLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/feature-view`} selected={useMatchSubpath(`${baseUrl}/feature-view`)}>
+              <ListItemIcon>
+                <FeatureViewIcon />
+              </ListItemIcon>
+              <ListItemText primary={featureViewsLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/feature-service`} selected={useMatchSubpath(`${baseUrl}/feature-service`)}>
+              <ListItemIcon>
+                <FeatureServiceIcon />
+              </ListItemIcon>
+              <ListItemText primary={featureServicesLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/data-set`} selected={useMatchSubpath(`${baseUrl}/data-set`)}>
+              <ListItemIcon>
+                <DatasetIcon />
+              </ListItemIcon>
+              <ListItemText primary={savedDatasetsLabel} />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/data-labeling`} selected={useMatchSubpath(`${baseUrl}/data-labeling`)}>
+              <ListItemIcon>
+                <DataSourceIcon />
+              </ListItemIcon>
+              <ListItemText primary="Data Labeling" />
+            </ListItemButton>
+          </ListItem>
+          
+          <ListItem sx={{ pl: 4 }}>
+            <ListItemButton component={Link} to={`${baseUrl}/permissions`} selected={useMatchSubpath(`${baseUrl}/permissions`)}>
+              <ListItemIcon>
+                <PermissionsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Permissions" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Collapse>
+    </List>
   );
 };
 

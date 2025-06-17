@@ -1,18 +1,14 @@
 import {
-  EuiFlexGroup,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiTitle,
-} from "@elastic/eui";
-import {
-  EuiPanel,
-  EuiText,
-  EuiFlexItem,
-  EuiSpacer,
-  EuiDescriptionList,
-  EuiDescriptionListTitle,
-  EuiDescriptionListDescription,
-} from "@elastic/eui";
+  Stack,
+  Divider,
+  CircularProgress,
+  Typography,
+  Paper,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
 import React, { useContext } from "react";
 import { useParams } from "react-router-dom";
 import PermissionsDisplay from "../../components/PermissionsDisplay";
@@ -44,74 +40,89 @@ const EntityOverviewTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && <p>No entity with name: {entityName}</p>}
       {isError && <p>Error loading entity: {entityName}</p>}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Properties</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
-                <EuiDescriptionList>
-                  <EuiDescriptionListTitle>Join Key</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {data?.spec?.joinKey}
-                  </EuiDescriptionListDescription>
+          <Stack direction="row" spacing={2}>
+            <Stack spacing={2} sx={{ flex: 1 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Properties
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Join Key
+                    </Typography>
+                    <Typography variant="body2">
+                      {data?.spec?.joinKey}
+                    </Typography>
+                  </Box>
 
-                  <EuiDescriptionListTitle>Description</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {data?.spec?.description}
-                  </EuiDescriptionListDescription>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Description
+                    </Typography>
+                    <Typography variant="body2">
+                      {data?.spec?.description}
+                    </Typography>
+                  </Box>
 
-                  <EuiDescriptionListTitle>Value Type</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {feast.types.ValueType.Enum[data?.spec?.valueType!]}
-                  </EuiDescriptionListDescription>
-                </EuiDescriptionList>
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiDescriptionList>
-                  <EuiDescriptionListTitle>Created</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {data?.meta?.createdTimestamp ? (
-                      toDate(data.meta.createdTimestamp).toLocaleDateString(
-                        "en-CA",
-                      )
-                    ) : (
-                      <EuiText>
-                        No createdTimestamp specified on this entity.
-                      </EuiText>
-                    )}
-                  </EuiDescriptionListDescription>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Value Type
+                    </Typography>
+                    <Typography variant="body2">
+                      {feast.types.ValueType.Enum[data?.spec?.valueType!]}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Created
+                    </Typography>
+                    <Typography variant="body2">
+                      {data?.meta?.createdTimestamp ? (
+                        toDate(data.meta.createdTimestamp).toLocaleDateString(
+                          "en-CA",
+                        )
+                      ) : (
+                        "No createdTimestamp specified on this entity."
+                      )}
+                    </Typography>
+                  </Box>
 
-                  <EuiDescriptionListTitle>Updated</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
-                    {data?.meta?.lastUpdatedTimestamp ? (
-                      toDate(data.meta.lastUpdatedTimestamp).toLocaleDateString(
-                        "en-CA",
-                      )
-                    ) : (
-                      <EuiText>
-                        No lastUpdatedTimestamp specified on this entity.
-                      </EuiText>
-                    )}
-                  </EuiDescriptionListDescription>
-                </EuiDescriptionList>
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Feature Views</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Updated
+                    </Typography>
+                    <Typography variant="body2">
+                      {data?.meta?.lastUpdatedTimestamp ? (
+                        toDate(data.meta.lastUpdatedTimestamp).toLocaleDateString(
+                          "en-CA",
+                        )
+                      ) : (
+                        "No lastUpdatedTimestamp specified on this entity."
+                      )}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
+            </Stack>
+            <Box sx={{ flex: 1 }}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Feature Views
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {fvEdgesSuccess && fvEdgesData ? (
                   fvEdgesData[eName] ? (
                     <FeatureViewEdgesList
@@ -120,32 +131,32 @@ const EntityOverviewTab = () => {
                       })}
                     />
                   ) : (
-                    <EuiText>No feature views have this entity</EuiText>
+                    <Typography variant="body1">No feature views have this entity</Typography>
                   )
                 ) : (
-                  <EuiText>
+                  <Typography variant="body1">
                     Error loading feature views that have this entity.
-                  </EuiText>
+                  </Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true} grow={false}>
-                <EuiTitle size="xs">
-                  <h3>Labels</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Labels
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {data?.spec?.tags ? (
                   <TagsDisplay tags={data.spec.tags} />
                 ) : (
-                  <EuiText>No labels specified on this entity.</EuiText>
+                  <Typography variant="body1">No labels specified on this entity.</Typography>
                 )}
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h3>Permissions</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle2">
+                  Permissions
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 {registryQuery.data?.permissions ? (
                   <PermissionsDisplay
                     permissions={getEntityPermissions(
@@ -155,11 +166,11 @@ const EntityOverviewTab = () => {
                     )}
                   />
                 ) : (
-                  <EuiText>No permissions defined for this entity.</EuiText>
+                  <Typography variant="body1">No permissions defined for this entity.</Typography>
                 )}
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+              </Paper>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>
