@@ -49,8 +49,8 @@ const FeatureOverviewTab = () => {
           <Stack spacing={2}>
             <Box>
               <Paper variant="outlined">
-                <Typography variant="subtitle1" sx={{ p: 2, pb: 1 }}>
-                  <h3>Properties</h3>
+                <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+                  Properties
                 </Typography>
                 <Divider sx={{ mx: 2 }} />
                 <List sx={{ p: 2 }}>
@@ -100,8 +100,8 @@ const FeatureOverviewTab = () => {
                 </List>
               </Paper>
               <Paper variant="outlined" sx={{ flexShrink: 0 }}>
-                <Typography variant="subtitle1" sx={{ p: 2, pb: 1 }}>
-                  <h3>Tags</h3>
+                <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+                  Tags
                 </Typography>
                 <Divider sx={{ mx: 2 }} />
                 <Box sx={{ p: 2 }}>

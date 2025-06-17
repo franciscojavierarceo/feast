@@ -118,6 +118,8 @@ const Layout = () => {
       <Box sx={{ display: "flex", height: "100vh" }}>
         <Drawer
           variant="permanent"
+          role="navigation"
+          aria-label="Top Level"
           sx={{
             width: 240,
             flexShrink: 0,
