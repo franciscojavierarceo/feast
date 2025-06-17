@@ -1,15 +1,11 @@
 import {
-  EuiFlexGroup,
-  EuiHorizontalRule,
-  EuiLoadingSpinner,
-  EuiTitle,
-  EuiPanel,
-  EuiFlexItem,
-  EuiSpacer,
-  EuiDescriptionList,
-  EuiDescriptionListTitle,
-  EuiDescriptionListDescription,
-} from "@elastic/eui";
+  Stack,
+  Divider,
+  CircularProgress,
+  Typography,
+  Paper,
+  Box,
+} from "@mui/material";
 import React from "react";
 import { useParams } from "react-router-dom";
 import DatasetFeaturesTable from "./DatasetFeaturesTable";
@@ -33,20 +29,20 @@ const EntityOverviewTab = () => {
     <React.Fragment>
       {isLoading && (
         <React.Fragment>
-          <EuiLoadingSpinner size="m" /> Loading
+          <CircularProgress size="medium" /> Loading
         </React.Fragment>
       )}
       {isEmpty && <p>No dataset with name: {datasetName}</p>}
       {isError && <p>Error loading dataset: {datasetName}</p>}
       {isSuccess && data && (
         <React.Fragment>
-          <EuiFlexGroup>
-            <EuiFlexItem grow={2}>
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h2>Features</h2>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+          <Stack direction="row" spacing={2}>
+            <Box sx={{ flexGrow: 2 }}>
+              <Paper variant="outlined">
+                <Typography variant="subtitle2" component="h2">
+                  Features
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 <DatasetFeaturesTable
                   features={
                     data.spec?.features!.map((joinedName: string) => {
@@ -60,13 +56,13 @@ const EntityOverviewTab = () => {
                     })!
                   }
                 />
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true}>
-                <EuiTitle size="xs">
-                  <h2>Join Keys</h2>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined">
+                <Typography variant="subtitle2" component="h2">
+                  Join Keys
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
                 <DatasetJoinKeysTable
                   joinKeys={
                     data?.spec?.joinKeys!.map((joinKey) => {
@@ -74,36 +70,36 @@ const EntityOverviewTab = () => {
                     })!
                   }
                 />
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem grow={1}>
-              <EuiPanel hasBorder={true} grow={false}>
-                <EuiTitle size="xs">
-                  <h3>Properties</h3>
-                </EuiTitle>
-                <EuiHorizontalRule margin="xs" />
-                <EuiDescriptionList>
-                  <EuiDescriptionListTitle>
+              </Paper>
+            </Box>
+            <Box sx={{ flexGrow: 1 }}>
+              <Paper variant="outlined" sx={{ flexShrink: 0 }}>
+                <Typography variant="subtitle2" component="h3">
+                  Properties
+                </Typography>
+                <Divider sx={{ my: 0.5 }} />
+                <Box>
+                  <Typography variant="subtitle2">
                     Source Feature Service
-                  </EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
+                  </Typography>
+                  <Typography variant="body2">
                     {data?.spec?.featureServiceName!}
-                  </EuiDescriptionListDescription>
-                </EuiDescriptionList>
-              </EuiPanel>
-              <EuiSpacer size="m" />
-              <EuiPanel hasBorder={true} grow={false}>
-                <EuiDescriptionList>
-                  <EuiDescriptionListTitle>Created</EuiDescriptionListTitle>
-                  <EuiDescriptionListDescription>
+                  </Typography>
+                </Box>
+              </Paper>
+              <Box sx={{ my: 2 }} />
+              <Paper variant="outlined" sx={{ flexShrink: 0 }}>
+                <Box>
+                  <Typography variant="subtitle2">Created</Typography>
+                  <Typography variant="body2">
                     {toDate(data?.meta?.createdTimestamp!).toLocaleDateString(
                       "en-CA",
                     )}
-                  </EuiDescriptionListDescription>
-                </EuiDescriptionList>
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+          </Stack>
         </React.Fragment>
       )}
     </React.Fragment>

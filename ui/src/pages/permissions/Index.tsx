@@ -1,17 +1,17 @@
 import React from "react";
 import {
-  EuiPageTemplate,
-  EuiTitle,
-  EuiSpacer,
-  EuiPanel,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiText,
-  EuiLoadingSpinner,
-  EuiHorizontalRule,
-  EuiSelect,
-  EuiFormRow,
-} from "@elastic/eui";
+  Container,
+  Typography,
+  Box,
+  Paper,
+  Stack,
+  CircularProgress,
+  Divider,
+  Select,
+  FormControl,
+  InputLabel,
+  MenuItem,
+} from "@mui/material";
 import { useContext, useState } from "react";
 import RegistryPathContext from "../../contexts/RegistryPathContext";
 import useLoadRegistry from "../../queries/useLoadRegistry";
@@ -24,50 +24,51 @@ const PermissionsIndex = () => {
   const [selectedPermissionAction, setSelectedPermissionAction] = useState("");
 
   return (
-    <EuiPageTemplate restrictWidth>
-      <EuiPageTemplate.Header
-        pageTitle="Permissions"
-        description="View and manage permissions for Feast resources"
-      />
-      <EuiPageTemplate.Section>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Permissions
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          View and manage permissions for Feast resources
+        </Typography>
         {isLoading && (
           <React.Fragment>
-            <EuiLoadingSpinner size="m" /> Loading
+            <CircularProgress size="small" /> Loading
           </React.Fragment>
         )}
         {isError && <p>Error loading permissions</p>}
         {isSuccess && data && (
           <React.Fragment>
-            <EuiFlexGroup>
-              <EuiFlexItem grow={false} style={{ width: 300 }}>
-                <EuiFormRow label="Filter by action">
-                  <EuiSelect
-                    options={[
-                      { value: "", text: "All" },
-                      { value: "CREATE", text: "CREATE" },
-                      { value: "DESCRIBE", text: "DESCRIBE" },
-                      { value: "UPDATE", text: "UPDATE" },
-                      { value: "DELETE", text: "DELETE" },
-                      { value: "READ_ONLINE", text: "READ_ONLINE" },
-                      { value: "READ_OFFLINE", text: "READ_OFFLINE" },
-                      { value: "WRITE_ONLINE", text: "WRITE_ONLINE" },
-                      { value: "WRITE_OFFLINE", text: "WRITE_OFFLINE" },
-                    ]}
+            <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+              <Box sx={{ width: 300 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Filter by action</InputLabel>
+                  <Select
                     value={selectedPermissionAction}
                     onChange={(e) =>
                       setSelectedPermissionAction(e.target.value)
                     }
-                    aria-label="Filter by action"
-                  />
-                </EuiFormRow>
-              </EuiFlexItem>
-            </EuiFlexGroup>
-            <EuiSpacer size="m" />
-            <EuiPanel hasBorder={true}>
-              <EuiTitle size="s">
-                <h2>Permissions</h2>
-              </EuiTitle>
-              <EuiHorizontalRule margin="xs" />
+                    label="Filter by action"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="CREATE">CREATE</MenuItem>
+                    <MenuItem value="DESCRIBE">DESCRIBE</MenuItem>
+                    <MenuItem value="UPDATE">UPDATE</MenuItem>
+                    <MenuItem value="DELETE">DELETE</MenuItem>
+                    <MenuItem value="READ_ONLINE">READ_ONLINE</MenuItem>
+                    <MenuItem value="READ_OFFLINE">READ_OFFLINE</MenuItem>
+                    <MenuItem value="WRITE_ONLINE">WRITE_ONLINE</MenuItem>
+                    <MenuItem value="WRITE_OFFLINE">WRITE_OFFLINE</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+            </Stack>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="h6" component="h2">
+                Permissions
+              </Typography>
+              <Divider sx={{ my: 1 }} />
               {data.permissions && data.permissions.length > 0 ? (
                 <PermissionsDisplay
                   permissions={
@@ -80,13 +81,13 @@ const PermissionsIndex = () => {
                   }
                 />
               ) : (
-                <EuiText>No permissions defined in this project.</EuiText>
+                <Typography>No permissions defined in this project.</Typography>
               )}
-            </EuiPanel>
+            </Paper>
           </React.Fragment>
         )}
-      </EuiPageTemplate.Section>
-    </EuiPageTemplate>
+      </Box>
+    </Container>
   );
 };
 

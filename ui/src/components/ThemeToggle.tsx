@@ -1,24 +1,24 @@
 import React from "react";
-import { EuiButtonIcon, EuiToolTip, useGeneratedHtmlId } from "@elastic/eui";
+import { IconButton, Tooltip } from "@mui/material";
+import { Brightness4, Brightness7 } from "@mui/icons-material";
 import { useTheme } from "../contexts/ThemeContext";
 
 const ThemeToggle: React.FC = () => {
   const { colorMode, toggleColorMode } = useTheme();
-  const buttonId = useGeneratedHtmlId({ prefix: "themeToggle" });
 
   return (
-    <EuiToolTip
-      position="right"
-      content={`Switch to ${colorMode === "light" ? "dark" : "light"} theme`}
+    <Tooltip
+      title={`Switch to ${colorMode === "light" ? "dark" : "light"} theme`}
+      placement="right"
     >
-      <EuiButtonIcon
-        id={buttonId}
+      <IconButton
         onClick={toggleColorMode}
-        iconType={colorMode === "light" ? "moon" : "sun"}
         aria-label={`Switch to ${colorMode === "light" ? "dark" : "light"} theme`}
-        color="text"
-      />
-    </EuiToolTip>
+        color="inherit"
+      >
+        {colorMode === "light" ? <Brightness4 /> : <Brightness7 />}
+      </IconButton>
+    </Tooltip>
   );
 };
 

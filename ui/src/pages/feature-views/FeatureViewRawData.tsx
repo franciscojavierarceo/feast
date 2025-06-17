@@ -1,5 +1,5 @@
 import React from "react";
-import { EuiPanel } from "@elastic/eui";
+import { Paper } from "@mui/material";
 import { useParams } from "react-router-dom";
 import useLoadFeatureView from "./useLoadFeatureView";
 
@@ -11,13 +11,13 @@ const FeatureViewRawData = () => {
   const { isSuccess, data } = useLoadFeatureView(fvName);
 
   return isSuccess && data ? (
-    <EuiPanel hasBorder={true} hasShadow={false}>
+    <Paper variant="outlined" elevation={0}>
       <pre>{JSON.stringify(data, null, 2)}</pre>
-    </EuiPanel>
+    </Paper>
   ) : (
-    <EuiPanel hasBorder={true} hasShadow={false}>
+    <Paper variant="outlined" elevation={0}>
       No data so sad
-    </EuiPanel>
+    </Paper>
   );
 };
 
