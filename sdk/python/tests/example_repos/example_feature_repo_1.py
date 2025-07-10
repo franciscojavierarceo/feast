@@ -146,6 +146,18 @@ def customer_profile_pandas_odfv(inputs: pd.DataFrame) -> pd.DataFrame:
     return outputs
 
 
+@on_demand_feature_view(
+    sources=[customer_profile],
+    schema=[Field(name="age_plus_orders", dtype=Float32)],
+    mode="pandas",
+    write_to_online_store=True,
+)
+def customer_profile_write_odfv(inputs: pd.DataFrame) -> pd.DataFrame:
+    outputs = pd.DataFrame()
+    outputs["age_plus_orders"] = inputs["age"] + inputs["avg_orders_day"]
+    return outputs
+
+
 all_drivers_feature_service = FeatureService(
     name="driver_locations_service",
     features=[driver_locations],
