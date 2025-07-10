@@ -19,7 +19,7 @@ driver_locations_source = FileSource(
 
 customer_profile_source = FileSource(
     name="customer_profile_source",
-    path="data/customer_profiles.parquet",
+    path="%CUSTOMER_PARQUET_PATH%",
     timestamp_field="event_timestamp",
 )
 
