@@ -115,10 +115,16 @@ def test_cli_apply_with_odfv_write_to_online_store():
             )
 
             assert store.repo_path is not None
+            
             store.materialize(
                 start_date=start_date,
                 end_date=end_date - timedelta(days=1),
-                feature_views=["customer_profile", "customer_profile_write_odfv"],
+            )
+            
+            store.materialize(
+                start_date=start_date,
+                end_date=end_date - timedelta(days=1),
+                feature_views=["customer_profile_write_odfv"],
             )
 
             online_response = store.get_online_features(
