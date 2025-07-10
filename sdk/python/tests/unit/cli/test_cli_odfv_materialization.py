@@ -30,14 +30,16 @@ def test_cli_apply_with_odfv_write_to_online_store():
             odfv_names = [
                 fv.name
                 for fv in feature_views_to_materialize
-                if hasattr(fv, "write_to_online_store") and getattr(fv, "write_to_online_store", False)
+                if hasattr(fv, "write_to_online_store")
+                and getattr(fv, "write_to_online_store", False)
             ]
             assert "customer_profile_write_odfv" in odfv_names
 
             non_write_odfv_names = [
                 fv.name
                 for fv in feature_views_to_materialize
-                if hasattr(fv, "write_to_online_store") and not getattr(fv, "write_to_online_store", False)
+                if hasattr(fv, "write_to_online_store")
+                and not getattr(fv, "write_to_online_store", False)
             ]
             assert "customer_profile_pandas_odfv" not in non_write_odfv_names
 
@@ -54,4 +56,7 @@ def test_cli_apply_with_odfv_write_to_online_store():
             )
             assert len(specific_feature_views) == 1
             assert specific_feature_views[0].name == "customer_profile_write_odfv"
-            assert getattr(specific_feature_views[0], "write_to_online_store", False) is True
+            assert (
+                getattr(specific_feature_views[0], "write_to_online_store", False)
+                is True
+            )
