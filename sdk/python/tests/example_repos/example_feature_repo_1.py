@@ -4,7 +4,7 @@ import pandas as pd
 
 from feast import Entity, FeatureService, FeatureView, Field, FileSource, PushSource
 from feast.on_demand_feature_view import on_demand_feature_view
-from feast.types import Array, Float32, Int64, String
+from feast.types import Array, Float32, Float64, Int64, String
 from tests.integration.feature_repos.universal.feature_views import TAGS
 
 # Note that file source paths are not validated, so there doesn't actually need to be any data
@@ -19,7 +19,7 @@ driver_locations_source = FileSource(
 
 customer_profile_source = FileSource(
     name="customer_profile_source",
-    path="data/customer_profiles.parquet",
+    path="%CUSTOMER_PARQUET_PATH%",
     timestamp_field="event_timestamp",
 )
 
@@ -143,6 +143,18 @@ document_embeddings = FeatureView(
 def customer_profile_pandas_odfv(inputs: pd.DataFrame) -> pd.DataFrame:
     outputs = pd.DataFrame()
     outputs["on_demand_age"] = inputs["age"] + 1
+    return outputs
+
+
+@on_demand_feature_view(
+    sources=[customer_profile],
+    schema=[Field(name="age_plus_orders", dtype=Float64)],
+    mode="pandas",
+    write_to_online_store=True,
+)
+def customer_profile_write_odfv(inputs: pd.DataFrame) -> pd.DataFrame:
+    outputs = pd.DataFrame()
+    outputs["age_plus_orders"] = inputs["age"] + inputs["avg_orders_day"]
     return outputs
 
 
