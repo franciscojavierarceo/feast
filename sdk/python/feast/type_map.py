@@ -264,6 +264,8 @@ def _convert_value_type_str_to_value_type(type_str: str) -> ValueType:
         "FLOAT_LIST": ValueType.FLOAT_LIST,
         "BOOL_LIST": ValueType.BOOL_LIST,
         "UNIX_TIMESTAMP_LIST": ValueType.UNIX_TIMESTAMP_LIST,
+        "PDF_BYTES": ValueType.PDF_BYTES,
+        "IMAGE_BYTES": ValueType.IMAGE_BYTES,
     }
     return type_map[type_str]
 
@@ -318,6 +320,8 @@ PYTHON_SCALAR_VALUE_TYPE_TO_PROTO_VALUE: Dict[
     ),
     ValueType.STRING: ("string_val", lambda x: str(x), None),
     ValueType.BYTES: ("bytes_val", lambda x: x, {bytes}),
+    ValueType.PDF_BYTES: ("pdf_bytes_val", lambda x: x, {bytes}),
+    ValueType.IMAGE_BYTES: ("image_bytes_val", lambda x: x, {bytes}),
     ValueType.BOOL: ("bool_val", lambda x: x, {bool, np.bool_, int, np.int_}),
 }
 
