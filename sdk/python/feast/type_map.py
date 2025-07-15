@@ -264,6 +264,8 @@ def _convert_value_type_str_to_value_type(type_str: str) -> ValueType:
         "FLOAT_LIST": ValueType.FLOAT_LIST,
         "BOOL_LIST": ValueType.BOOL_LIST,
         "UNIX_TIMESTAMP_LIST": ValueType.UNIX_TIMESTAMP_LIST,
+        "PDF_BYTES": ValueType.PDF_BYTES,
+        "IMAGE_BYTES": ValueType.IMAGE_BYTES,
     }
     return type_map[type_str]
 

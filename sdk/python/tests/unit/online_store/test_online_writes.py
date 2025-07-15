@@ -32,7 +32,7 @@ from feast.driver_test_data import create_driver_hourly_stats_df
 from feast.field import Field
 from feast.infra.online_stores.sqlite import SqliteOnlineStoreConfig
 from feast.on_demand_feature_view import on_demand_feature_view
-from feast.types import Array, Float32, Float64, Int64, PdfBytes, String, ValueType
+from feast.types import Array, Float32, Float64, Int64, ImageBytes, PdfBytes, String, ValueType
 
 
 class TestOnlineWrites(unittest.TestCase):
@@ -232,5 +232,84 @@ class TestOnlineWritesWithTransform(unittest.TestCase):
 
             self.store.write_to_online_store(
                 feature_view_name="transform_pdf_on_write_view",
+                df=input_df,
+            )
+
+    def test_transform_on_write_image(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            self.store = FeatureStore(
+                config=RepoConfig(
+                    project="test_write_to_online_store_with_transform_image",
+                    registry=os.path.join(data_dir, "registry.db"),
+                    provider="local",
+                    entity_key_serialization_version=3,
+                    online_store=SqliteOnlineStoreConfig(
+                        path=os.path.join(data_dir, "online.db")
+                    ),
+                )
+            )
+
+            chunk = Entity(
+                name="chunk_id",
+                description="Chunk ID",
+                value_type=ValueType.STRING,
+                join_keys=["chunk_id"],
+            )
+
+            document = Entity(
+                name="document_id",
+                description="Document ID",
+                value_type=ValueType.STRING,
+                join_keys=["document_id"],
+            )
+
+            input_request_image = RequestSource(
+                name="image_request_source",
+                schema=[
+                    Field(name="document_id", dtype=String),
+                    Field(name="image_bytes", dtype=ImageBytes),
+                    Field(name="file_name", dtype=String),
+                ],
+            )
+
+            @on_demand_feature_view(
+                entities=[chunk, document],
+                sources=[input_request_image],
+                schema=[
+                    Field(name="document_id", dtype=String),
+                    Field(name="chunk_id", dtype=String),
+                    Field(name="description", dtype=String),
+                    Field(
+                        name="vector",
+                        dtype=Array(Float32),
+                        vector_index=True,
+                        vector_search_metric="L2",
+                    ),
+                ],
+                mode="python",
+                write_to_online_store=True,
+                singleton=True,
+            )
+            def transform_image_on_write_view(inputs: dict[str, Any]) -> dict[str, Any]:
+                k = 10
+                return {
+                    "document_id": ["doc_1", "doc_2"],
+                    "chunk_id": ["chunk-1", "chunk-2"],
+                    "vector": [[0.5] * k, [0.4] * k],
+                    "description": ["image description 1", "image description 2"],
+                }
+
+            self.store.apply([chunk, document, transform_image_on_write_view])
+
+            sample_image = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc\xf8\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00IEND\xaeB`\x82'
+            sample_input = {
+                "image_bytes": sample_image,
+                "file_name": "sample_image.png",
+                "document_id": "doc_1",
+            }
+            input_df = pd.DataFrame([sample_input])
+
+            self.store.write_to_online_store(
+                feature_view_name="transform_image_on_write_view",
                 df=input_df,
             )

@@ -72,6 +72,8 @@ class ValueType(google.protobuf.message.Message):
         BOOL_LIST: ValueType._Enum.ValueType  # 17
         UNIX_TIMESTAMP_LIST: ValueType._Enum.ValueType  # 18
         NULL: ValueType._Enum.ValueType  # 19
+        PDF_BYTES: ValueType._Enum.ValueType  # 20
+        IMAGE_BYTES: ValueType._Enum.ValueType  # 21
 
     class Enum(_Enum, metaclass=_EnumEnumTypeWrapper): ...
     INVALID: ValueType.Enum.ValueType  # 0
@@ -92,6 +94,8 @@ class ValueType(google.protobuf.message.Message):
     BOOL_LIST: ValueType.Enum.ValueType  # 17
     UNIX_TIMESTAMP_LIST: ValueType.Enum.ValueType  # 18
     NULL: ValueType.Enum.ValueType  # 19
+    PDF_BYTES: ValueType.Enum.ValueType  # 20
+    IMAGE_BYTES: ValueType.Enum.ValueType  # 21
 
     def __init__(
         self,
@@ -119,6 +123,8 @@ class Value(google.protobuf.message.Message):
     BOOL_LIST_VAL_FIELD_NUMBER: builtins.int
     UNIX_TIMESTAMP_LIST_VAL_FIELD_NUMBER: builtins.int
     NULL_VAL_FIELD_NUMBER: builtins.int
+    PDF_BYTES_VAL_FIELD_NUMBER: builtins.int
+    IMAGE_BYTES_VAL_FIELD_NUMBER: builtins.int
     bytes_val: builtins.bytes
     string_val: builtins.str
     int32_val: builtins.int
@@ -144,6 +150,8 @@ class Value(google.protobuf.message.Message):
     @property
     def unix_timestamp_list_val(self) -> global___Int64List: ...
     null_val: global___Null.ValueType
+    pdf_bytes_val: builtins.bytes
+    image_bytes_val: builtins.bytes
     def __init__(
         self,
         *,
@@ -164,10 +172,12 @@ class Value(google.protobuf.message.Message):
         bool_list_val: global___BoolList | None = ...,
         unix_timestamp_list_val: global___Int64List | None = ...,
         null_val: global___Null.ValueType = ...,
+        pdf_bytes_val: builtins.bytes = ...,
+        image_bytes_val: builtins.bytes = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["bool_list_val", b"bool_list_val", "bool_val", b"bool_val", "bytes_list_val", b"bytes_list_val", "bytes_val", b"bytes_val", "double_list_val", b"double_list_val", "double_val", b"double_val", "float_list_val", b"float_list_val", "float_val", b"float_val", "int32_list_val", b"int32_list_val", "int32_val", b"int32_val", "int64_list_val", b"int64_list_val", "int64_val", b"int64_val", "null_val", b"null_val", "string_list_val", b"string_list_val", "string_val", b"string_val", "unix_timestamp_list_val", b"unix_timestamp_list_val", "unix_timestamp_val", b"unix_timestamp_val", "val", b"val"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["bool_list_val", b"bool_list_val", "bool_val", b"bool_val", "bytes_list_val", b"bytes_list_val", "bytes_val", b"bytes_val", "double_list_val", b"double_list_val", "double_val", b"double_val", "float_list_val", b"float_list_val", "float_val", b"float_val", "int32_list_val", b"int32_list_val", "int32_val", b"int32_val", "int64_list_val", b"int64_list_val", "int64_val", b"int64_val", "null_val", b"null_val", "string_list_val", b"string_list_val", "string_val", b"string_val", "unix_timestamp_list_val", b"unix_timestamp_list_val", "unix_timestamp_val", b"unix_timestamp_val", "val", b"val"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing_extensions.Literal["val", b"val"]) -> typing_extensions.Literal["bytes_val", "string_val", "int32_val", "int64_val", "double_val", "float_val", "bool_val", "unix_timestamp_val", "bytes_list_val", "string_list_val", "int32_list_val", "int64_list_val", "double_list_val", "float_list_val", "bool_list_val", "unix_timestamp_list_val", "null_val"] | None: ...
+    def HasField(self, field_name: typing_extensions.Literal["bool_list_val", b"bool_list_val", "bool_val", b"bool_val", "bytes_list_val", b"bytes_list_val", "bytes_val", b"bytes_val", "double_list_val", b"double_list_val", "double_val", b"double_val", "float_list_val", b"float_list_val", "float_val", b"float_val", "image_bytes_val", b"image_bytes_val", "int32_list_val", b"int32_list_val", "int32_val", b"int32_val", "int64_list_val", b"int64_list_val", "int64_val", b"int64_val", "null_val", b"null_val", "pdf_bytes_val", b"pdf_bytes_val", "string_list_val", b"string_list_val", "string_val", b"string_val", "unix_timestamp_list_val", b"unix_timestamp_list_val", "unix_timestamp_val", b"unix_timestamp_val", "val", b"val"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["bool_list_val", b"bool_list_val", "bool_val", b"bool_val", "bytes_list_val", b"bytes_list_val", "bytes_val", b"bytes_val", "double_list_val", b"double_list_val", "double_val", b"double_val", "float_list_val", b"float_list_val", "float_val", b"float_val", "image_bytes_val", b"image_bytes_val", "int32_list_val", b"int32_list_val", "int32_val", b"int32_val", "int64_list_val", b"int64_list_val", "int64_val", b"int64_val", "null_val", b"null_val", "pdf_bytes_val", b"pdf_bytes_val", "string_list_val", b"string_list_val", "string_val", b"string_val", "unix_timestamp_list_val", b"unix_timestamp_list_val", "unix_timestamp_val", b"unix_timestamp_val", "val", b"val"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["val", b"val"]) -> typing_extensions.Literal["bytes_val", "string_val", "int32_val", "int64_val", "double_val", "float_val", "bool_val", "unix_timestamp_val", "bytes_list_val", "string_list_val", "int32_list_val", "int64_list_val", "double_list_val", "float_list_val", "bool_list_val", "unix_timestamp_list_val", "null_val", "pdf_bytes_val", "image_bytes_val"] | None: ...
 
 global___Value = Value
 
