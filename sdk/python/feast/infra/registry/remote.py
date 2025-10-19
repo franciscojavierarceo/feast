@@ -249,6 +249,14 @@ class RemoteRegistry(BaseRegistry):
         )
         self.stub.DeleteFeatureView(request)
 
+    def delete_on_demand_feature_view(
+        self, name: str, project: str, commit: bool = True
+    ):
+        request = RegistryServer_pb2.DeleteFeatureViewRequest(
+            name=name, project=project, commit=commit
+        )
+        self.stub.DeleteFeatureView(request)
+
     def get_stream_feature_view(
         self, name: str, project: str, allow_cache: bool = False
     ) -> StreamFeatureView:

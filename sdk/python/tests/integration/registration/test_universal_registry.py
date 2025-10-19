@@ -641,6 +641,69 @@ def test_apply_on_demand_feature_view_success(test_registry: BaseRegistry):
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "test_registry",
+    sql_fixtures,
+)
+def test_delete_on_demand_feature_view_success(test_registry: BaseRegistry):
+    # Create Feature Views
+    driver_stats = FileSource(
+        name="driver_stats_source",
+        path="data/driver_stats_lat_lon.parquet",
+        timestamp_field="event_timestamp",
+        created_timestamp_column="created",
+        description="A table describing the stats of a driver based on hourly logs",
+        owner="test2@gmail.com",
+    )
+
+    driver_daily_features_view = FeatureView(
+        name="driver_daily_features",
+        entities=[driver()],
+        ttl=timedelta(seconds=8640000000),
+        schema=[
+            Field(name="driver_id", dtype=Int64),
+            Field(name="daily_miles_driven", dtype=Float32),
+            Field(name="lat", dtype=Float32),
+            Field(name="lon", dtype=Float32),
+            Field(name="string_feature", dtype=String),
+        ],
+        online=True,
+        source=driver_stats,
+        tags={"production": "True"},
+        owner="test2@gmail.com",
+    )
+
+    @on_demand_feature_view(
+        sources=[driver_daily_features_view],
+        schema=[Field(name="first_char", dtype=String)],
+    )
+    def location_features_from_push(inputs: pd.DataFrame) -> pd.DataFrame:
+        df = pd.DataFrame()
+        df["first_char"] = inputs["string_feature"].str[:1].astype("string")
+        return df
+
+    project = "project"
+
+    # Register Feature View
+    test_registry.apply_feature_view(driver_daily_features_view, project)
+    test_registry.apply_feature_view(location_features_from_push, project)
+
+    feature_views = test_registry.list_on_demand_feature_views(project)
+    assert len(feature_views) == 1
+
+    test_registry.delete_on_demand_feature_view("location_features_from_push", project)
+    feature_views = test_registry.list_on_demand_feature_views(project)
+    assert len(feature_views) == 0
+
+    with pytest.raises(FeatureViewNotFoundException):
+        test_registry.delete_on_demand_feature_view(
+            "non_existent_odfv", project
+        )
+
+    test_registry.teardown()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "test_registry",
     all_fixtures,
 )
 def test_apply_data_source(test_registry):

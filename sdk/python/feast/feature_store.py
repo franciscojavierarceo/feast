@@ -550,6 +550,18 @@ class FeatureStore:
         """
         return self._registry.delete_feature_view(name, self.project)
 
+    def delete_on_demand_feature_view(self, name: str):
+        """
+        Deletes an on demand feature view.
+
+        Args:
+            name: Name of on demand feature view.
+
+        Raises:
+            FeatureViewNotFoundException: The on demand feature view could not be found.
+        """
+        return self._registry.delete_on_demand_feature_view(name, self.project)
+
     def delete_feature_service(self, name: str):
         """
         Deletes a feature service.

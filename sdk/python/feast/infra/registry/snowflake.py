@@ -453,6 +453,15 @@ class SnowflakeRegistry(BaseRegistry):
         if deleted_count == 0:
             raise FeatureViewNotFoundException(name, project)
 
+    def delete_on_demand_feature_view(
+        self, name: str, project: str, commit: bool = True
+    ):
+        deleted_count = self._delete_object(
+            "ON_DEMAND_FEATURE_VIEWS", name, project, "FEATURE_VIEW_NAME", None
+        )
+        if deleted_count == 0:
+            raise FeatureViewNotFoundException(name, project)
+
     def delete_saved_dataset(self, name: str, project: str, allow_cache: bool = False):
         self._delete_object(
             "SAVED_DATASETS",

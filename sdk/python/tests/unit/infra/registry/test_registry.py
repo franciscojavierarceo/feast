@@ -126,6 +126,9 @@ class TestCachingRegistry(CachingRegistry):
     def delete_feature_view(self, *args, **kwargs):
         pass
 
+    def delete_on_demand_feature_view(self, *args, **kwargs):
+        pass
+
     def delete_permission(self, *args, **kwargs):
         pass
 

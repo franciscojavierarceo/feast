@@ -535,6 +535,15 @@ class SqlRegistry(CachingRegistry):
         if deleted_count == 0:
             raise FeatureViewNotFoundException(name, project)
 
+    def delete_on_demand_feature_view(
+        self, name: str, project: str, commit: bool = True
+    ):
+        deleted_count = self._delete_object(
+            on_demand_feature_views, name, project, "feature_view_name", None
+        )
+        if deleted_count == 0:
+            raise FeatureViewNotFoundException(name, project)
+
     def delete_feature_service(self, name: str, project: str, commit: bool = True):
         return self._delete_object(
             feature_services,

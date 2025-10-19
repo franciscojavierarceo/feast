@@ -710,6 +710,26 @@ class Registry(BaseRegistry):
 
         raise FeatureViewNotFoundException(name, project)
 
+    def delete_on_demand_feature_view(
+        self, name: str, project: str, commit: bool = True
+    ):
+        self._prepare_registry_for_changes(project)
+        assert self.cached_registry_proto
+
+        for idx, existing_on_demand_feature_view_proto in enumerate(
+            self.cached_registry_proto.on_demand_feature_views
+        ):
+            if (
+                existing_on_demand_feature_view_proto.spec.name == name
+                and existing_on_demand_feature_view_proto.spec.project == project
+            ):
+                del self.cached_registry_proto.on_demand_feature_views[idx]
+                if commit:
+                    self.commit()
+                return
+
+        raise FeatureViewNotFoundException(name, project)
+
     def delete_entity(self, name: str, project: str, commit: bool = True):
         self._prepare_registry_for_changes(project)
         assert self.cached_registry_proto

@@ -353,6 +353,20 @@ class BaseRegistry(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_on_demand_feature_view(
+        self, name: str, project: str, commit: bool = True
+    ):
+        """
+        Deletes an on demand feature view or raises an exception if not found.
+
+        Args:
+            name: Name of on demand feature view
+            project: Feast project that this on demand feature view belongs to
+            commit: Whether the change should be persisted immediately
+        """
+        raise NotImplementedError
+
     # regular feature view operations
     @abstractmethod
     def get_feature_view(
