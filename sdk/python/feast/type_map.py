@@ -960,7 +960,7 @@ def feast_value_type_to_pa(
         ValueType.STRING: pyarrow.string(),
         ValueType.BYTES: pyarrow.binary(),
         ValueType.BOOL: pyarrow.bool_(),
-        ValueType.UNIX_TIMESTAMP: pyarrow.timestamp(timestamp_unit),
+        ValueType.UNIX_TIMESTAMP: pyarrow.timestamp(timestamp_unit, tz="UTC"),
         ValueType.INT32_LIST: pyarrow.list_(pyarrow.int32()),
         ValueType.INT64_LIST: pyarrow.list_(pyarrow.int64()),
         ValueType.DOUBLE_LIST: pyarrow.list_(pyarrow.float64()),
@@ -968,7 +968,7 @@ def feast_value_type_to_pa(
         ValueType.STRING_LIST: pyarrow.list_(pyarrow.string()),
         ValueType.BYTES_LIST: pyarrow.list_(pyarrow.binary()),
         ValueType.BOOL_LIST: pyarrow.list_(pyarrow.bool_()),
-        ValueType.UNIX_TIMESTAMP_LIST: pyarrow.list_(pyarrow.timestamp(timestamp_unit)),
+        ValueType.UNIX_TIMESTAMP_LIST: pyarrow.list_(pyarrow.timestamp(timestamp_unit, tz="UTC")),
         ValueType.NULL: pyarrow.null(),
     }
     return type_map[feast_type]
