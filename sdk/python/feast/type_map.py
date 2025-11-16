@@ -876,6 +876,8 @@ def arrow_to_pg_type(t_str: str) -> str:
     try:
         if t_str.startswith("timestamp") or t_str.startswith("datetime"):
             return "timestamptz" if "tz=" in t_str else "timestamp"
+        if t_str.startswith("list<item: timestamp["):
+            return "timestamptz[]" if "tz=" in t_str else "timestamp[]"
         return {
             "null": "null",
             "bool": "boolean",
@@ -887,7 +889,6 @@ def arrow_to_pg_type(t_str: str) -> str:
             "list<item: int64>": "bigint[]",
             "list<item: bool>": "boolean[]",
             "list<item: double>": "double precision[]",
-            "list<item: timestamp[us]>": "timestamp[]",
             "uint8": "smallint",
             "uint16": "int",
             "uint32": "bigint",
