@@ -562,6 +562,91 @@ class FeatureStore:
         """
         return self._registry.delete_feature_service(name, self.project)
 
+    def _get_objects_to_delete(
+        self, objects_to_keep: List[FeastObject]
+    ) -> List[FeastObject]:
+        """
+        Determines which objects in the registry should be deleted based on the provided objects.
+
+        This method compares the current registry state with the provided list of objects
+        and returns a list of objects that exist in the registry but are not in the provided list.
+        This enables CLI-like "sync" behavior where the registry is updated to match exactly
+        the provided objects.
+
+        Args:
+            objects_to_keep: List of objects that should remain in the registry.
+
+        Returns:
+            List of objects that should be deleted from the registry.
+        """
+        objects_to_delete: List[FeastObject] = []
+
+        # Get names of objects to keep, organized by type
+        entity_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, Entity)
+        }
+        fv_names_to_keep = {
+            ob.name
+            for ob in objects_to_keep
+            if isinstance(ob, FeatureView)
+            and not isinstance(ob, StreamFeatureView)
+            and not isinstance(ob, OnDemandFeatureView)
+        }
+        sfv_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, StreamFeatureView)
+        }
+        odfv_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, OnDemandFeatureView)
+        }
+        fs_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, FeatureService)
+        }
+        ds_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, DataSource)
+        }
+        permission_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, Permission)
+        }
+        vr_names_to_keep = {
+            ob.name for ob in objects_to_keep if isinstance(ob, ValidationReference)
+        }
+
+        # Get current registry objects and find ones to delete
+        # Note: We exclude DUMMY_ENTITY from deletion
+        for entity in self._list_entities():
+            if entity.name not in entity_names_to_keep and entity.name != DUMMY_ENTITY_NAME:
+                objects_to_delete.append(entity)
+
+        for fv in self._list_batch_feature_views():
+            if fv.name not in fv_names_to_keep:
+                objects_to_delete.append(fv)
+
+        for sfv in self._list_stream_feature_views():
+            if sfv.name not in sfv_names_to_keep:
+                objects_to_delete.append(sfv)
+
+        for odfv in self.list_on_demand_feature_views():
+            if odfv.name not in odfv_names_to_keep:
+                objects_to_delete.append(odfv)
+
+        for fs in self.list_feature_services():
+            if fs.name not in fs_names_to_keep:
+                objects_to_delete.append(fs)
+
+        for ds in self.list_data_sources():
+            if ds.name not in ds_names_to_keep:
+                objects_to_delete.append(ds)
+
+        for permission in self.list_permissions():
+            if permission.name not in permission_names_to_keep:
+                objects_to_delete.append(permission)
+
+        for vr in self.list_validation_references():
+            if vr.name not in vr_names_to_keep:
+                objects_to_delete.append(vr)
+
+        return objects_to_delete
+
     def _should_use_plan(self):
         """Returns True if plan and _apply_diffs should be used, False otherwise."""
         # Currently only the local provider with sqlite online store supports plan and _apply_diffs.
@@ -832,6 +917,7 @@ class FeatureStore:
         ],
         objects_to_delete: Optional[List[FeastObject]] = None,
         partial: bool = True,
+        commit: bool = False,
     ):
         """Register objects to metadata store and update related infrastructure.
 
@@ -846,6 +932,10 @@ class FeatureStore:
                 provider's infrastructure. This deletion will only be performed if partial is set to False.
             partial: If True, apply will only handle the specified objects; if False, apply will also delete
                 all the objects in objects_to_delete, and tear down any associated cloud resources.
+            commit: If True, the registry will be synchronized to match exactly the objects provided.
+                Objects in the registry that are not in the provided list will be automatically deleted.
+                This provides behavior similar to the CLI 'feast apply' command. When commit is True,
+                the partial parameter is ignored and objects_to_delete is automatically determined.
 
         Raises:
             ValueError: The 'objects' parameter could not be parsed properly.
@@ -869,12 +959,19 @@ class FeatureStore:
             ...     source=driver_hourly_stats,
             ... )
             >>> fs.apply([driver_hourly_stats_view, driver]) # register entity and feature view
+            >>> fs.apply([driver_hourly_stats_view, driver], commit=True) # sync registry to match exactly these objects
         """
         # TODO: Add locking
         if not isinstance(objects, Iterable):
             objects = [objects]
         assert isinstance(objects, list)
-        if not objects_to_delete:
+
+        # When commit=True, automatically determine objects to delete by comparing
+        # with the current registry state. This provides CLI-like behavior.
+        if commit:
+            objects_to_delete = self._get_objects_to_delete(objects)
+            partial = False
+        elif not objects_to_delete:
             objects_to_delete = []
 
         # Separate all objects into entities, feature services, and different feature view types.
