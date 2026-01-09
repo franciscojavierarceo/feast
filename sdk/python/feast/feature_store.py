@@ -614,7 +614,10 @@ class FeatureStore:
         # Get current registry objects and find ones to delete
         # Note: We exclude DUMMY_ENTITY from deletion
         for entity in self._list_entities():
-            if entity.name not in entity_names_to_keep and entity.name != DUMMY_ENTITY_NAME:
+            if (
+                entity.name not in entity_names_to_keep
+                and entity.name != DUMMY_ENTITY_NAME
+            ):
                 objects_to_delete.append(entity)
 
         for fv in self._list_batch_feature_views():
@@ -982,7 +985,8 @@ class FeatureStore:
         views_to_update = [
             ob
             for ob in objects
-            if (
+            if
+            (
                 # BFVs are not handled separately from FVs right now.
                 (isinstance(ob, FeatureView) or isinstance(ob, BatchFeatureView))
                 and not isinstance(ob, StreamFeatureView)
@@ -2151,9 +2155,9 @@ class FeatureStore:
             distance_metric: The distance metric to use for retrieval.
             query_string: The query string to retrieve the closest document features using keyword search (bm25).
         """
-        assert query is not None or query_string is not None, (
-            "Either query or query_string must be provided."
-        )
+        assert (
+            query is not None or query_string is not None
+        ), "Either query or query_string must be provided."
 
         (
             available_feature_views,
@@ -2466,9 +2470,9 @@ class FeatureStore:
         if not isinstance(source, FeatureService):
             raise ValueError("Only feature service is currently supported as a source")
 
-        assert source.logging_config is not None, (
-            "Feature service must be configured with logging config in order to use this functionality"
-        )
+        assert (
+            source.logging_config is not None
+        ), "Feature service must be configured with logging config in order to use this functionality"
 
         assert isinstance(logs, (pa.Table, Path))
 
