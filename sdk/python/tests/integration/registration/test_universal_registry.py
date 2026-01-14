@@ -741,12 +741,12 @@ def test_apply_data_source_with_timestamps(test_registry):
 
     # The created_timestamp should be preserved from the previous apply
     assert updated_source.created_timestamp == original_created
-    assert updated_source.last_updated_timestamp != original_updated, (
-        f"updated_source.last_updated_timestamp: {updated_source.last_updated_timestamp}, original_updated: {original_updated}"
-    )
-    assert updated_source.last_updated_timestamp > original_updated, (
-        f"updated_source.last_updated_timestamp: {updated_source.last_updated_timestamp}, original_updated: {original_updated}"
-    )
+    assert (
+        updated_source.last_updated_timestamp != original_updated
+    ), f"updated_source.last_updated_timestamp: {updated_source.last_updated_timestamp}, original_updated: {original_updated}"
+    assert (
+        updated_source.last_updated_timestamp > original_updated
+    ), f"updated_source.last_updated_timestamp: {updated_source.last_updated_timestamp}, original_updated: {original_updated}"
     assert updated_source.description == "Updated description for timestamp test"
 
     test_registry.teardown()
