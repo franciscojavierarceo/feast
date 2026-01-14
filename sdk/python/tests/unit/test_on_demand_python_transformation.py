@@ -1315,7 +1315,9 @@ class TestOnDemandTransformationsWithWrites(unittest.TestCase):
                 self.store._get_feature_views_to_materialize(
                     ["python_no_writes_feature_view"]
                 )
-                assert False, "Should have raised ValueError for ODFV without write_to_online_store"
+                assert False, (
+                    "Should have raised ValueError for ODFV without write_to_online_store"
+                )
             except ValueError as e:
                 assert "not configured for write_to_online_store" in str(e)
 

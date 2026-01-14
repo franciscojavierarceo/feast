@@ -503,9 +503,9 @@ class TestRegistryLineage:
 
         ds_names = {rel.target.name for rel in entity_to_ds_relationships}
         for name in ds_names:
-            assert name.startswith(
-                "unnamed_source_"
-            ), f"Expected unnamed_source_ prefix, got {name}"
+            assert name.startswith("unnamed_source_"), (
+                f"Expected unnamed_source_ prefix, got {name}"
+            )
 
         # All relationships should involve the user_id entity
         for rel in entity_to_ds_relationships:
