@@ -92,6 +92,9 @@ service RegistryServer{
   rpc GetRegistryLineage (GetRegistryLineageRequest) returns (GetRegistryLineageResponse) {}
   rpc GetObjectRelationships (GetObjectRelationshipsRequest) returns (GetObjectRelationshipsResponse) {}
 
+  // Feature RPCs
+  rpc ListFeatures (ListFeaturesRequest) returns (ListFeaturesResponse) {}
+  rpc GetFeature (GetFeatureRequest) returns (Feature) {}
 }
 
 // Common pagination and sorting messages
@@ -269,8 +272,12 @@ message ListAllFeatureViewsRequest {
     string project = 1;
     bool allow_cache = 2;
     map<string,string> tags = 3;
-    PaginationParams pagination = 4;
-    SortingParams sorting = 5;
+    string entity = 4;
+    string feature = 5;
+    string feature_service = 6;
+    string data_source = 7;
+    PaginationParams pagination = 8;
+    SortingParams sorting = 9;
 }
 
 message ListAllFeatureViewsResponse {
@@ -339,8 +346,9 @@ message ListFeatureServicesRequest {
     string project = 1;
     bool allow_cache = 2;
     map<string,string> tags = 3;
-    PaginationParams pagination = 4;
-    SortingParams sorting = 5;
+    string feature_view = 4;
+    PaginationParams pagination = 5;
+    SortingParams sorting = 6;
 }
 
 message ListFeatureServicesResponse {
@@ -523,4 +531,37 @@ message GetObjectRelationshipsRequest {
 message GetObjectRelationshipsResponse {
   repeated EntityRelation relationships = 1;
   PaginationMetadata pagination = 2;
+}
+
+// Feature messages
+message Feature {
+  string name = 1;
+  string feature_view = 2;
+  string type = 3;
+  string description = 4;
+  string owner = 5;
+  google.protobuf.Timestamp created_timestamp = 6;
+  google.protobuf.Timestamp last_updated_timestamp = 7;
+  map<string, string> tags = 8;
+}
+
+message ListFeaturesRequest {
+  string project = 1;
+  string feature_view = 2;
+  string name = 3;
+  bool allow_cache = 6;
+  PaginationParams pagination = 4;
+  SortingParams sorting = 5;
+}
+
+message ListFeaturesResponse {
+  repeated Feature features = 1;
+  PaginationMetadata pagination = 2;
+}
+
+message GetFeatureRequest {
+  string project = 1;
+  string feature_view = 2;
+  string name = 3;
+  bool allow_cache = 4;
 }

@@ -266,7 +266,9 @@ class BaseRegistry(ABC):
     @abstractmethod
     def delete_feature_view(self, name: str, project: str, commit: bool = True):
         """
-        Deletes a feature view or raises an exception if not found.
+        Deletes a feature view  of any kind (FeatureView, OnDemandFeatureView, StreamFeatureView).
+        Or raises an exception if not found.
+
 
         Args:
             name: Name of feature view
@@ -603,6 +605,20 @@ class BaseRegistry(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_project_metadata(self, project: str, key: str) -> Optional[str]:
+        """
+        Retrieves a custom project metadata value by key.
+
+        Args:
+            project: Feast project name
+            key: Metadata key
+
+        Returns:
+            The metadata value as a string, or None if not found.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def update_infra(self, infra: Infra, project: str, commit: bool = True):
         """
         Updates the stored Infra object.
@@ -863,7 +879,7 @@ class BaseRegistry(ABC):
         Get relationships for a specific object.
         Args:
             project: Feast project name
-            object_type: Type of object (dataSource, entity, featureView, featureService)
+            object_type: Type of object (dataSource, entity, featureView, featureService, feature)
             object_name: Name of the object
             include_indirect: Whether to include indirect relationships
             allow_cache: Whether to allow returning data from a cached registry
@@ -876,10 +892,10 @@ class BaseRegistry(ABC):
 
         registry_proto = self._build_registry_proto(project, allow_cache)
         lineage_generator = RegistryLineageGenerator()
-
-        return lineage_generator.get_object_relationships(
+        relationships = lineage_generator.get_object_relationships(
             registry_proto, object_type, object_name, include_indirect=include_indirect
         )
+        return relationships
 
     def _build_registry_proto(
         self, project: str, allow_cache: bool = False

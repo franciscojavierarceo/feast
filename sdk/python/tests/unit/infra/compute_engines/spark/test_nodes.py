@@ -25,6 +25,8 @@ def spark_session():
         SparkSession.builder.appName("FeastSparkTests")
         .master("local[*]")
         .config("spark.sql.shuffle.partitions", "1")
+        .config("spark.driver.host", "127.0.0.1")
+        .config("spark.driver.bindAddress", "127.0.0.1")
         .getOrCreate()
     )
 
@@ -111,6 +113,7 @@ def test_spark_aggregation_node_executes_correctly(spark_session):
         aggregations=agg_specs,
         group_by_keys=["user_id"],
         timestamp_col="",
+        spark_session=spark_session,
     )
     node.add_input(MagicMock())
     node.inputs[0].name = "source"

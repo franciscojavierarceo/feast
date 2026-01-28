@@ -68,8 +68,8 @@ const (
 
 // FeatureStoreSpec defines the desired state of FeatureStore
 type FeatureStoreSpec struct {
-	// +kubebuilder:validation:Pattern="^[A-Za-z0-9][A-Za-z0-9_]*$"
-	// FeastProject is the Feast project id. This can be any alphanumeric string with underscores, but it cannot start with an underscore. Required.
+	// +kubebuilder:validation:Pattern="^[A-Za-z0-9][A-Za-z0-9_-]*$"
+	// FeastProject is the Feast project id. This can be any alphanumeric string with underscores and hyphens, but it cannot start with an underscore or hyphen. Required.
 	FeastProject    string                `json:"feastProject"`
 	FeastProjectDir *FeastProjectDir      `json:"feastProjectDir,omitempty"`
 	Services        *FeatureStoreServices `json:"services,omitempty"`
@@ -111,6 +111,9 @@ type FeastInitOptions struct {
 
 // FeastCronJob defines a CronJob to execute against a Feature Store deployment.
 type FeastCronJob struct {
+	// Annotations to be added to the CronJob metadata.
+	Annotations map[string]string `json:"annotations,omitempty"`
+
 	// Specification of the desired behavior of a job.
 	JobSpec          *JobSpec                 `json:"jobSpec,omitempty"`
 	ContainerConfigs *CronJobContainerConfigs `json:"containerConfigs,omitempty"`
@@ -154,6 +157,11 @@ type FeastCronJob struct {
 
 // JobSpec describes how the job execution will look like.
 type JobSpec struct {
+	// PodTemplateAnnotations are annotations to be applied to the CronJob's PodTemplate
+	// metadata. This is separate from the CronJob-level annotations and must be
+	// set explicitly by users if they want annotations on the PodTemplate.
+	PodTemplateAnnotations map[string]string `json:"podTemplateAnnotations,omitempty"`
+
 	// Specifies the maximum desired number of pods the job should
 	// run at any given time. The actual number of pods running in steady state will
 	// be less than this number when ((.spec.completions - .status.successful) < .spec.parallelism),
@@ -315,7 +323,7 @@ var ValidOfflineStoreFilePersistenceTypes = []string{
 // OfflineStoreDBStorePersistence configures the DB store persistence for the offline store service
 type OfflineStoreDBStorePersistence struct {
 	// Type of the persistence type you want to use.
-	// +kubebuilder:validation:Enum=snowflake.offline;bigquery;redshift;spark;postgres;trino;athena;mssql;couchbase.offline;clickhouse
+	// +kubebuilder:validation:Enum=snowflake.offline;bigquery;redshift;spark;postgres;trino;athena;mssql;couchbase.offline;clickhouse;ray
 	Type string `json:"type"`
 	// Data store parameters should be placed as-is from the "feature_store.yaml" under the secret key. "registry_type" & "type" fields should be removed.
 	SecretRef corev1.LocalObjectReference `json:"secretRef"`
@@ -334,6 +342,7 @@ var ValidOfflineStoreDBStorePersistenceTypes = []string{
 	"mssql",
 	"couchbase.offline",
 	"clickhouse",
+	"ray",
 }
 
 // OnlineStore configures the online store service
@@ -362,7 +371,7 @@ type OnlineStoreFilePersistence struct {
 // OnlineStoreDBStorePersistence configures the DB store persistence for the online store service
 type OnlineStoreDBStorePersistence struct {
 	// Type of the persistence type you want to use.
-	// +kubebuilder:validation:Enum=snowflake.online;redis;ikv;datastore;dynamodb;bigtable;postgres;cassandra;mysql;hazelcast;singlestore;hbase;elasticsearch;qdrant;couchbase.online;milvus
+	// +kubebuilder:validation:Enum=snowflake.online;redis;ikv;datastore;dynamodb;bigtable;postgres;cassandra;mysql;hazelcast;singlestore;hbase;elasticsearch;qdrant;couchbase.online;milvus;hybrid
 	Type string `json:"type"`
 	// Data store parameters should be placed as-is from the "feature_store.yaml" under the secret key. "registry_type" & "type" fields should be removed.
 	SecretRef corev1.LocalObjectReference `json:"secretRef"`
@@ -387,6 +396,7 @@ var ValidOnlineStoreDBStorePersistenceTypes = []string{
 	"qdrant",
 	"couchbase.online",
 	"milvus",
+	"hybrid",
 }
 
 // LocalRegistryConfig configures the registry service
@@ -412,6 +422,17 @@ type RegistryFilePersistence struct {
 	Path               string             `json:"path,omitempty"`
 	PvcConfig          *PvcConfig         `json:"pvc,omitempty"`
 	S3AdditionalKwargs *map[string]string `json:"s3_additional_kwargs,omitempty"`
+
+	// CacheTTLSeconds defines the TTL (in seconds) for the registry cache.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	CacheTTLSeconds *int32 `json:"cache_ttl_seconds,omitempty"`
+
+	// CacheMode defines the registry cache update strategy.
+	// Allowed values are "sync" and "thread".
+	// +kubebuilder:validation:Enum=none;sync;thread
+	// +optional
+	CacheMode *string `json:"cache_mode,omitempty"`
 }
 
 // RegistryDBStorePersistence configures the DB store persistence for the registry service
@@ -495,6 +516,8 @@ type ServerConfigs struct {
 	// Allowed values: "debug", "info", "warning", "error", "critical".
 	// +kubebuilder:validation:Enum=debug;info;warning;error;critical
 	LogLevel *string `json:"logLevel,omitempty"`
+	// Metrics exposes Prometheus-compatible metrics for the Feast server when enabled.
+	Metrics *bool `json:"metrics,omitempty"`
 	// VolumeMounts defines the list of volumes that should be mounted into the feast container.
 	// This allows attaching persistent storage, config files, secrets, or other resources
 	// required by the Feast components. Ensure that each volume mount has a corresponding
@@ -540,6 +563,7 @@ type OptionalCtrConfigs struct {
 	EnvFrom         *[]corev1.EnvFromSource      `json:"envFrom,omitempty"`
 	ImagePullPolicy *corev1.PullPolicy           `json:"imagePullPolicy,omitempty"`
 	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
+	NodeSelector    *map[string]string           `json:"nodeSelector,omitempty"`
 }
 
 // AuthzConfig defines the authorization settings for the deployed Feast services.
@@ -634,6 +658,7 @@ type ServiceHostnames struct {
 // +kubebuilder:resource:shortName=feast
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +kubebuilder:deprecatedversion:warning="v1alpha1 is deprecated and will be removed in a future release. Please migrate to v1."
 
 // FeatureStore is the Schema for the featurestores API
 type FeatureStore struct {

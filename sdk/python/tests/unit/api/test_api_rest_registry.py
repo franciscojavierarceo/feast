@@ -1,3 +1,4 @@
+import ast
 import os
 import tempfile
 
@@ -7,7 +8,9 @@ from fastapi.testclient import TestClient
 
 from feast import Entity, FeatureService, FeatureStore, FeatureView, Field, FileSource
 from feast.api.registry.rest.rest_registry_server import RestRegistryServer
+from feast.data_source import RequestSource
 from feast.infra.offline_stores.file_source import SavedDatasetFileStorage
+from feast.on_demand_feature_view import on_demand_feature_view
 from feast.repo_config import RepoConfig
 from feast.saved_dataset import SavedDataset
 from feast.types import Float64, Int64
@@ -62,10 +65,39 @@ def fastapi_test_app():
             Field(name="income", dtype=Float64),
         ],
         source=user_profile_source,
+        tags={"environment": "production", "team": "ml", "version": "1.0"},
     )
+    user_behavior_feature_view = FeatureView(
+        name="user_behavior",
+        entities=[user_id_entity],
+        ttl=None,
+        schema=[
+            Field(name="click_count", dtype=Int64),
+            Field(name="session_duration", dtype=Float64),
+        ],
+        source=user_profile_source,
+        tags={"environment": "staging", "team": "analytics", "version": "2.0"},
+    )
+
+    user_preferences_feature_view = FeatureView(
+        name="user_preferences",
+        entities=[user_id_entity],
+        ttl=None,
+        schema=[
+            Field(name="preferred_category", dtype=Int64),
+            Field(name="engagement_score", dtype=Float64),
+        ],
+        source=user_profile_source,
+        tags={"environment": "production", "team": "analytics", "version": "1.5"},
+    )
+
     user_feature_service = FeatureService(
         name="user_service",
-        features=[user_profile_feature_view],
+        features=[
+            user_profile_feature_view,
+            user_behavior_feature_view,
+            user_preferences_feature_view,
+        ],
     )
 
     # Create a saved dataset for testing
@@ -77,9 +109,36 @@ def fastapi_test_app():
         storage=saved_dataset_storage,
         tags={"environment": "test", "version": "1.0"},
     )
+    input_request = RequestSource(
+        name="input_request_source",
+        schema=[
+            Field(name="request_feature", dtype=Float64),
+        ],
+    )
+
+    @on_demand_feature_view(
+        sources=[user_profile_feature_view, input_request],
+        schema=[
+            Field(name="combined_feature", dtype=Float64),
+        ],
+        description="On-demand feature view with request source for testing",
+    )
+    def test_on_demand_feature_view(features_df: pd.DataFrame) -> pd.DataFrame:
+        df = pd.DataFrame()
+        df["combined_feature"] = features_df["age"] + features_df["request_feature"]
+        return df
 
     # Apply objects
-    store.apply([user_id_entity, user_profile_feature_view, user_feature_service])
+    store.apply(
+        [
+            user_id_entity,
+            user_profile_feature_view,
+            user_behavior_feature_view,
+            user_preferences_feature_view,
+            user_feature_service,
+            test_on_demand_feature_view,
+        ]
+    )
     store._registry.apply_saved_dataset(test_saved_dataset, "demo_project")
 
     # Build REST app with registered routes
@@ -97,7 +156,18 @@ def test_entities_via_rest(fastapi_test_app):
     assert "entities" in response.json()
     response = fastapi_test_app.get("/entities/user_id?project=demo_project")
     assert response.status_code == 200
-    assert response.json()["spec"]["name"] == "user_id"
+    data = response.json()
+    assert data["spec"]["name"] == "user_id"
+    # Check featureDefinition
+    assert "featureDefinition" in data
+    code = data["featureDefinition"]
+    assert code
+    assert "Entity" in code
+    assert "user_id" in code
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        pytest.fail(f"featureDefinition is not valid Python: {e}")
 
 
 def test_feature_views_via_rest(fastapi_test_app):
@@ -106,7 +176,18 @@ def test_feature_views_via_rest(fastapi_test_app):
     assert "featureViews" in response.json()
     response = fastapi_test_app.get("/feature_views/user_profile?project=demo_project")
     assert response.status_code == 200
-    assert response.json()["spec"]["name"] == "user_profile"
+    data = response.json()
+    assert data["spec"]["name"] == "user_profile"
+    # Check featureDefinition
+    assert "featureDefinition" in data
+    code = data["featureDefinition"]
+    assert code
+    assert "FeatureView" in code
+    assert "user_profile" in code
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        pytest.fail(f"featureDefinition is not valid Python: {e}")
 
 
 def test_feature_views_type_field_via_rest(fastapi_test_app):
@@ -121,7 +202,7 @@ def test_feature_views_type_field_via_rest(fastapi_test_app):
     for fv in data["featureViews"]:
         assert "type" in fv
         assert fv["type"] is not None
-        assert fv["type"] == "featureView"
+        assert fv["type"] in ["featureView", "onDemandFeatureView"]
 
     # Test single endpoint
     response = fastapi_test_app.get("/feature_views/user_profile?project=demo_project")
@@ -132,6 +213,130 @@ def test_feature_views_type_field_via_rest(fastapi_test_app):
     assert data["spec"]["name"] == "user_profile"
 
 
+def test_feature_views_entity_filtering_via_rest(fastapi_test_app):
+    """Test that feature views can be filtered by entity."""
+    response = fastapi_test_app.get("/feature_views?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    all_feature_views = data["featureViews"]
+
+    response = fastapi_test_app.get("/feature_views?project=demo_project&entity=user")
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    filtered_feature_views = data["featureViews"]
+
+    assert len(filtered_feature_views) <= len(all_feature_views)
+
+    for fv in filtered_feature_views:
+        if "spec" in fv and "entities" in fv["spec"]:
+            assert "user" in fv["spec"]["entities"]
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&entity=nonexistent_entity"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert len(data["featureViews"]) == 0
+
+
+def test_feature_views_comprehensive_filtering_via_rest(fastapi_test_app):
+    """Test that feature views can be filtered by multiple criteria."""
+    response = fastapi_test_app.get("/feature_views?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    all_feature_views = data["featureViews"]
+
+    response = fastapi_test_app.get("/feature_views?project=demo_project&feature=age")
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    feature_filtered_views = data["featureViews"]
+    assert len(feature_filtered_views) <= len(all_feature_views)
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&data_source=user_profile_source"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    data_source_filtered_views = data["featureViews"]
+    assert len(data_source_filtered_views) <= len(all_feature_views)
+
+    # Test filtering on-demand feature views by request source data source
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&data_source=input_request_source"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    odfv_data_source_filtered_views = data["featureViews"]
+
+    # Should find the on-demand feature view that uses the request source
+    assert len(odfv_data_source_filtered_views) > 0
+    odfv_found = False
+    for fv in odfv_data_source_filtered_views:
+        if fv["type"] == "onDemandFeatureView":
+            odfv_found = True
+            break
+    assert odfv_found, (
+        "On-demand feature view should be found when filtering by request source data source"
+    )
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&feature_service=user_service"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    feature_service_filtered_views = data["featureViews"]
+    assert len(feature_service_filtered_views) <= len(all_feature_views)
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&entity=user&feature=age"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    combined_filtered_views = data["featureViews"]
+    assert len(combined_filtered_views) <= len(all_feature_views)
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&feature=nonexistent_feature"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert len(data["featureViews"]) == 0
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&data_source=nonexistent_source"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert len(data["featureViews"]) == 0
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&feature_service=nonexistent_service"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert len(data["featureViews"]) == 0
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=demo_project&feature_service=restricted_feature_service"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert len(data["featureViews"]) == 0
+
+
 def test_feature_services_via_rest(fastapi_test_app):
     response = fastapi_test_app.get("/feature_services?project=demo_project")
     assert response.status_code == 200
@@ -140,18 +345,73 @@ def test_feature_services_via_rest(fastapi_test_app):
         "/feature_services/user_service?project=demo_project"
     )
     assert response.status_code == 200
-    assert response.json()["spec"]["name"] == "user_service"
+    data = response.json()
+    assert data["spec"]["name"] == "user_service"
+    # Check featureDefinition
+    assert "featureDefinition" in data
+    code = data["featureDefinition"]
+    assert code
+    assert "FeatureService" in code
+    assert "user_service" in code
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        pytest.fail(f"featureDefinition is not valid Python: {e}")
+
+
+def test_feature_services_feature_view_filtering_via_rest(fastapi_test_app):
+    """Test that feature services can be filtered by feature view name."""
+    response = fastapi_test_app.get("/feature_services?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureServices" in data
+    all_feature_services = data["featureServices"]
+
+    response = fastapi_test_app.get(
+        "/feature_services?project=demo_project&feature_view=user_profile"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureServices" in data
+    filtered_feature_services = data["featureServices"]
+
+    assert len(filtered_feature_services) <= len(all_feature_services)
+
+    for fs in filtered_feature_services:
+        if "spec" in fs and "featureViewProjections" in fs["spec"]:
+            feature_view_names = [
+                fvp["name"] for fvp in fs["spec"]["featureViewProjections"]
+            ]
+            assert "user_profile" in feature_view_names
+
+    response = fastapi_test_app.get(
+        "/feature_services?project=demo_project&feature_view=nonexistent_feature_view"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureServices" in data
+    assert len(data["featureServices"]) == 0
 
 
 def test_data_sources_via_rest(fastapi_test_app):
     response = fastapi_test_app.get("/data_sources?project=demo_project")
-    assert response.status_code == 200
-    assert "data_sources" in response.json()
+    assert "dataSources" in response.json()
     response = fastapi_test_app.get(
         "/data_sources/user_profile_source?project=demo_project"
     )
     assert response.status_code == 200
-    assert response.json()["name"] == "user_profile_source"
+    data = response.json()
+    assert data["name"] == "user_profile_source"
+    # Check featureDefinition
+    assert "featureDefinition" in data
+    code = data["featureDefinition"]
+    assert code
+    assert "FileSource" in code
+    assert "user_profile_source" in code
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        pytest.fail(f"featureDefinition is not valid Python: {e}")
 
 
 def test_projects_via_rest(fastapi_test_app):
@@ -222,11 +482,15 @@ def test_object_relationships_invalid_type_via_rest(fastapi_test_app):
     response = fastapi_test_app.get(
         "/lineage/objects/invalidType/some_name?project=demo_project"
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
 
     data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
     assert "detail" in data
     assert "Invalid object_type" in data["detail"]
+    assert "error_type" in data
+    assert data["error_type"] == "ValueError"
 
 
 def test_complete_registry_data_via_rest(fastapi_test_app):
@@ -275,6 +539,13 @@ def test_lineage_endpoint_error_handling(fastapi_test_app):
     response = fastapi_test_app.get("/lineage/registry")
     assert response.status_code == 422  # Validation error
 
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
+
     # Test invalid project
     response = fastapi_test_app.get("/lineage/registry?project=nonexistent_project")
     # Should still return 200 but with empty results
@@ -284,17 +555,24 @@ def test_lineage_endpoint_error_handling(fastapi_test_app):
     response = fastapi_test_app.get("/lineage/objects/featureView/test_fv")
     assert response.status_code == 422  # Missing required project parameter
 
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
+
 
 def test_saved_datasets_via_rest(fastapi_test_app):
     # Test list saved datasets endpoint
     response = fastapi_test_app.get("/saved_datasets?project=demo_project")
     assert response.status_code == 200
     response_data = response.json()
-    assert "saved_datasets" in response_data
-    assert isinstance(response_data["saved_datasets"], list)
-    assert len(response_data["saved_datasets"]) == 1
+    assert "savedDatasets" in response_data
+    assert isinstance(response_data["savedDatasets"], list)
+    assert len(response_data["savedDatasets"]) == 1
 
-    saved_dataset = response_data["saved_datasets"][0]
+    saved_dataset = response_data["savedDatasets"][0]
     assert saved_dataset["spec"]["name"] == "test_saved_dataset"
     assert "user_profile:age" in saved_dataset["spec"]["features"]
     assert "user_profile:income" in saved_dataset["spec"]["features"]
@@ -324,31 +602,45 @@ def test_saved_datasets_via_rest(fastapi_test_app):
         "/saved_datasets?project=demo_project&tags=environment:test"
     )
     assert response.status_code == 200
-    assert len(response.json()["saved_datasets"]) == 1
+    assert len(response.json()["savedDatasets"]) == 1
 
     # Test with non-matching tags filter
     response = fastapi_test_app.get(
         "/saved_datasets?project=demo_project&tags=environment:production"
     )
     assert response.status_code == 200
-    assert len(response.json()["saved_datasets"]) == 0
+    assert len(response.json()["savedDatasets"]) == 0
 
     # Test with multiple tags filter
     response = fastapi_test_app.get(
         "/saved_datasets?project=demo_project&tags=environment:test&tags=version:1.0"
     )
     assert response.status_code == 200
-    assert len(response.json()["saved_datasets"]) == 1
+    assert len(response.json()["savedDatasets"]) == 1
 
     # Test non-existent saved dataset
     response = fastapi_test_app.get("/saved_datasets/non_existent?project=demo_project")
     assert response.status_code == 404
+
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 404
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "FeastObjectNotFoundException"
 
     # Test missing project parameter
     response = fastapi_test_app.get("/saved_datasets/test_saved_dataset")
     assert (
         response.status_code == 422
     )  # Unprocessable Entity for missing required query param
+
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
 
 
 @pytest.fixture
@@ -650,9 +942,9 @@ def test_data_sources_pagination_via_rest(fastapi_test_app_with_multiple_objects
     response = client.get("/data_sources?project=demo_project&page=1&limit=2")
     assert response.status_code == 200
     data = response.json()
-    assert "data_sources" in data
+    assert "dataSources" in data
     assert "pagination" in data
-    assert len(data["data_sources"]) == 2
+    assert len(data["dataSources"]) == 2
     assert data["pagination"]["page"] == 1
     assert data["pagination"]["limit"] == 2
     assert data["pagination"]["totalCount"] == 3
@@ -669,7 +961,7 @@ def test_data_sources_sorting_via_rest(fastapi_test_app_with_multiple_objects):
     )
     assert response.status_code == 200
     data = response.json()
-    ds_names = [ds["name"] for ds in data["data_sources"]]
+    ds_names = [ds["name"] for ds in data["dataSources"]]
     assert ds_names == sorted(ds_names)
 
 
@@ -681,9 +973,9 @@ def test_saved_datasets_pagination_via_rest(fastapi_test_app_with_multiple_objec
     response = client.get("/saved_datasets?project=demo_project&page=1&limit=2")
     assert response.status_code == 200
     data = response.json()
-    assert "saved_datasets" in data
+    assert "savedDatasets" in data
     assert "pagination" in data
-    assert len(data["saved_datasets"]) == 2
+    assert len(data["savedDatasets"]) == 2
     assert data["pagination"]["page"] == 1
     assert data["pagination"]["limit"] == 2
     assert data["pagination"]["totalCount"] == 3
@@ -700,7 +992,7 @@ def test_saved_datasets_sorting_via_rest(fastapi_test_app_with_multiple_objects)
     )
     assert response.status_code == 200
     data = response.json()
-    sd_names = [sd["spec"]["name"] for sd in data["saved_datasets"]]
+    sd_names = [sd["spec"]["name"] for sd in data["savedDatasets"]]
     assert sd_names == sorted(sd_names)
 
     # Test sorting by name descending
@@ -709,7 +1001,7 @@ def test_saved_datasets_sorting_via_rest(fastapi_test_app_with_multiple_objects)
     )
     assert response.status_code == 200
     data = response.json()
-    sd_names = [sd["spec"]["name"] for sd in data["saved_datasets"]]
+    sd_names = [sd["spec"]["name"] for sd in data["savedDatasets"]]
     assert sd_names == sorted(sd_names, reverse=True)
 
 
@@ -749,17 +1041,45 @@ def test_pagination_invalid_parameters_via_rest(fastapi_test_app_with_multiple_o
     response = client.get("/entities?project=demo_project&page=-1&limit=2")
     assert response.status_code == 422  # Validation error
 
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
+
     # Test invalid limit (negative)
     response = client.get("/entities?project=demo_project&page=1&limit=-1")
     assert response.status_code == 422  # Validation error
+
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
 
     # Test invalid limit (too large)
     response = client.get("/entities?project=demo_project&page=1&limit=1000")
     assert response.status_code == 422  # Validation error
 
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
+
     # Test invalid page number (zero)
     response = client.get("/entities?project=demo_project&page=0&limit=2")
     assert response.status_code == 422  # Validation error
+
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
 
 
 def test_sorting_invalid_parameters_via_rest(fastapi_test_app_with_multiple_objects):
@@ -771,6 +1091,13 @@ def test_sorting_invalid_parameters_via_rest(fastapi_test_app_with_multiple_obje
         "/entities?project=demo_project&sort_by=name&sort_order=invalid"
     )
     assert response.status_code == 422  # Validation error
+
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 422
+    assert "detail" in data
+    assert "error_type" in data
+    assert data["error_type"] == "RequestValidationError"
 
     # Test with only sort_by (should default to asc)
     response = client.get("/entities?project=demo_project&sort_by=name")
@@ -839,6 +1166,156 @@ def test_lineage_sorting_via_rest(fastapi_test_app_with_multiple_objects):
     assert response.status_code == 200
     data = response.json()
     assert "relationships" in data
+
+
+def test_features_list_via_rest(fastapi_test_app):
+    """Test the /features endpoint (list features in a project)."""
+    response = fastapi_test_app.get("/features?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "features" in data
+    assert "pagination" in data
+    for feature in data["features"]:
+        assert "name" in feature
+        assert "featureView" in feature
+        assert "type" in feature
+
+    pagination = data["pagination"]
+    assert "totalCount" in pagination
+    assert "totalPages" in pagination
+
+
+def test_features_list_with_relationships_via_rest(fastapi_test_app):
+    """Test the /features endpoint with include_relationships."""
+    response = fastapi_test_app.get(
+        "/features?project=demo_project&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "features" in data
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    for k, v in data["relationships"].items():
+        assert isinstance(v, list)
+        for rel in v:
+            assert "source" in rel and "target" in rel
+
+
+def test_features_get_invalid_feature_view_via_rest(fastapi_test_app):
+    """Test the /features/{feature_view}/{name} endpoint with invalid feature_view."""
+    response = fastapi_test_app.get(
+        "/features/invalid_fv/invalid_feature?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert "status_code" in data
+    assert data["status_code"] == 404
+    assert "detail" in data
+    assert "not found" in data["detail"].lower()
+    assert "error_type" in data
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+
+def test_features_get_via_rest(fastapi_test_app):
+    """Test the /features/{feature_view}/{name} endpoint (get single feature)."""
+    response = fastapi_test_app.get("/features/user_profile/age?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "age"
+    assert data["featureView"] == "user_profile"
+    assert data["type"] == "Int64"
+    # Check featureDefinition
+    assert "featureDefinition" in data
+    code = data["featureDefinition"]
+    assert code
+    assert "Feature" in code
+    assert "age" in code
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        pytest.fail(f"featureDefinition is not valid Python: {e}")
+
+    response = fastapi_test_app.get(
+        "/features/user_profile/age?project=demo_project&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "relationships" in data
+    assert isinstance(data["relationships"], list)
+    for rel in data["relationships"]:
+        assert "source" in rel and "target" in rel
+
+
+def test_features_list_all_via_rest(fastapi_test_app):
+    """Test the /features/all endpoint (all projects)."""
+    response = fastapi_test_app.get("/features/all")
+    assert response.status_code == 200
+    data = response.json()
+    assert "features" in data
+    assert "pagination" in data
+    for feature in data["features"]:
+        assert "project" in feature
+        assert "name" in feature
+        assert "featureView" in feature
+        assert "type" in feature
+
+
+def test_features_filtering_and_sorting_via_rest(fastapi_test_app):
+    """Test filtering and sorting for /features endpoint."""
+    response = fastapi_test_app.get(
+        "/features?project=demo_project&feature_view=user_profile"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    for feature in data["features"]:
+        assert feature["featureView"] == "user_profile"
+
+    response = fastapi_test_app.get("/features?project=demo_project&name=age")
+    assert response.status_code == 200
+    data = response.json()
+    for feature in data["features"]:
+        assert feature["name"] == "age"
+
+    response = fastapi_test_app.get(
+        "/features?project=demo_project&sort_by=name&sort_order=asc"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    names = [f["name"] for f in data["features"]]
+    assert names == sorted(names)
+
+
+def test_features_pagination_via_rest(fastapi_test_app_with_multiple_objects):
+    """Test pagination for /features endpoint."""
+    client = fastapi_test_app_with_multiple_objects
+    response = client.get("/features?project=demo_project&page=1&limit=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert "features" in data
+    assert "pagination" in data
+    assert data["pagination"]["page"] == 1
+    assert data["pagination"]["limit"] == 2
+
+    response = client.get("/features?project=demo_project&page=2&limit=2")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["pagination"]["page"] == 2
+
+
+def test_lineage_features_object_type_via_rest(fastapi_test_app):
+    """Test lineage endpoints for features as a first-class object."""
+    response = fastapi_test_app.get("/lineage/objects/feature/age?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "relationships" in data
+    assert isinstance(data["relationships"], list)
+    response = fastapi_test_app.get(
+        "/lineage/registry?project=demo_project&filter_object_type=feature"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "relationships" in data
+    assert isinstance(data["relationships"], list)
 
 
 def test_feature_view_type_identification():
@@ -939,3 +1416,438 @@ def test_lineage_complete_all_via_rest(fastapi_test_app):
         assert "dataSources" in project_data["objects"]
         assert "featureViews" in project_data["objects"]
         assert "featureServices" in project_data["objects"]
+
+
+def test_invalid_project_name_with_relationships_via_rest(fastapi_test_app):
+    """Test REST API response with invalid project name using include_relationships=true.
+    The API should not throw 500 or any other error when an invalid project name is provided
+    with include_relationships=true parameter.
+    """
+    response = fastapi_test_app.get(
+        "/entities?project=invalid_project_name&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "entities" in data
+    assert isinstance(data["entities"], list)
+    assert len(data["entities"]) == 0
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    assert len(data["relationships"]) == 0
+
+    response = fastapi_test_app.get(
+        "/feature_views?project=invalid_project_name&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureViews" in data
+    assert isinstance(data["featureViews"], list)
+    assert len(data["featureViews"]) == 0
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    assert len(data["relationships"]) == 0
+
+    response = fastapi_test_app.get(
+        "/data_sources?project=invalid_project_name&include_relationships=true"
+    )
+    # Should return 200 with empty results, not 500 or other errors
+    assert response.status_code == 200
+    data = response.json()
+    assert "dataSources" in data
+    assert isinstance(data["dataSources"], list)
+    assert len(data["dataSources"]) == 0
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    assert len(data["relationships"]) == 0
+
+    response = fastapi_test_app.get(
+        "/feature_services?project=invalid_project_name&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "featureServices" in data
+    assert isinstance(data["featureServices"], list)
+    assert len(data["featureServices"]) == 0
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    assert len(data["relationships"]) == 0
+
+    response = fastapi_test_app.get(
+        "/features?project=invalid_project_name&include_relationships=true"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "features" in data
+    assert isinstance(data["features"], list)
+    assert len(data["features"]) == 0
+    assert "relationships" in data
+    assert isinstance(data["relationships"], dict)
+    assert len(data["relationships"]) == 0
+
+
+def test_metrics_resource_counts_via_rest(fastapi_test_app):
+    """Test the /metrics/resource_counts endpoint."""
+    # Test with specific project
+    response = fastapi_test_app.get("/metrics/resource_counts?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "project" in data
+    assert data["project"] == "demo_project"
+    assert "counts" in data
+
+    counts = data["counts"]
+    assert "entities" in counts
+    assert "dataSources" in counts
+    assert "savedDatasets" in counts
+    assert "features" in counts
+    assert "featureViews" in counts
+    assert "featureServices" in counts
+
+    # Verify counts are integers
+    for key, value in counts.items():
+        assert isinstance(value, int)
+        assert value >= 0
+
+    # Test without project parameter (should return all projects)
+    response = fastapi_test_app.get("/metrics/resource_counts")
+    assert response.status_code == 200
+    data = response.json()
+    assert "total" in data
+    assert "perProject" in data
+
+    total = data["total"]
+    assert "entities" in total
+    assert "dataSources" in total
+    assert "savedDatasets" in total
+    assert "features" in total
+    assert "featureViews" in total
+    assert "featureServices" in total
+
+    per_project = data["perProject"]
+    assert "demo_project" in per_project
+    assert isinstance(per_project["demo_project"], dict)
+
+
+def test_feature_views_all_types_and_resource_counts_match(fastapi_test_app):
+    """
+    Test that verifies:
+    1. All types of feature views (regular, on-demand, stream) are returned in /feature_views/all
+    2. The count from /metrics/resource_counts matches the count from /feature_views/all
+    """
+    response_all = fastapi_test_app.get("/feature_views/all")
+    assert response_all.status_code == 200
+    data_all = response_all.json()
+    assert "featureViews" in data_all
+
+    feature_views = data_all["featureViews"]
+
+    # Count should include at least:
+    # - 3 regular feature views: user_profile, user_behavior, user_preferences
+    # - 1 on-demand feature view: test_on_demand_feature_view
+    assert len(feature_views) >= 4, (
+        f"Expected at least 4 feature views, got {len(feature_views)}"
+    )
+
+    # Verify we have different types of feature views
+    feature_view_names = {fv["spec"]["name"] for fv in feature_views}
+
+    # Check for regular feature views
+    assert "user_profile" in feature_view_names, (
+        "Regular feature view 'user_profile' not found"
+    )
+    assert "user_behavior" in feature_view_names, (
+        "Regular feature view 'user_behavior' not found"
+    )
+    assert "user_preferences" in feature_view_names, (
+        "Regular feature view 'user_preferences' not found"
+    )
+
+    # Check for on-demand feature view
+    assert "test_on_demand_feature_view" in feature_view_names, (
+        "On-demand feature view 'test_on_demand_feature_view' not found"
+    )
+
+    # Verify all have the correct project
+    for fv in feature_views:
+        assert fv["project"] == "demo_project", (
+            f"Feature view has incorrect project: {fv.get('project')}"
+        )
+
+    # Now get resource counts from /metrics/resource_counts endpoint
+    response_metrics = fastapi_test_app.get(
+        "/metrics/resource_counts?project=demo_project"
+    )
+    assert response_metrics.status_code == 200
+    data_metrics = response_metrics.json()
+    assert "counts" in data_metrics
+
+    counts = data_metrics["counts"]
+    assert "featureViews" in counts
+
+    # Verify that the count from metrics matches the count from feature_views/all
+    feature_views_count_from_all = len(feature_views)
+    feature_views_count_from_metrics = counts["featureViews"]
+
+    assert feature_views_count_from_all == feature_views_count_from_metrics, (
+        f"Feature views count mismatch: /feature_views/all returned {feature_views_count_from_all} "
+        f"but /metrics/resource_counts returned {feature_views_count_from_metrics}"
+    )
+
+    # Test without project parameter (all projects)
+    response_all_projects = fastapi_test_app.get("/feature_views/all")
+    assert response_all_projects.status_code == 200
+    data_all_projects = response_all_projects.json()
+
+    response_metrics_all = fastapi_test_app.get("/metrics/resource_counts")
+    assert response_metrics_all.status_code == 200
+    data_metrics_all = response_metrics_all.json()
+
+    total_fv_count_from_all = len(data_all_projects["featureViews"])
+    total_fv_count_from_metrics = data_metrics_all["total"]["featureViews"]
+
+    assert total_fv_count_from_all == total_fv_count_from_metrics, (
+        f"Total feature views count mismatch across all projects: "
+        f"/feature_views/all returned {total_fv_count_from_all} "
+        f"but /metrics/resource_counts returned {total_fv_count_from_metrics}"
+    )
+
+
+def test_metrics_recently_visited_via_rest(fastapi_test_app):
+    """Test the /metrics/recently_visited endpoint."""
+    # First, make some requests to generate visit data
+    fastapi_test_app.get("/entities?project=demo_project")
+    fastapi_test_app.get("/entities/user_id?project=demo_project")
+    fastapi_test_app.get("/feature_services?project=demo_project")
+
+    # Test basic recently visited endpoint
+    response = fastapi_test_app.get("/metrics/recently_visited?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    assert "visits" in data
+    assert "pagination" in data
+
+    visits = data["visits"]
+    assert isinstance(visits, list)
+
+    # Check visit structure
+    if visits:
+        visit = visits[0]
+        assert "path" in visit
+        assert "timestamp" in visit
+        assert "project" in visit
+        assert "user" in visit
+        assert "object" in visit
+        assert "object_name" in visit
+        assert "method" in visit
+
+        # Verify timestamp format
+        import datetime
+
+        datetime.datetime.fromisoformat(visit["timestamp"].replace("Z", "+00:00"))
+
+    pagination = data["pagination"]
+    assert "totalCount" in pagination
+    assert isinstance(pagination["totalCount"], int)
+
+
+def test_metrics_recently_visited_with_object_filter(fastapi_test_app):
+    """Test filtering by object type for recently visited endpoint."""
+    # Generate visit data for different object types
+    fastapi_test_app.get("/entities?project=demo_project")
+    fastapi_test_app.get("/feature_services?project=demo_project")
+    fastapi_test_app.get("/data_sources?project=demo_project")
+
+    # Test filtering by entities only
+    response = fastapi_test_app.get(
+        "/metrics/recently_visited?project=demo_project&object=entities"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "visits" in data
+
+    visits = data["visits"]
+    for visit in visits:
+        assert visit["object"] == "entities"
+
+    # Test filtering by feature_services
+    response = fastapi_test_app.get(
+        "/metrics/recently_visited?project=demo_project&object=feature_services"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    visits = data["visits"]
+    for visit in visits:
+        assert visit["object"] == "feature_services"
+
+
+def test_metrics_recently_visited_error_handling(fastapi_test_app):
+    """Test error handling for recently visited endpoint."""
+    # Test with non-existent project
+    response = fastapi_test_app.get(
+        "/metrics/recently_visited?project=nonexistent_project"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "visits" in data
+    assert len(data["visits"]) == 0
+
+    # Test with invalid object type
+    response = fastapi_test_app.get(
+        "/metrics/recently_visited?project=demo_project&object=invalid_type"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "visits" in data
+    assert len(data["visits"]) == 0
+
+
+def test_metrics_recently_visited_user_isolation(fastapi_test_app):
+    """Test that visits are isolated per user."""
+    # Make requests as "anonymous" user (default)
+    fastapi_test_app.get("/entities?project=demo_project")
+
+    # Check that visits are recorded for anonymous user
+    response = fastapi_test_app.get("/metrics/recently_visited?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+    visits = data["visits"]
+
+    # All visits should be for anonymous user
+    for visit in visits:
+        assert visit["user"] == "anonymous"
+
+
+def test_metrics_popular_tags_via_rest(fastapi_test_app):
+    """Test the /metrics/popular_tags endpoint."""
+    response = fastapi_test_app.get("/metrics/popular_tags?project=demo_project")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "popular_tags" in data
+    assert "metadata" in data
+
+    metadata = data["metadata"]
+    assert "totalFeatureViews" in metadata
+    assert "totalTags" in metadata
+    assert "limit" in metadata
+
+    assert metadata["totalFeatureViews"] >= 3
+    assert metadata["totalTags"] >= 3  # environment, team, version
+
+    popular_tags = data["popular_tags"]
+    assert isinstance(popular_tags, list)
+    assert len(popular_tags) > 0
+
+    for tag_info in popular_tags:
+        assert "tag_key" in tag_info
+        assert "tag_value" in tag_info
+        assert "feature_views" in tag_info
+        assert "total_feature_views" in tag_info
+        assert isinstance(tag_info["total_feature_views"], int)
+        assert tag_info["total_feature_views"] > 0
+        assert isinstance(tag_info["feature_views"], list)
+
+        for fv in tag_info["feature_views"]:
+            assert "name" in fv
+            assert "project" in fv
+            assert isinstance(fv["name"], str)
+            assert isinstance(fv["project"], str)
+
+    response = fastapi_test_app.get(
+        "/metrics/popular_tags?project=demo_project&limit=2"
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["popular_tags"]) <= 2
+
+    response = fastapi_test_app.get("/metrics/popular_tags")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "popular_tags" in data
+    assert "metadata" in data
+
+    popular_tags = data["popular_tags"]
+    assert isinstance(popular_tags, list)
+    # May be empty if no feature views exist, but structure should be correct
+    if len(popular_tags) > 0:
+        for tag_info in popular_tags:
+            assert "tag_key" in tag_info
+            assert "tag_value" in tag_info
+            assert "feature_views" in tag_info
+            assert "total_feature_views" in tag_info
+
+
+def test_all_endpoints_return_404_for_invalid_objects(fastapi_test_app):
+    """Test that all REST API endpoints return 404 errors when objects are not found."""
+
+    # Test entities endpoint
+    response = fastapi_test_app.get(
+        "/entities/non_existent_entity?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test feature views endpoint
+    response = fastapi_test_app.get(
+        "/feature_views/non_existent_fv?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test feature services endpoint
+    response = fastapi_test_app.get(
+        "/feature_services/non_existent_fs?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test data sources endpoint
+    response = fastapi_test_app.get(
+        "/data_sources/non_existent_ds?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test saved datasets endpoint
+    response = fastapi_test_app.get(
+        "/saved_datasets/non_existent_sd?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test features endpoint
+    response = fastapi_test_app.get(
+        "/features/non_existent_fv/non_existent_feature?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test projects endpoint
+    response = fastapi_test_app.get("/projects/non_existent_project")
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"
+
+    # Test permissions endpoint
+    response = fastapi_test_app.get(
+        "/permissions/non_existent_perm?project=demo_project"
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_type"] == "FeastObjectNotFoundException"

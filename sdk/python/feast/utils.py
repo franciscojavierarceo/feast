@@ -25,6 +25,7 @@ import pyarrow
 from dateutil.tz import tzlocal
 from google.protobuf.timestamp_pb2 import Timestamp
 
+from feast.aggregation import aggregation_specs_to_agg_ops
 from feast.constants import FEAST_FS_YAML_FILE_PATH_ENV_NAME
 from feast.entity import Entity
 from feast.errors import (
@@ -33,6 +34,7 @@ from feast.errors import (
     RequestDataNotFoundInEntityRowsException,
 )
 from feast.field import Field
+from feast.infra.compute_engines.backends.pandas_backend import PandasBackend
 from feast.infra.key_encoding_utils import deserialize_entity_key
 from feast.protos.feast.serving.ServingService_pb2 import (
     FieldStatus,
@@ -152,7 +154,19 @@ def _get_column_names(
     """
     # if we have mapped fields, use the original field names in the call to the offline store
     timestamp_field = feature_view.batch_source.timestamp_field
-    feature_names = [feature.name for feature in feature_view.features]
+
+    # For feature views with aggregations, read INPUT columns from aggregations.
+    # This applies to StreamFeatureView, BatchFeatureView,
+    # or any FeatureView that has aggregations.
+    if hasattr(feature_view, "aggregations") and feature_view.aggregations:
+        # Extract unique input columns from aggregations, preserving order
+        feature_names = list(
+            dict.fromkeys(agg.column for agg in feature_view.aggregations)
+        )
+    else:
+        # For regular feature views, use the feature names
+        feature_names = [feature.name for feature in feature_view.features]
+
     created_timestamp_column = feature_view.batch_source.created_timestamp_column
 
     from feast.feature_view import DUMMY_ENTITY_ID
@@ -257,7 +271,11 @@ def _convert_arrow_to_proto(
     join_keys: Dict[str, ValueType],
 ) -> List[Tuple[EntityKeyProto, Dict[str, ValueProto], datetime, Optional[datetime]]]:
     # This is a workaround for isinstance(feature_view, OnDemandFeatureView), which triggers a circular import
-    if getattr(feature_view, "source_request_sources", None):
+    # Check for source_request_sources or source_feature_view_projections attributes to identify ODFVs
+    if (
+        getattr(feature_view, "source_request_sources", None) is not None
+        or getattr(feature_view, "source_feature_view_projections", None) is not None
+    ):
         return _convert_arrow_odfv_to_proto(table, feature_view, join_keys)  # type: ignore[arg-type]
     else:
         return _convert_arrow_fv_to_proto(table, feature_view, join_keys)  # type: ignore[arg-type]
@@ -557,6 +575,62 @@ def construct_response_feature_vector(
     )
 
 
+def _apply_aggregations_to_response(
+    response_data: Union[pyarrow.Table, Dict[str, List[Any]]],
+    aggregations,
+    group_keys: Optional[List[str]],
+    mode: str,
+) -> Union[pyarrow.Table, Dict[str, List[Any]]]:
+    """
+    Apply aggregations using PandasBackend.
+
+    Args:
+        response_data: Either a pyarrow.Table or dict of lists containing the data
+        aggregations: List of Aggregation objects to apply
+        group_keys: List of column names to group by (optional)
+        mode: Transformation mode ("python", "pandas", or "substrait")
+
+    Returns:
+        Aggregated data in the same format as input
+
+    TODO: Consider refactoring to support backends other than pandas in the future.
+    """
+    if not aggregations:
+        return response_data
+
+    backend = PandasBackend()
+
+    # Convert to pandas DataFrame
+    if isinstance(response_data, dict):
+        df = pd.DataFrame(response_data)
+    else:  # pyarrow.Table
+        df = backend.from_arrow(response_data)
+
+    if df.empty:
+        return response_data
+
+    # Convert aggregations to agg_ops format
+    agg_ops = aggregation_specs_to_agg_ops(
+        aggregations,
+        time_window_unsupported_error_message=(
+            "Time window aggregation is not supported in online serving."
+        ),
+    )
+
+    # Apply aggregations using PandasBackend
+    if group_keys:
+        result_df = backend.groupby_agg(df, group_keys, agg_ops)
+    else:
+        # No grouping - aggregate over entire dataset
+        result_df = backend.groupby_agg(df, [], agg_ops)
+
+    # Convert back to original format
+    if mode == "python":
+        return {col: result_df[col].tolist() for col in result_df.columns}
+    else:  # pandas or substrait
+        return backend.to_arrow(result_df)
+
+
 def _augment_response_with_on_demand_transforms(
     online_features_response: GetOnlineFeaturesResponse,
     feature_refs: List[str],
@@ -601,7 +675,31 @@ def _augment_response_with_on_demand_transforms(
     for odfv_name, _feature_refs in odfv_feature_refs.items():
         odfv = requested_odfv_map[odfv_name]
         if not odfv.write_to_online_store:
-            if odfv.mode == "python":
+            # Apply aggregations if configured.
+            if odfv.aggregations:
+                if odfv.mode == "python":
+                    if initial_response_dict is None:
+                        initial_response_dict = initial_response.to_dict()
+                    initial_response_dict = _apply_aggregations_to_response(
+                        initial_response_dict,
+                        odfv.aggregations,
+                        odfv.entities,
+                        odfv.mode,
+                    )
+                elif odfv.mode in {"pandas", "substrait"}:
+                    if initial_response_arrow is None:
+                        initial_response_arrow = initial_response.to_arrow()
+                    initial_response_arrow = _apply_aggregations_to_response(
+                        initial_response_arrow,
+                        odfv.aggregations,
+                        odfv.entities,
+                        odfv.mode,
+                    )
+
+            # Apply transformation. Note: aggregations and transformation configs are mutually exclusive
+            # TODO: Fix to make it work for having both aggregation and transformation
+            #  ticket: https://github.com/feast-dev/feast/issues/5689
+            elif odfv.mode == "python":
                 if initial_response_dict is None:
                     initial_response_dict = initial_response.to_dict()
                 transformed_features_dict: Dict[str, List[Any]] = odfv.transform_dict(
@@ -693,8 +791,13 @@ def _get_entity_maps(
                 entity.join_key, entity.join_key
             )
             entity_name_to_join_key_map[entity_name] = join_key
+
         for entity_column in feature_view.entity_columns:
-            entity_type_map[entity_column.name] = entity_column.dtype.to_value_type()
+            dtype = entity_column.dtype.to_value_type()
+            entity_join_key_column_name = feature_view.projection.join_key_map.get(
+                entity_column.name, entity_column.name
+            )
+            entity_type_map[entity_join_key_column_name] = dtype
 
     return (
         entity_name_to_join_key_map,
@@ -1044,7 +1147,7 @@ def _list_feature_views(
 def _get_feature_views_to_use(
     registry: "BaseRegistry",
     project,
-    features: Optional[Union[List[str], "FeatureService"]],
+    features: Union[List[str], "FeatureService"],
     allow_cache=False,
     hide_dummy_entity: bool = True,
 ) -> Tuple[List["FeatureView"], List["OnDemandFeatureView"]]:

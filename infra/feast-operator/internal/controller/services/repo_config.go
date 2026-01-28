@@ -22,7 +22,7 @@ import (
 	"path"
 	"strings"
 
-	feastdevv1alpha1 "github.com/feast-dev/feast/infra/feast-operator/api/v1alpha1"
+	feastdevv1 "github.com/feast-dev/feast/infra/feast-operator/api/v1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -48,7 +48,7 @@ func (feast *FeastServices) getServiceRepoConfig() (RepoConfig, error) {
 }
 
 func getServiceRepoConfig(
-	featureStore *feastdevv1alpha1.FeatureStore,
+	featureStore *feastdevv1.FeatureStore,
 	secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error)) (RepoConfig, error) {
 	repoConfig, err := getBaseServiceRepoConfig(featureStore, secretExtractionFunc)
 	if err != nil {
@@ -82,11 +82,11 @@ func getServiceRepoConfig(
 }
 
 func getBaseServiceRepoConfig(
-	featureStore *feastdevv1alpha1.FeatureStore,
+	featureStore *feastdevv1.FeatureStore,
 	secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error)) (RepoConfig, error) {
 
 	repoConfig := defaultRepoConfig(featureStore)
-	clientRepoConfig, err := getClientRepoConfig(featureStore, secretExtractionFunc)
+	clientRepoConfig, err := getClientRepoConfig(featureStore, secretExtractionFunc, nil)
 	if err != nil {
 		return repoConfig, err
 	}
@@ -102,21 +102,21 @@ func getBaseServiceRepoConfig(
 			return repoConfig, authSecretErr
 		}
 
-		oidcServerProperties := map[string]interface{}{}
-		for _, oidcServerProperty := range OidcServerProperties {
-			if val, exists := propertiesMap[string(oidcServerProperty)]; exists {
-				oidcServerProperties[string(oidcServerProperty)] = val
+		oidcParameters := map[string]interface{}{}
+		for _, oidcProperty := range OidcProperties {
+			if val, exists := propertiesMap[string(oidcProperty)]; exists {
+				oidcParameters[string(oidcProperty)] = val
 			} else {
-				return repoConfig, missingOidcSecretProperty(oidcServerProperty)
+				return repoConfig, missingOidcSecretProperty(oidcProperty)
 			}
 		}
-		repoConfig.AuthzConfig.OidcParameters = oidcServerProperties
+		repoConfig.AuthzConfig.OidcParameters = oidcParameters
 	}
 
 	return repoConfig, nil
 }
 
-func setRepoConfigRegistry(services *feastdevv1alpha1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
+func setRepoConfigRegistry(services *feastdevv1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
 	registryPersistence := services.Registry.Local.Persistence
 
 	if registryPersistence != nil {
@@ -127,6 +127,13 @@ func setRepoConfigRegistry(services *feastdevv1alpha1.FeatureStoreServices, secr
 			repoConfig.Registry.RegistryType = RegistryFileConfigType
 			repoConfig.Registry.Path = getActualPath(filePersistence.Path, filePersistence.PvcConfig)
 			repoConfig.Registry.S3AdditionalKwargs = filePersistence.S3AdditionalKwargs
+			if filePersistence.CacheTTLSeconds != nil {
+				repoConfig.Registry.CacheTTLSeconds = filePersistence.CacheTTLSeconds
+			}
+			if filePersistence.CacheMode != nil {
+				repoConfig.Registry.CacheMode = filePersistence.CacheMode
+			}
+
 		} else if dbPersistence != nil && len(dbPersistence.Type) > 0 {
 			repoConfig.Registry.Path = ""
 			repoConfig.Registry.RegistryType = RegistryConfigType(dbPersistence.Type)
@@ -137,6 +144,31 @@ func setRepoConfigRegistry(services *feastdevv1alpha1.FeatureStoreServices, secr
 			parametersMap, err := secretExtractionFunc(dbPersistence.Type, dbPersistence.SecretRef.Name, secretKeyName)
 			if err != nil {
 				return err
+			}
+
+			// Extract typed cache settings from DB parameters to avoid inline map conflicts
+			if ttlVal, ok := parametersMap["cache_ttl_seconds"]; ok {
+				switch v := ttlVal.(type) {
+				case int:
+					ttl := int32(v)
+					repoConfig.Registry.CacheTTLSeconds = &ttl
+				case int32:
+					ttl := v
+					repoConfig.Registry.CacheTTLSeconds = &ttl
+				case int64:
+					ttl := int32(v)
+					repoConfig.Registry.CacheTTLSeconds = &ttl
+				case float64:
+					ttl := int32(v)
+					repoConfig.Registry.CacheTTLSeconds = &ttl
+				}
+				delete(parametersMap, "cache_ttl_seconds")
+			}
+			if modeVal, ok := parametersMap["cache_mode"]; ok {
+				if modeStr, ok := modeVal.(string); ok {
+					repoConfig.Registry.CacheMode = &modeStr
+				}
+				delete(parametersMap, "cache_mode")
 			}
 
 			err = mergeStructWithDBParametersMap(&parametersMap, &repoConfig.Registry)
@@ -150,7 +182,7 @@ func setRepoConfigRegistry(services *feastdevv1alpha1.FeatureStoreServices, secr
 	return nil
 }
 
-func setRepoConfigOnline(services *feastdevv1alpha1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
+func setRepoConfigOnline(services *feastdevv1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
 	onlineStorePersistence := services.OnlineStore.Persistence
 
 	if onlineStorePersistence != nil {
@@ -183,7 +215,7 @@ func setRepoConfigOnline(services *feastdevv1alpha1.FeatureStoreServices, secret
 	return nil
 }
 
-func setRepoConfigOffline(services *feastdevv1alpha1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
+func setRepoConfigOffline(services *feastdevv1.FeatureStoreServices, secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error), repoConfig *RepoConfig) error {
 	repoConfig.OfflineStore = defaultOfflineStoreConfig
 	offlineStorePersistence := services.OfflineStore.Persistence
 
@@ -217,7 +249,7 @@ func setRepoConfigOffline(services *feastdevv1alpha1.FeatureStoreServices, secre
 }
 
 func (feast *FeastServices) getClientFeatureStoreYaml(secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error)) ([]byte, error) {
-	clientRepo, err := getClientRepoConfig(feast.Handler.FeatureStore, secretExtractionFunc)
+	clientRepo, err := getClientRepoConfig(feast.Handler.FeatureStore, secretExtractionFunc, feast)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -225,8 +257,9 @@ func (feast *FeastServices) getClientFeatureStoreYaml(secretExtractionFunc func(
 }
 
 func getClientRepoConfig(
-	featureStore *feastdevv1alpha1.FeatureStore,
-	secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error)) (RepoConfig, error) {
+	featureStore *feastdevv1.FeatureStore,
+	secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error),
+	feast *FeastServices) (RepoConfig, error) {
 	status := featureStore.Status
 	appliedServices := status.Applied.Services
 	clientRepoConfig, err := getRepoConfig(featureStore, secretExtractionFunc)
@@ -241,7 +274,7 @@ func getClientRepoConfig(
 		}
 		if appliedServices.OfflineStore != nil &&
 			appliedServices.OfflineStore.Server != nil && appliedServices.OfflineStore.Server.TLS.IsTLS() {
-			clientRepoConfig.OfflineStore.Cert = GetTlsPath(OfflineFeastType) + appliedServices.OfflineStore.Server.TLS.SecretKeyNames.TlsCrt
+			clientRepoConfig.OfflineStore.Cert = getCertificatePath(feast, OfflineFeastType, appliedServices.OfflineStore.Server.TLS.SecretKeyNames.TlsCrt)
 			clientRepoConfig.OfflineStore.Port = HttpsPort
 			clientRepoConfig.OfflineStore.Scheme = HttpsScheme
 		}
@@ -254,7 +287,7 @@ func getClientRepoConfig(
 		}
 		if appliedServices.OnlineStore != nil &&
 			appliedServices.OnlineStore.Server != nil && appliedServices.OnlineStore.Server.TLS.IsTLS() {
-			clientRepoConfig.OnlineStore.Cert = GetTlsPath(OnlineFeastType) + appliedServices.OnlineStore.Server.TLS.SecretKeyNames.TlsCrt
+			clientRepoConfig.OnlineStore.Cert = getCertificatePath(feast, OnlineFeastType, appliedServices.OnlineStore.Server.TLS.SecretKeyNames.TlsCrt)
 			clientRepoConfig.OnlineStore.Path = HttpsScheme + onlinePath
 		}
 	}
@@ -264,9 +297,9 @@ func getClientRepoConfig(
 			Path:         status.ServiceHostnames.Registry,
 		}
 		if localRegistryTls(featureStore) {
-			clientRepoConfig.Registry.Cert = GetTlsPath(RegistryFeastType) + appliedServices.Registry.Local.Server.TLS.SecretKeyNames.TlsCrt
+			clientRepoConfig.Registry.Cert = getCertificatePath(feast, RegistryFeastType, appliedServices.Registry.Local.Server.TLS.SecretKeyNames.TlsCrt)
 		} else if remoteRegistryTls(featureStore) {
-			clientRepoConfig.Registry.Cert = GetTlsPath(RegistryFeastType) + appliedServices.Registry.Remote.TLS.CertName
+			clientRepoConfig.Registry.Cert = getCertificatePath(feast, RegistryFeastType, appliedServices.Registry.Remote.TLS.CertName)
 		}
 	}
 
@@ -274,7 +307,7 @@ func getClientRepoConfig(
 }
 
 func getRepoConfig(
-	featureStore *feastdevv1alpha1.FeatureStore,
+	featureStore *feastdevv1.FeatureStore,
 	secretExtractionFunc func(storeType string, secretRef string, secretKeyName string) (map[string]interface{}, error)) (RepoConfig, error) {
 	status := featureStore.Status
 	repoConfig := initRepoConfig(status.Applied.FeastProject)
@@ -294,11 +327,11 @@ func getRepoConfig(
 			}
 
 			oidcClientProperties := map[string]interface{}{}
-			for _, oidcClientProperty := range OidcClientProperties {
-				if val, exists := propertiesMap[string(oidcClientProperty)]; exists {
-					oidcClientProperties[string(oidcClientProperty)] = val
+			for _, oidcProperty := range OidcProperties {
+				if val, exists := propertiesMap[string(oidcProperty)]; exists {
+					oidcClientProperties[string(oidcProperty)] = val
 				} else {
-					return repoConfig, missingOidcSecretProperty(oidcClientProperty)
+					return repoConfig, missingOidcSecretProperty(oidcProperty)
 				}
 			}
 			repoConfig.AuthzConfig.OidcParameters = oidcClientProperties
@@ -307,7 +340,7 @@ func getRepoConfig(
 	return repoConfig, nil
 }
 
-func getActualPath(filePath string, pvcConfig *feastdevv1alpha1.PvcConfig) string {
+func getActualPath(filePath string, pvcConfig *feastdevv1.PvcConfig) string {
 	if pvcConfig == nil {
 		return filePath
 	}
@@ -374,7 +407,7 @@ func (feast *FeastServices) GetDefaultRepoConfig() RepoConfig {
 	return defaultRepoConfig(feast.Handler.FeatureStore)
 }
 
-func defaultRepoConfig(featureStore *feastdevv1alpha1.FeatureStore) RepoConfig {
+func defaultRepoConfig(featureStore *feastdevv1.FeatureStore) RepoConfig {
 	repoConfig := initRepoConfig(featureStore.Status.Applied.FeastProject)
 	repoConfig.OnlineStore = defaultOnlineStoreConfig(featureStore)
 	repoConfig.Registry = defaultRegistryConfig(featureStore)
@@ -389,19 +422,19 @@ func initRepoConfig(feastProject string) RepoConfig {
 	return RepoConfig{
 		Project:                       feastProject,
 		Provider:                      LocalProviderType,
-		EntityKeySerializationVersion: feastdevv1alpha1.SerializationVersion,
+		EntityKeySerializationVersion: feastdevv1.SerializationVersion,
 		AuthzConfig:                   defaultAuthzConfig,
 	}
 }
 
-func defaultOnlineStoreConfig(featureStore *feastdevv1alpha1.FeatureStore) OnlineStoreConfig {
+func defaultOnlineStoreConfig(featureStore *feastdevv1.FeatureStore) OnlineStoreConfig {
 	return OnlineStoreConfig{
 		Type: OnlineSqliteConfigType,
 		Path: defaultOnlineStorePath(featureStore),
 	}
 }
 
-func defaultRegistryConfig(featureStore *feastdevv1alpha1.FeatureStore) RegistryConfig {
+func defaultRegistryConfig(featureStore *feastdevv1.FeatureStore) RegistryConfig {
 	return RegistryConfig{
 		RegistryType: RegistryFileConfigType,
 		Path:         defaultRegistryPath(featureStore),
@@ -414,4 +447,18 @@ var defaultOfflineStoreConfig = OfflineStoreConfig{
 
 var defaultAuthzConfig = AuthzConfig{
 	Type: NoAuthAuthType,
+}
+
+// getCertificatePath returns the appropriate certificate path based on whether a custom CA bundle is available
+func getCertificatePath(feast *FeastServices, feastType FeastServiceType, certFileName string) string {
+	// Check if custom CA bundle is available
+	if feast != nil {
+		customCaBundle := feast.GetCustomCertificatesBundle()
+		if customCaBundle.IsDefined {
+			// Use custom CA bundle path when available (for RHOAI/ODH deployments)
+			return tlsPathCustomCABundle
+		}
+	}
+	// Fall back to individual service certificate path
+	return GetTlsPath(feastType) + certFileName
 }

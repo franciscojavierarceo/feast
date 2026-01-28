@@ -2,6 +2,7 @@ from typing import Dict
 
 from fastapi import APIRouter, Depends, Query
 
+from feast.api.registry.rest.codegen_utils import render_saved_dataset_code
 from feast.api.registry.rest.rest_utils import (
     aggregate_across_projects,
     create_grpc_pagination_params,
@@ -70,6 +71,30 @@ def get_saved_dataset_router(grpc_handler) -> APIRouter:
             )
             result["relationships"] = relationships
 
+        if result:
+            spec = result.get("spec", result)
+            features = spec.get("features", [])
+            features_exprs = []
+            for f in features:
+                if isinstance(f, dict) and f.get("name"):
+                    view_name = f["name"]
+                    feature_names = f.get("features", [])
+                    if feature_names:
+                        features_exprs.append(
+                            f"{view_name}[[{', '.join([repr(fn) for fn in feature_names])}]]"
+                        )
+                    else:
+                        features_exprs.append(view_name)
+                else:
+                    features_exprs.append(str(f))
+            features_str = ", ".join(features_exprs)
+            context = dict(
+                name=spec.get("name", name),
+                features=features_str,
+                tags=spec.get("tags", {}),
+            )
+            result["featureDefinition"] = render_saved_dataset_code(context)
+
         return result
 
     @router.get("/saved_datasets")
@@ -94,7 +119,7 @@ def get_saved_dataset_router(grpc_handler) -> APIRouter:
         saved_datasets = response.get("savedDatasets", [])
 
         result = {
-            "saved_datasets": saved_datasets,
+            "savedDatasets": saved_datasets,
             "pagination": response.get("pagination", {}),
         }
 

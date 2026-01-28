@@ -3,7 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.50.0
+VERSION ?= 0.59.0
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -50,6 +50,8 @@ endif
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
 OPERATOR_SDK_VERSION ?= v1.38.0
 # Image URL to use all building/pushing image targets
+# During development and testing, and before make deploy we need to export FS_IMG to point to
+# the dev image generated using command `make build-feature-server-dev-docker`
 IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 FS_IMG ?= quay.io/feastdev/feature-server:$(VERSION)
 CJ_IMG ?= quay.io/openshift/origin-cli:4.17
@@ -160,6 +162,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} --load .
 
+.PHONY: docker-build-on-mac
+docker-build-on-mac: ## Build docker image with the manager on Mac.
+	$(CONTAINER_TOOL) build --platform linux/amd64 -t ${IMG} --load .
+
 ## Build feast docker image.
 .PHONY: feast-ci-dev-docker-img
 feast-ci-dev-docker-img:
@@ -200,7 +206,7 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply --server-side --force-conflicts -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -209,7 +215,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: deploy
 deploy: manifests kustomize related-image-fs ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build config/default | $(KUBECTL) apply --server-side --force-conflicts -f -
 
 .PHONY: undeploy
 undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -306,7 +312,7 @@ $(CRD_REF_DOCS): $(LOCALBIN)
 
 .PHONY: generate-ref
 generate-ref: generate fmt crd-ref-docs
-	$(CRD_REF_DOCS) --log-level=WARN --max-depth=30 --config=$(LOCALDIR)/docs/crd-ref-templates/config.yaml --source-path=$(LOCALDIR)/api/v1alpha1 --renderer=markdown --templates-dir=$(LOCALDIR)/docs/crd-ref-templates/markdown --output-path=$(LOCALDIR)/docs/api/markdown/ref.md
+	$(CRD_REF_DOCS) --log-level=WARN --max-depth=30 --config=$(LOCALDIR)/docs/crd-ref-templates/config.yaml --source-path=$(LOCALDIR)/api/v1 --renderer=markdown --templates-dir=$(LOCALDIR)/docs/crd-ref-templates/markdown --output-path=$(LOCALDIR)/docs/api/markdown/ref.md
 
 .PHONY: bundle
 bundle: manifests kustomize related-image-fs operator-sdk ## Generate bundle manifests and metadata, then validate generated files.

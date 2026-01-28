@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	feastdevv1alpha1 "github.com/feast-dev/feast/infra/feast-operator/api/v1alpha1"
+	feastdevv1 "github.com/feast-dev/feast/infra/feast-operator/api/v1"
 	"github.com/feast-dev/feast/infra/feast-operator/internal/controller/authz"
 	feasthandler "github.com/feast-dev/feast/infra/feast-operator/internal/controller/handler"
 	"github.com/feast-dev/feast/infra/feast-operator/internal/controller/services"
@@ -59,9 +59,10 @@ type FeatureStoreReconciler struct {
 // +kubebuilder:rbac:groups=feast.dev,resources=featurestores/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;create;update;watch;delete
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;persistentvolumeclaims;serviceaccounts,verbs=get;list;create;update;watch;delete
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;create;update;watch;delete
-// +kubebuilder:rbac:groups=core,resources=secrets;pods,verbs=get;list
+// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterroles;clusterrolebindings;subjectaccessreviews,verbs=get;list;create;update;watch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets;pods;namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;create;update;watch;delete
 // +kubebuilder:rbac:groups=batch,resources=cronjobs,verbs=get;list;watch;create;update;patch;delete
 
@@ -72,19 +73,39 @@ type FeatureStoreReconciler struct {
 func (r *FeatureStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, recErr error) {
 	logger := log.FromContext(ctx)
 
-	cr := &feastdevv1alpha1.FeatureStore{}
+	// Get the FeatureStore using v1 (storage version)
+	cr := &feastdevv1.FeatureStore{}
 	err := r.Get(ctx, req.NamespacedName, cr)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// CR deleted since request queued, child objects getting GC'd, no requeue
 			logger.V(1).Info("FeatureStore CR not found, has been deleted")
+			// Clean up namespace registry entry even if the CR is not found
+			if err := r.cleanupNamespaceRegistry(ctx, &feastdevv1.FeatureStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      req.NamespacedName.Name,
+					Namespace: req.NamespacedName.Namespace,
+				},
+			}); err != nil {
+				logger.Error(err, "Failed to clean up namespace registry entry for deleted FeatureStore")
+				// Don't return error here as the CR is already deleted
+			}
 			return ctrl.Result{}, nil
 		}
-		// error fetching FeatureStore instance, requeue and try again
 		logger.Error(err, "Unable to get FeatureStore CR")
 		return ctrl.Result{}, err
 	}
 	currentStatus := cr.Status.DeepCopy()
+
+	// Handle deletion - clean up namespace registry entry
+	if cr.DeletionTimestamp != nil {
+		logger.Info("FeatureStore is being deleted, cleaning up namespace registry entry")
+		if err := r.cleanupNamespaceRegistry(ctx, cr); err != nil {
+			logger.Error(err, "Failed to clean up namespace registry entry")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
 
 	result, recErr = r.deployFeast(ctx, cr)
 	if cr.DeletionTimestamp == nil && !reflect.DeepEqual(currentStatus, cr.Status) {
@@ -102,16 +123,32 @@ func (r *FeatureStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
+	// Add to namespace registry if deployment was successful and not being deleted
+	if recErr == nil && cr.DeletionTimestamp == nil {
+		feast := services.FeastServices{
+			Handler: feasthandler.FeastHandler{
+				Client:       r.Client,
+				Context:      ctx,
+				FeatureStore: cr,
+				Scheme:       r.Scheme,
+			},
+		}
+		if err := feast.AddToNamespaceRegistry(); err != nil {
+			logger.Error(err, "Failed to add FeatureStore to namespace registry")
+			// Don't return error here as the FeatureStore is already deployed successfully
+		}
+	}
+
 	return result, recErr
 }
 
-func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1alpha1.FeatureStore) (result ctrl.Result, err error) {
+func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1.FeatureStore) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 	condition := metav1.Condition{
-		Type:    feastdevv1alpha1.ReadyType,
+		Type:    feastdevv1.ReadyType,
 		Status:  metav1.ConditionTrue,
-		Reason:  feastdevv1alpha1.ReadyReason,
-		Message: feastdevv1alpha1.ReadyMessage,
+		Reason:  feastdevv1.ReadyReason,
+		Message: feastdevv1.ReadyMessage,
 	}
 	feast := services.FeastServices{
 		Handler: feasthandler.FeastHandler{
@@ -136,19 +173,19 @@ func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1
 	}
 	if err != nil {
 		condition = metav1.Condition{
-			Type:    feastdevv1alpha1.ReadyType,
+			Type:    feastdevv1.ReadyType,
 			Status:  metav1.ConditionFalse,
-			Reason:  feastdevv1alpha1.FailedReason,
+			Reason:  feastdevv1.FailedReason,
 			Message: "Error: " + err.Error(),
 		}
 	} else {
 		deployment, deploymentErr := feast.GetDeployment()
 		if deploymentErr != nil {
 			condition = metav1.Condition{
-				Type:    feastdevv1alpha1.ReadyType,
+				Type:    feastdevv1.ReadyType,
 				Status:  metav1.ConditionUnknown,
-				Reason:  feastdevv1alpha1.DeploymentNotAvailableReason,
-				Message: feastdevv1alpha1.DeploymentNotAvailableMessage,
+				Reason:  feastdevv1.DeploymentNotAvailableReason,
+				Message: feastdevv1.DeploymentNotAvailableMessage,
 			}
 
 			result = errResult
@@ -156,10 +193,10 @@ func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1
 			isDeployAvailable := services.IsDeploymentAvailable(deployment.Status.Conditions)
 			if !isDeployAvailable {
 				condition = metav1.Condition{
-					Type:    feastdevv1alpha1.ReadyType,
+					Type:    feastdevv1.ReadyType,
 					Status:  metav1.ConditionUnknown,
-					Reason:  feastdevv1alpha1.DeploymentNotAvailableReason,
-					Message: feastdevv1alpha1.DeploymentNotAvailableMessage,
+					Reason:  feastdevv1.DeploymentNotAvailableReason,
+					Message: feastdevv1.DeploymentNotAvailableMessage,
 				}
 
 				result = errResult
@@ -169,12 +206,12 @@ func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1
 
 	logger.Info(condition.Message)
 	apimeta.SetStatusCondition(&cr.Status.Conditions, condition)
-	if apimeta.IsStatusConditionTrue(cr.Status.Conditions, feastdevv1alpha1.ReadyType) {
-		cr.Status.Phase = feastdevv1alpha1.ReadyPhase
-	} else if apimeta.IsStatusConditionFalse(cr.Status.Conditions, feastdevv1alpha1.ReadyType) {
-		cr.Status.Phase = feastdevv1alpha1.FailedPhase
+	if apimeta.IsStatusConditionTrue(cr.Status.Conditions, feastdevv1.ReadyType) {
+		cr.Status.Phase = feastdevv1.ReadyPhase
+	} else if apimeta.IsStatusConditionFalse(cr.Status.Conditions, feastdevv1.ReadyType) {
+		cr.Status.Phase = feastdevv1.FailedPhase
 	} else {
-		cr.Status.Phase = feastdevv1alpha1.PendingPhase
+		cr.Status.Phase = feastdevv1.PendingPhase
 	}
 
 	return result, err
@@ -183,7 +220,7 @@ func (r *FeatureStoreReconciler) deployFeast(ctx context.Context, cr *feastdevv1
 // SetupWithManager sets up the controller with the Manager.
 func (r *FeatureStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	bldr := ctrl.NewControllerManagedBy(mgr).
-		For(&feastdevv1alpha1.FeatureStore{}).
+		For(&feastdevv1.FeatureStore{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -192,7 +229,8 @@ func (r *FeatureStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&batchv1.CronJob{}).
-		Watches(&feastdevv1alpha1.FeatureStore{}, handler.EnqueueRequestsFromMapFunc(r.mapFeastRefsToFeastRequests))
+		Watches(&feastdevv1.FeatureStore{}, handler.EnqueueRequestsFromMapFunc(r.mapFeastRefsToFeastRequests))
+
 	if services.IsOpenShift() {
 		bldr = bldr.Owns(&routev1.Route{})
 	}
@@ -201,13 +239,32 @@ func (r *FeatureStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 }
 
+// cleanupNamespaceRegistry removes the feature store instance from the namespace registry
+func (r *FeatureStoreReconciler) cleanupNamespaceRegistry(ctx context.Context, cr *feastdevv1.FeatureStore) error {
+	feast := services.FeastServices{
+		Handler: feasthandler.FeastHandler{
+			Client:       r.Client,
+			Context:      ctx,
+			FeatureStore: cr,
+			Scheme:       r.Scheme,
+		},
+	}
+
+	return feast.RemoveFromNamespaceRegistry()
+}
+
 // if a remotely referenced FeatureStore is changed, reconcile any FeatureStores that reference it.
 func (r *FeatureStoreReconciler) mapFeastRefsToFeastRequests(ctx context.Context, object client.Object) []reconcile.Request {
 	logger := log.FromContext(ctx)
-	feastRef := object.(*feastdevv1alpha1.FeatureStore)
+
+	feastRef, ok := object.(*feastdevv1.FeatureStore)
+	if !ok {
+		logger.Error(nil, "Unexpected object type in mapFeastRefsToFeastRequests")
+		return nil
+	}
 
 	// list all FeatureStores in the cluster
-	var feastList feastdevv1alpha1.FeatureStoreList
+	var feastList feastdevv1.FeatureStoreList
 	if err := r.List(ctx, &feastList, client.InNamespace("")); err != nil {
 		logger.Error(err, "could not list FeatureStores. "+
 			"FeatureStores affected by changes to the referenced FeatureStore object will not be reconciled.")

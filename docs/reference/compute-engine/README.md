@@ -19,8 +19,8 @@ This system builds and executes DAGs (Directed Acyclic Graphs) of typed operatio
 | `FeatureBuilder`   | Constructs a DAG from Feature View definition for a specific backend | [link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/feature_builder.py)            |
 | `FeatureResolver`  | Resolves feature DAG by topological order for execution              | [link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/feature_resolver.py)           |
 | `DAG`              | Represents a logical DAG operation (read, aggregate, join, etc.)     | [link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/dag/README.md)                 |
-| `ExecutionPlan`    | Executes nodes in dependency order and stores intermediate outputs   | [link]([link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/dag/README.md))         |
-| `ExecutionContext` | Holds config, registry, stores, entity data, and node outputs        | [link]([link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/dag/README.md))         |
+| `ExecutionPlan`    | Executes nodes in dependency order and stores intermediate outputs   | [link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/dag/README.md)         |
+| `ExecutionContext` | Holds config, registry, stores, entity data, and node outputs        | [link](https://github.com/feast-dev/feast/blob/master/sdk/python/feast/infra/compute_engines/dag/README.md)         |
 
 ---
 
@@ -48,17 +48,42 @@ An example of built output from FeatureBuilder:
 
 ## ✨ Available Engines
 
+
 ### 🔥 SparkComputeEngine
+
+{% page-ref page="spark.md" %}
 
 - Distributed DAG execution via Apache Spark
 - Supports point-in-time joins and large-scale materialization
 - Integrates with `SparkOfflineStore` and `SparkMaterializationJob`
 
+### ⚡ RayComputeEngine (contrib)
+
+- Distributed DAG execution via Ray
+- Intelligent join strategies (broadcast vs distributed)
+- Automatic resource management and optimization
+- Integrates with `RayOfflineStore` and `RayMaterializationJob`
+- See [Ray Compute Engine documentation](ray.md) for details
+
 ### 🧪 LocalComputeEngine
+
+{% page-ref page="local.md" %}
 
 - Runs on Arrow + Specified backend (e.g., Pandas, Polars)
 - Designed for local dev, testing, or lightweight feature generation
 - Supports `LocalMaterializationJob` and `LocalHistoricalRetrievalJob`
+
+### 🧊 SnowflakeComputeEngine
+
+- Runs entirely in Snowflake
+- Supports Snowflake SQL for feature transformations and aggregations
+- Integrates with `SnowflakeOfflineStore` and `SnowflakeMaterializationJob`
+
+{% page-ref page="snowflake.md" %}
+
+### LambdaComputeEngine
+
+{% page-ref page="lambda.md" %}
 
 ---
 

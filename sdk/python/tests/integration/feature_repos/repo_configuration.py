@@ -27,11 +27,14 @@ from feast.infra.feature_servers.base_config import (
     FeatureLoggingConfig,
 )
 from feast.infra.feature_servers.local_process.config import LocalFeatureServerConfig
+from feast.infra.offline_stores.contrib.ray_repo_configuration import (
+    RayDataSourceCreator,
+)
 from feast.permissions.action import AuthzedAction
 from feast.permissions.auth_model import OidcClientAuthConfig
 from feast.permissions.permission import Permission
 from feast.permissions.policy import RoleBasedPolicy
-from feast.repo_config import RegistryConfig, RepoConfig
+from feast.repo_config import MaterializationConfig, RegistryConfig, RepoConfig
 from feast.utils import _utc_now
 from tests.integration.feature_repos.integration_test_repo_config import (
     IntegrationTestRepoConfig,
@@ -137,6 +140,7 @@ AVAILABLE_OFFLINE_STORES: List[Tuple[str, Type[DataSourceCreator]]] = [
     ("local", RemoteOfflineStoreDataSourceCreator),
     ("local", RemoteOfflineOidcAuthStoreDataSourceCreator),
     ("local", RemoteOfflineTlsStoreDataSourceCreator),
+    ("local", RayDataSourceCreator),
 ]
 
 if os.getenv("FEAST_IS_LOCAL_TEST", "False") == "True":
@@ -376,7 +380,6 @@ class UniversalFeatureViews:
 def construct_universal_feature_views(
     data_sources: UniversalDataSources,
     with_odfv: bool = True,
-    use_substrait_odfv: bool = False,
 ) -> UniversalFeatureViews:
     driver_hourly_stats = create_driver_hourly_stats_feature_view(data_sources.driver)
     driver_hourly_stats_base_feature_view = (
@@ -392,7 +395,6 @@ def construct_universal_feature_views(
                 driver_hourly_stats_base_feature_view[["conv_rate"]],
                 create_conv_rate_request_source(),
             ],
-            use_substrait_odfv=use_substrait_odfv,
         )
         if with_odfv
         else None,
@@ -419,6 +421,9 @@ class Environment:
     entity_key_serialization_version: int
     repo_dir_name: str
     fixture_request: Optional[pytest.FixtureRequest] = None
+    materialization: MaterializationConfig = dataclasses.field(
+        default_factory=lambda: MaterializationConfig()
+    )
 
     def __post_init__(self):
         self.end_date = _utc_now().replace(microsecond=0, second=0, minute=0)
@@ -439,6 +444,7 @@ class Environment:
             repo_path=self.repo_dir_name,
             feature_server=self.feature_server,
             entity_key_serialization_version=self.entity_key_serialization_version,
+            materialization_config=self.materialization,
         )
 
         self.feature_store = FeatureStore(config=self.config)

@@ -1,12 +1,12 @@
 # API Reference
 
 ## Packages
-- [feast.dev/v1alpha1](#feastdevv1alpha1)
+- [feast.dev/v1](#feastdevv1)
 
 
-## feast.dev/v1alpha1
+## feast.dev/v1
 
-Package v1alpha1 contains API Schema definitions for the  v1alpha1 API group
+Package v1 contains API Schema definitions for the v1 API group
 
 ### Resource Types
 - [FeatureStore](#featurestore)
@@ -46,6 +46,7 @@ _Appears in:_
 | `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#envfromsource-v1-core)_ |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core)_ |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core)_ |  |
+| `nodeSelector` _map[string]string_ |  |
 
 
 #### CronJobContainerConfigs
@@ -64,6 +65,7 @@ _Appears in:_
 | `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#envfromsource-v1-core)_ |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core)_ |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core)_ |  |
+| `nodeSelector` _map[string]string_ |  |
 | `commands` _string array_ | Array of commands to be executed (in order) against a Feature Store deployment.
 Defaults to "feast apply" & "feast materialize-incremental $(date -u +'%Y-%m-%dT%H:%M:%S')" |
 
@@ -96,6 +98,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `annotations` _object (keys:string, values:string)_ | Annotations to be added to the CronJob metadata. |
 | `jobSpec` _[JobSpec](#jobspec)_ | Specification of the desired behavior of a job. |
 | `containerConfigs` _[CronJobContainerConfigs](#cronjobcontainerconfigs)_ |  |
 | `schedule` _string_ | The schedule in Cron format, see https://en.wikipedia.org/wiki/Cron. |
@@ -163,7 +166,7 @@ FeatureStore is the Schema for the featurestores API
 
 | Field | Description |
 | --- | --- |
-| `apiVersion` _string_ | `feast.dev/v1alpha1`
+| `apiVersion` _string_ | `feast.dev/v1`
 | `kind` _string_ | `FeatureStore`
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[FeatureStoreSpec](#featurestorespec)_ |  |
@@ -218,7 +221,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `feastProject` _string_ | FeastProject is the Feast project id. This can be any alphanumeric string with underscores, but it cannot start with an underscore. Required. |
+| `feastProject` _string_ | FeastProject is the Feast project id. This can be any alphanumeric string with underscores and hyphens, but it cannot start with an underscore or hyphen. Required. |
 | `feastProjectDir` _[FeastProjectDir](#feastprojectdir)_ |  |
 | `services` _[FeatureStoreServices](#featurestoreservices)_ |  |
 | `authz` _[AuthzConfig](#authzconfig)_ |  |
@@ -277,6 +280,9 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
+| `podTemplateAnnotations` _object (keys:string, values:string)_ | PodTemplateAnnotations are annotations to be applied to the CronJob's PodTemplate
+metadata. This is separate from the CronJob-level annotations and must be
+set explicitly by users if they want annotations on the PodTemplate. |
 | `parallelism` _integer_ | Specifies the maximum desired number of pods the job should
 run at any given time. The actual number of pods running in steady state will
 be less than this number when ((.spec.completions - .status.successful) < .spec.parallelism),
@@ -566,6 +572,7 @@ _Appears in:_
 | `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#envfromsource-v1-core)_ |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core)_ |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core)_ |  |
+| `nodeSelector` _map[string]string_ |  |
 
 
 #### PvcConfig
@@ -655,6 +662,9 @@ _Appears in:_
 | `path` _string_ |  |
 | `pvc` _[PvcConfig](#pvcconfig)_ |  |
 | `s3_additional_kwargs` _map[string]string_ |  |
+| `cache_ttl_seconds` _integer_ | CacheTTLSeconds defines the TTL (in seconds) for the registry cache. |
+| `cache_mode` _string_ | CacheMode defines the registry cache update strategy.
+Allowed values are "sync" and "thread". |
 
 
 #### RegistryPersistence
@@ -688,9 +698,11 @@ _Appears in:_
 | `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#envfromsource-v1-core)_ |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core)_ |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core)_ |  |
+| `nodeSelector` _map[string]string_ |  |
 | `tls` _[TlsConfigs](#tlsconfigs)_ |  |
 | `logLevel` _string_ | LogLevel sets the logging level for the server
 Allowed values: "debug", "info", "warning", "error", "critical". |
+| `metrics` _boolean_ | Metrics exposes Prometheus-compatible metrics for the Feast server when enabled. |
 | `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#volumemount-v1-core) array_ | VolumeMounts defines the list of volumes that should be mounted into the feast container.
 This allows attaching persistent storage, config files, secrets, or other resources
 required by the Feast components. Ensure that each volume mount has a corresponding
@@ -750,9 +762,11 @@ _Appears in:_
 | `envFrom` _[EnvFromSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#envfromsource-v1-core)_ |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#pullpolicy-v1-core)_ |  |
 | `resources` _[ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#resourcerequirements-v1-core)_ |  |
+| `nodeSelector` _map[string]string_ |  |
 | `tls` _[TlsConfigs](#tlsconfigs)_ |  |
 | `logLevel` _string_ | LogLevel sets the logging level for the server
 Allowed values: "debug", "info", "warning", "error", "critical". |
+| `metrics` _boolean_ | Metrics exposes Prometheus-compatible metrics for the Feast server when enabled. |
 | `volumeMounts` _[VolumeMount](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.30/#volumemount-v1-core) array_ | VolumeMounts defines the list of volumes that should be mounted into the feast container.
 This allows attaching persistent storage, config files, secrets, or other resources
 required by the Feast components. Ensure that each volume mount has a corresponding

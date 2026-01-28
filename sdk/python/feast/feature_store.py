@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import asyncio
+import copy
 import itertools
 import os
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -30,6 +32,9 @@ from typing import (
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    from feast.diff.apply_progress import ApplyProgressContext
 
 import pandas as pd
 import pyarrow as pa
@@ -67,6 +72,9 @@ from feast.inference import (
     update_feature_views_with_inferred_features_and_entities,
 )
 from feast.infra.infra_object import Infra
+from feast.infra.offline_stores.offline_utils import (
+    DEFAULT_ENTITY_DF_EVENT_TIMESTAMP_COL,
+)
 from feast.infra.provider import Provider, RetrievalJob, get_provider
 from feast.infra.registry.base_registry import BaseRegistry
 from feast.infra.registry.registry import Registry
@@ -75,7 +83,6 @@ from feast.on_demand_feature_view import OnDemandFeatureView
 from feast.online_response import OnlineResponse
 from feast.permissions.permission import Permission
 from feast.project import Project
-from feast.protos.feast.core.InfraObject_pb2 import Infra as InfraProto
 from feast.protos.feast.serving.ServingService_pb2 import (
     FieldStatus,
     GetOnlineFeaturesResponse,
@@ -540,7 +547,7 @@ class FeatureStore:
 
     def delete_feature_view(self, name: str):
         """
-        Deletes a feature view.
+        Deletes a feature view of any kind (FeatureView, OnDemandFeatureView, StreamFeatureView).
 
         Args:
             name: Name of feature view.
@@ -721,7 +728,10 @@ class FeatureStore:
         return feature_views_to_materialize
 
     def plan(
-        self, desired_repo_contents: RepoContents
+        self,
+        desired_repo_contents: RepoContents,
+        skip_feature_view_validation: bool = False,
+        progress_ctx: Optional["ApplyProgressContext"] = None,
     ) -> Tuple[RegistryDiff, InfraDiff, Infra]:
         """Dry-run registering objects to metadata store.
 
@@ -731,6 +741,8 @@ class FeatureStore:
 
         Args:
             desired_repo_contents: The desired repo state.
+            skip_feature_view_validation: If True, skip validation of feature views. This can be useful when the validation
+                system is being overly strict. Use with caution and report any issues on GitHub. Default is False.
 
         Raises:
             ValueError: The 'objects' parameter could not be parsed properly.
@@ -765,11 +777,12 @@ class FeatureStore:
             ...     permissions=list())) # register entity and feature view
         """
         # Validate and run inference on all the objects to be registered.
-        self._validate_all_feature_views(
-            desired_repo_contents.feature_views,
-            desired_repo_contents.on_demand_feature_views,
-            desired_repo_contents.stream_feature_views,
-        )
+        if not skip_feature_view_validation:
+            self._validate_all_feature_views(
+                desired_repo_contents.feature_views,
+                desired_repo_contents.on_demand_feature_views,
+                desired_repo_contents.stream_feature_views,
+            )
         _validate_data_sources(desired_repo_contents.data_sources)
         self._make_inferences(
             desired_repo_contents.data_sources,
@@ -786,20 +799,28 @@ class FeatureStore:
             self._registry, self.project, desired_repo_contents
         )
 
+        if progress_ctx:
+            progress_ctx.update_phase_progress("Computing infrastructure diff")
+
         # Compute the desired difference between the current infra, as stored in the registry,
         # and the desired infra.
         self._registry.refresh(project=self.project)
-        current_infra_proto = InfraProto()
-        current_infra_proto.CopyFrom(self._registry.proto().infra)
+        current_infra_proto = self._registry.get_infra(self.project).to_proto()
         desired_registry_proto = desired_repo_contents.to_registry_proto()
         new_infra = self._provider.plan_infra(self.config, desired_registry_proto)
         new_infra_proto = new_infra.to_proto()
-        infra_diff = diff_infra_protos(current_infra_proto, new_infra_proto)
+        infra_diff = diff_infra_protos(
+            current_infra_proto, new_infra_proto, project=self.project
+        )
 
         return registry_diff, infra_diff, new_infra
 
     def _apply_diffs(
-        self, registry_diff: RegistryDiff, infra_diff: InfraDiff, new_infra: Infra
+        self,
+        registry_diff: RegistryDiff,
+        infra_diff: InfraDiff,
+        new_infra: Infra,
+        progress_ctx: Optional["ApplyProgressContext"] = None,
     ):
         """Applies the given diffs to the metadata store and infrastructure.
 
@@ -807,13 +828,37 @@ class FeatureStore:
             registry_diff: The diff between the current registry and the desired registry.
             infra_diff: The diff between the current infra and the desired infra.
             new_infra: The desired infra.
+            progress_ctx: Optional progress context for tracking apply progress.
         """
-        infra_diff.update()
-        apply_diff_to_registry(
-            self._registry, registry_diff, self.project, commit=False
-        )
+        try:
+            # Infrastructure phase
+            if progress_ctx:
+                infra_ops_count = len(infra_diff.infra_object_diffs)
+                progress_ctx.start_phase("Updating infrastructure", infra_ops_count)
 
-        self._registry.update_infra(new_infra, self.project, commit=True)
+            infra_diff.update(progress_ctx=progress_ctx)
+
+            if progress_ctx:
+                progress_ctx.complete_phase()
+                progress_ctx.start_phase("Updating registry", 2)
+
+            # Registry phase
+            apply_diff_to_registry(
+                self._registry, registry_diff, self.project, commit=False
+            )
+
+            if progress_ctx:
+                progress_ctx.update_phase_progress("Committing registry changes")
+
+            self._registry.update_infra(new_infra, self.project, commit=True)
+
+            if progress_ctx:
+                progress_ctx.update_phase_progress("Registry update complete")
+                progress_ctx.complete_phase()
+        finally:
+            # Always cleanup progress bars
+            if progress_ctx:
+                progress_ctx.cleanup()
 
     def apply(
         self,
@@ -832,6 +877,7 @@ class FeatureStore:
         ],
         objects_to_delete: Optional[List[FeastObject]] = None,
         partial: bool = True,
+        skip_feature_view_validation: bool = False,
     ):
         """Register objects to metadata store and update related infrastructure.
 
@@ -840,12 +886,18 @@ class FeatureStore:
         an online store), it will commit the updated registry. All operations are idempotent, meaning they can safely
         be rerun.
 
+        Note: The apply method does NOT delete objects that are removed from the provided list. To delete objects
+        from the registry, use explicit delete methods like delete_feature_view(), delete_feature_service(), or
+        pass objects to the objects_to_delete parameter with partial=False.
+
         Args:
             objects: A single object, or a list of objects that should be registered with the Feature Store.
             objects_to_delete: A list of objects to be deleted from the registry and removed from the
                 provider's infrastructure. This deletion will only be performed if partial is set to False.
             partial: If True, apply will only handle the specified objects; if False, apply will also delete
                 all the objects in objects_to_delete, and tear down any associated cloud resources.
+            skip_feature_view_validation: If True, skip validation of feature views. This can be useful when the validation
+                system is being overly strict. Use with caution and report any issues on GitHub. Default is False.
 
         Raises:
             ValueError: The 'objects' parameter could not be parsed properly.
@@ -947,11 +999,12 @@ class FeatureStore:
         entities_to_update.append(DUMMY_ENTITY)
 
         # Validate all feature views and make inferences.
-        self._validate_all_feature_views(
-            views_to_update,
-            odfvs_to_update,
-            sfvs_to_update,
-        )
+        if not skip_feature_view_validation:
+            self._validate_all_feature_views(
+                views_to_update,
+                odfvs_to_update,
+                sfvs_to_update,
+            )
         self._make_inferences(
             data_sources_to_update,
             entities_to_update,
@@ -1070,6 +1123,17 @@ class FeatureStore:
 
         self._registry.commit()
 
+        # Refresh the registry cache to ensure that changes are immediately visible
+        # This is especially important for UI and other clients that may be reading
+        # from the registry, as it ensures they see the updated state without waiting
+        # for the cache TTL to expire.
+        #
+        # Behavior by cache_mode:
+        # - sync mode: Immediate consistency - refresh after apply
+        # - thread mode: Eventual consistency - skip refresh, background thread handles it
+        if self.config.registry.cache_mode == "sync":
+            self.refresh_registry()
+
     def teardown(self):
         """Tears down all local and cloud resources for the feature store."""
         tables: List[FeatureView] = []
@@ -1084,14 +1148,17 @@ class FeatureStore:
 
     def get_historical_features(
         self,
-        entity_df: Union[pd.DataFrame, str],
-        features: Union[List[str], FeatureService],
+        entity_df: Optional[Union[pd.DataFrame, str]] = None,
+        features: Union[List[str], FeatureService] = [],
         full_feature_names: bool = False,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
     ) -> RetrievalJob:
         """Enrich an entity dataframe with historical feature values for either training or batch scoring.
 
         This method joins historical feature data from one or more feature views to an entity dataframe by using a time
-        travel join.
+        travel join. Alternatively, features can be retrieved for a specific timestamp range without requiring an entity
+        dataframe.
 
         Each feature view is joined to the entity dataframe using all entities configured for the respective feature
         view. All configured entities must be available in the entity dataframe. Therefore, the entity dataframe must
@@ -1102,16 +1169,21 @@ class FeatureStore:
         TTL may result in null values being returned.
 
         Args:
-            entity_df (Union[pd.DataFrame, str]): An entity dataframe is a collection of rows containing all entity
-                columns (e.g., customer_id, driver_id) on which features need to be joined, as well as a event_timestamp
-                column used to ensure point-in-time correctness. Either a Pandas DataFrame can be provided or a string
-                SQL query. The query must be of a format supported by the configured offline store (e.g., BigQuery)
             features: The list of features that should be retrieved from the offline store. These features can be
                 specified either as a list of string feature references or as a feature service. String feature
                 references must have format "feature_view:feature", e.g. "customer_fv:daily_transactions".
+            entity_df (Optional[Union[pd.DataFrame, str]]): An entity dataframe is a collection of rows containing all entity
+                columns (e.g., customer_id, driver_id) on which features need to be joined, as well as a event_timestamp
+                column used to ensure point-in-time correctness. Either a Pandas DataFrame can be provided or a string
+                SQL query. The query must be of a format supported by the configured offline store (e.g., BigQuery).
+                If not provided, features will be retrieved for the specified timestamp range without entity joins.
             full_feature_names: If True, feature names will be prefixed with the corresponding feature view name,
                 changing them from the format "feature" to "feature_view__feature" (e.g. "daily_transactions"
                 changes to "customer_fv__daily_transactions").
+            start_date (Optional[datetime]): Start date for the timestamp range when retrieving features without entity_df.
+                Required when entity_df is not provided.
+            end_date (Optional[datetime]): End date for the timestamp range when retrieving features without entity_df.
+                Required when entity_df is not provided. By default, the current time is used.
 
         Returns:
             RetrievalJob which can be used to materialize the results.
@@ -1144,6 +1216,15 @@ class FeatureStore:
             ... )
             >>> feature_data = retrieval_job.to_df()
         """
+
+        if entity_df is not None and (start_date is not None or end_date is not None):
+            raise ValueError(
+                "Cannot specify both entity_df and start_date/end_date. Use either entity_df for entity-based retrieval or start_date/end_date for timestamp range retrieval."
+            )
+
+        if entity_df is None and end_date is None:
+            end_date = datetime.now()
+
         _feature_refs = utils._get_features(self._registry, self.project, features)
         (
             all_feature_views,
@@ -1153,6 +1234,17 @@ class FeatureStore:
         # TODO(achal): _group_feature_refs returns the on demand feature views, but it's not passed into the provider.
         # This is a weird interface quirk - we should revisit the `get_historical_features` to
         # pass in the on demand feature views as well.
+
+        # Deliberately disable writing to online store for ODFVs during historical retrieval
+        # since it's not applicable in this context.
+        # This does not change the output, since it forces to recompute ODFVs on historical retrieval
+        # but that is fine, since ODFVs precompute does not to work for historical retrieval (as per docs), only for online retrieval
+        # Copy to avoid side effects outside of this method
+        all_on_demand_feature_views = copy.deepcopy(all_on_demand_feature_views)
+
+        for odfv in all_on_demand_feature_views:
+            odfv.write_to_online_store = False
+
         fvs, odfvs = utils._group_feature_refs(
             _feature_refs,
             all_feature_views,
@@ -1177,6 +1269,13 @@ class FeatureStore:
         utils._validate_feature_refs(_feature_refs, full_feature_names)
         provider = self._get_provider()
 
+        # Optional kwargs
+        kwargs = {}
+        if start_date is not None:
+            kwargs["start_date"] = start_date
+        if end_date is not None:
+            kwargs["end_date"] = end_date
+
         job = provider.get_historical_features(
             self.config,
             feature_views,
@@ -1185,6 +1284,7 @@ class FeatureStore:
             self._registry,
             self.project,
             full_feature_names,
+            **kwargs,
         )
 
         return job
@@ -1287,10 +1387,122 @@ class FeatureStore:
         )
         return dataset.with_retrieval_job(retrieval_job)
 
+    def _materialize_odfv(
+        self,
+        feature_view: OnDemandFeatureView,
+        start_date: datetime,
+        end_date: datetime,
+        full_feature_names: bool,
+    ):
+        """Helper to materialize a single OnDemandFeatureView."""
+        if not feature_view.source_feature_view_projections:
+            print(
+                f"[WARNING] ODFV {feature_view.name} materialization: No source feature views found."
+            )
+            return
+        start_date = utils.make_tzaware(start_date)
+        end_date = utils.make_tzaware(end_date)
+
+        source_features_from_projections = []
+        all_join_keys = set()
+        entity_timestamp_col_names = set()
+        source_fvs = {
+            self._get_feature_view(p.name)
+            for p in feature_view.source_feature_view_projections.values()
+        }
+
+        for source_fv in source_fvs:
+            all_join_keys.update(source_fv.entities)
+            if source_fv.batch_source:
+                entity_timestamp_col_names.add(source_fv.batch_source.timestamp_field)
+
+        for proj in feature_view.source_feature_view_projections.values():
+            source_features_from_projections.extend(
+                [f"{proj.name}:{f.name}" for f in proj.features]
+            )
+
+        all_join_keys = {key for key in all_join_keys if key}
+
+        if not all_join_keys:
+            print(
+                f"[WARNING] ODFV {feature_view.name} materialization: No join keys found in source views. Cannot create entity_df. Skipping."
+            )
+            return
+
+        if len(entity_timestamp_col_names) > 1:
+            print(
+                f"[WARNING] ODFV {feature_view.name} materialization: Found multiple timestamp columns in sources ({entity_timestamp_col_names}). This is not supported. Skipping."
+            )
+            return
+
+        if not entity_timestamp_col_names:
+            print(
+                f"[WARNING] ODFV {feature_view.name} materialization: No batch sources with timestamp columns found for sources. Skipping."
+            )
+            return
+
+        event_timestamp_col = list(entity_timestamp_col_names)[0]
+        all_source_dfs = []
+        provider = self._get_provider()
+
+        for source_fv in source_fvs:
+            if not source_fv.batch_source:
+                continue
+
+            job = provider.offline_store.pull_latest_from_table_or_query(
+                config=self.config,
+                data_source=source_fv.batch_source,
+                join_key_columns=source_fv.entities,
+                feature_name_columns=[f.name for f in source_fv.features],
+                timestamp_field=source_fv.batch_source.timestamp_field,
+                created_timestamp_column=getattr(
+                    source_fv.batch_source, "created_timestamp_column", None
+                ),
+                start_date=start_date,
+                end_date=end_date,
+            )
+            df = job.to_df()
+            if not df.empty:
+                all_source_dfs.append(df)
+
+        if not all_source_dfs:
+            print(
+                f"No source data found for ODFV {feature_view.name} in the given time range. Skipping materialization."
+            )
+            return
+
+        entity_df_cols = list(all_join_keys) + [event_timestamp_col]
+        all_sources_combined_df = pd.concat(all_source_dfs, ignore_index=True)
+        if all_sources_combined_df.empty:
+            return
+
+        entity_df = (
+            all_sources_combined_df[entity_df_cols]
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
+
+        if event_timestamp_col != DEFAULT_ENTITY_DF_EVENT_TIMESTAMP_COL:
+            entity_df = entity_df.rename(
+                columns={event_timestamp_col: DEFAULT_ENTITY_DF_EVENT_TIMESTAMP_COL}
+            )
+
+        retrieval_job = self.get_historical_features(
+            entity_df=entity_df,
+            features=source_features_from_projections,
+            full_feature_names=full_feature_names,
+        )
+        input_df = retrieval_job.to_df()
+        transformed_df = self._transform_on_demand_feature_view_df(
+            feature_view, input_df
+        )
+        self.write_to_online_store(feature_view.name, df=transformed_df)
+
     def materialize_incremental(
         self,
         end_date: datetime,
         feature_views: Optional[List[str]] = None,
+        full_feature_names: bool = False,
     ) -> None:
         """
         Materialize incremental new data from the offline store into the online store.
@@ -1305,6 +1517,8 @@ class FeatureStore:
             end_date (datetime): End date for time range of data to materialize into the online store
             feature_views (List[str]): Optional list of feature view names. If selected, will only run
                 materialization for the specified feature views.
+            full_feature_names (bool): If True, feature names will be prefixed with the corresponding
+                feature view name.
 
         Raises:
             Exception: A feature view being materialized does not have a TTL set.
@@ -1332,7 +1546,32 @@ class FeatureStore:
         # TODO paging large loads
         for feature_view in feature_views_to_materialize:
             if isinstance(feature_view, OnDemandFeatureView):
+                if feature_view.write_to_online_store:
+                    source_fvs = {
+                        self._get_feature_view(p.name)
+                        for p in feature_view.source_feature_view_projections.values()
+                    }
+                    max_ttl = timedelta(0)
+                    for fv in source_fvs:
+                        if fv.ttl and fv.ttl > max_ttl:
+                            max_ttl = fv.ttl
+
+                    if max_ttl.total_seconds() > 0:
+                        odfv_start_date = end_date - max_ttl
+                    else:
+                        odfv_start_date = end_date - timedelta(weeks=52)
+
+                    print(
+                        f"{Style.BRIGHT + Fore.GREEN}{feature_view.name}{Style.RESET_ALL}:"
+                    )
+                    self._materialize_odfv(
+                        feature_view,
+                        odfv_start_date,
+                        end_date,
+                        full_feature_names=full_feature_names,
+                    )
                 continue
+
             start_date = feature_view.most_recent_end_time
             if start_date is None:
                 if feature_view.ttl is None:
@@ -1385,6 +1624,8 @@ class FeatureStore:
         start_date: datetime,
         end_date: datetime,
         feature_views: Optional[List[str]] = None,
+        disable_event_timestamp: bool = False,
+        full_feature_names: bool = False,
     ) -> None:
         """
         Materialize data from the offline store into the online store.
@@ -1398,6 +1639,9 @@ class FeatureStore:
             end_date (datetime): End date for time range of data to materialize into the online store
             feature_views (List[str]): Optional list of feature view names. If selected, will only run
                 materialization for the specified feature views.
+            disable_event_timestamp (bool): If True, materializes all available data using current datetime as event timestamp instead of source event timestamps
+            full_feature_names (bool): If True, feature names will be prefixed with the corresponding
+                feature view name.
 
         Examples:
             Materialize all features into the online store over the interval
@@ -1428,6 +1672,18 @@ class FeatureStore:
         )
         # TODO paging large loads
         for feature_view in feature_views_to_materialize:
+            if isinstance(feature_view, OnDemandFeatureView):
+                if feature_view.write_to_online_store:
+                    print(
+                        f"{Style.BRIGHT + Fore.GREEN}{feature_view.name}{Style.RESET_ALL}:"
+                    )
+                    self._materialize_odfv(
+                        feature_view,
+                        start_date,
+                        end_date,
+                        full_feature_names=full_feature_names,
+                    )
+                continue
             provider = self._get_provider()
             print(f"{Style.BRIGHT + Fore.GREEN}{feature_view.name}{Style.RESET_ALL}:")
 
@@ -1445,6 +1701,7 @@ class FeatureStore:
                 registry=self._registry,
                 project=self.project,
                 tqdm_builder=tqdm_builder,
+                disable_event_timestamp=disable_event_timestamp,
             )
 
             self._registry.apply_materialization(
@@ -1754,6 +2011,23 @@ class FeatureStore:
             allow_registry_cache=allow_registry_cache,
             transform_on_write=transform_on_write,
         )
+
+        # Validate that the dataframe has meaningful feature data
+        if df is not None:
+            if df.empty:
+                warnings.warn("Cannot write empty dataframe to online store")
+                return  # Early return for empty dataframe
+
+            # Check if feature columns are empty (entity columns may have data but feature columns are empty)
+            feature_column_names = [f.name for f in feature_view.features]
+            if feature_column_names:
+                feature_df = df[feature_column_names]
+                if feature_df.empty or feature_df.isnull().all().all():
+                    warnings.warn(
+                        "Cannot write dataframe with empty feature columns to online store"
+                    )
+                    return  # Early return for empty feature columns
+
         provider = self._get_provider()
         provider.ingest_df(feature_view, df)
 
@@ -1780,6 +2054,23 @@ class FeatureStore:
             inputs=inputs,
             allow_registry_cache=allow_registry_cache,
         )
+
+        # Validate that the dataframe has meaningful feature data
+        if df is not None:
+            if df.empty:
+                warnings.warn("Cannot write empty dataframe to online store")
+                return  # Early return for empty dataframe
+
+            # Check if feature columns are empty (entity columns may have data but feature columns are empty)
+            feature_column_names = [f.name for f in feature_view.features]
+            if feature_column_names:
+                feature_df = df[feature_column_names]
+                if feature_df.empty or feature_df.isnull().all().all():
+                    warnings.warn(
+                        "Cannot write dataframe with empty feature columns to online store"
+                    )
+                    return  # Early return for empty feature columns
+
         provider = self._get_provider()
         await provider.ingest_df_async(feature_view, df)
 
@@ -1816,9 +2107,17 @@ class FeatureStore:
         source_columns = [column for column, _ in column_names_and_types]
         input_columns = df.columns.values.tolist()
 
-        if set(input_columns) != set(source_columns):
+        input_columns_set = set(input_columns)
+        source_columns_set = set(source_columns)
+
+        if input_columns_set != source_columns_set:
+            missing_expected_columns = sorted(source_columns_set - input_columns_set)
+            extra_unexpected_columns = sorted(input_columns_set - source_columns_set)
+
             raise ValueError(
-                f"The input dataframe has columns {set(input_columns)} but the batch source has columns {set(source_columns)}."
+                "The input dataframe columns do not match the batch source columns. "
+                f"missing_expected_columns: {missing_expected_columns}, "
+                f"extra_unexpected_columns: {extra_unexpected_columns}."
             )
 
         if reorder_columns:
@@ -2041,6 +2340,12 @@ class FeatureStore:
         query: Optional[List[float]] = None,
         query_string: Optional[str] = None,
         distance_metric: Optional[str] = "L2",
+        query_image_bytes: Optional[bytes] = None,
+        query_image_model: Optional[str] = "resnet34",
+        combine_with_text: bool = False,
+        text_weight: float = 0.5,
+        image_weight: float = 0.5,
+        combine_strategy: str = "weighted_sum",
     ) -> OnlineResponse:
         """
         Retrieves the top k closest document features. Note, embeddings are a subset of features.
@@ -2049,13 +2354,105 @@ class FeatureStore:
             features: The list of features that should be retrieved from the online document store. These features can be
                 specified either as a list of string document feature references or as a feature service. String feature
                 references must have format "feature_view:feature", e.g, "document_fv:document_embeddings".
-            query: The embeded query to retrieve the closest document features for (optional)
             top_k: The number of closest document features to retrieve.
+            query_string: Text query for hybrid search (alternative to query parameter)
             distance_metric: The distance metric to use for retrieval.
-            query_string: The query string to retrieve the closest document features using keyword search (bm25).
+            query_image_bytes: Query image as bytes (for image similarity search)
+            query_image_model: Model name for image embedding generation
+            combine_with_text: Whether to combine text and image embeddings for multi-modal search
+            text_weight: Weight for text embedding in combined search (0.0 to 1.0)
+            image_weight: Weight for image embedding in combined search (0.0 to 1.0)
+            combine_strategy: Strategy for combining embeddings ("weighted_sum", "concatenate", "average")
+
+        Returns:
+            OnlineResponse with similar documents and metadata
+
+        Examples:
+            Text search only::
+
+                results = store.retrieve_online_documents_v2(
+                    features=["documents:embedding", "documents:title"],
+                    query=[0.1, 0.2, 0.3],  # text embedding vector
+                    top_k=5
+                )
+
+            Image search only::
+
+                results = store.retrieve_online_documents_v2(
+                    features=["images:embedding", "images:filename"],
+                    query_image_bytes=b"image_data",  # image bytes
+                    top_k=5
+                )
+
+            Combined text + image search::
+
+                results = store.retrieve_online_documents_v2(
+                    features=["documents:embedding", "documents:title"],
+                    query=[0.1, 0.2, 0.3],  # text embedding vector
+                    query_image_bytes=b"image_data",  # image bytes
+                    combine_with_text=True,
+                    text_weight=0.3,
+                    image_weight=0.7,
+                    top_k=5
+                )
         """
-        assert query is not None or query_string is not None, (
-            "Either query or query_string must be provided."
+        if query is None and not query_image_bytes and not query_string:
+            raise ValueError(
+                "Must provide either query (text embedding), "
+                "query_image_bytes, or query_string"
+            )
+
+        if combine_with_text and not (query is not None and query_image_bytes):
+            raise ValueError(
+                "combine_with_text=True requires both query (text embedding) "
+                "and query_image_bytes"
+            )
+
+        if combine_with_text and abs(text_weight + image_weight - 1.0) > 1e-6:
+            raise ValueError("text_weight + image_weight must equal 1.0 when combining")
+
+        image_embedding = None
+        if query_image_bytes is not None:
+            try:
+                from feast.image_utils import ImageFeatureExtractor
+
+                model_name = query_image_model or "resnet34"
+                extractor = ImageFeatureExtractor(model_name)
+                image_embedding = extractor.extract_embedding(query_image_bytes)
+            except ImportError:
+                raise ImportError(
+                    "Image processing dependencies are not installed. "
+                    "Please install with: pip install feast[image]"
+                )
+
+        text_embedding = query
+
+        if (
+            combine_with_text
+            and text_embedding is not None
+            and image_embedding is not None
+        ):
+            # Combine text and image embeddings
+            from feast.image_utils import combine_embeddings
+
+            final_query = combine_embeddings(
+                text_embedding=text_embedding,
+                image_embedding=image_embedding,
+                strategy=combine_strategy,
+                text_weight=text_weight,
+                image_weight=image_weight,
+            )
+        elif image_embedding is not None:
+            final_query = image_embedding
+        elif text_embedding is not None:
+            final_query = text_embedding
+        else:
+            final_query = None
+
+        effective_query = final_query
+
+        assert effective_query is not None or query_string is not None, (
+            "Either query embedding or query_string must be provided."
         )
 
         (
@@ -2097,7 +2494,7 @@ class FeatureStore:
             provider,
             requested_feature_view,
             requested_features,
-            query,
+            effective_query,
             top_k,
             distance_metric,
             query_string,
@@ -2240,6 +2637,11 @@ class FeatureStore:
             output_len=output_len,
         )
 
+        utils._populate_result_rows_from_columnar(
+            online_features_response=online_features_response,
+            data=entity_key_dict,
+        )
+
         return OnlineResponse(online_features_response)
 
     def serve(
@@ -2249,11 +2651,14 @@ class FeatureStore:
         type_: str = "http",
         no_access_log: bool = True,
         workers: int = 1,
+        worker_connections: int = 1000,
+        max_requests: int = 1000,
+        max_requests_jitter: int = 50,
         metrics: bool = False,
         keep_alive_timeout: int = 30,
         tls_key_path: str = "",
         tls_cert_path: str = "",
-        registry_ttl_sec: int = 2,
+        registry_ttl_sec: int = 60,
     ) -> None:
         """Start the feature consumption server locally on a given port."""
         type_ = type_.lower()
@@ -2268,6 +2673,9 @@ class FeatureStore:
             port=port,
             no_access_log=no_access_log,
             workers=workers,
+            worker_connections=worker_connections,
+            max_requests=max_requests,
+            max_requests_jitter=max_requests_jitter,
             metrics=metrics,
             keep_alive_timeout=keep_alive_timeout,
             tls_key_path=tls_key_path,

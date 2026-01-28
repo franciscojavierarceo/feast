@@ -9,8 +9,10 @@ from feast.infra.offline_stores.file_source import FileSource
 from feast.infra.offline_stores.redshift_source import RedshiftSource
 from feast.infra.offline_stores.snowflake_source import SnowflakeSource
 
+from .aggregation import Aggregation
 from .batch_feature_view import BatchFeatureView
 from .data_source import KafkaSource, KinesisSource, PushSource, RequestSource
+from .dataframe import DataFrameEngine, FeastDataFrame
 from .entity import Entity
 from .feature import Feature
 from .feature_service import FeatureService
@@ -19,7 +21,6 @@ from .feature_view import FeatureView
 from .field import Field
 from .on_demand_feature_view import OnDemandFeatureView
 from .project import Project
-from .rag_retriever import FeastIndex, FeastRAGRetriever
 from .repo_config import RepoConfig
 from .stream_feature_view import StreamFeatureView
 from .value_type import ValueType
@@ -32,10 +33,13 @@ except PackageNotFoundError:
     pass
 
 __all__ = [
+    "Aggregation",
     "BatchFeatureView",
+    "DataFrameEngine",
     "Entity",
     "KafkaSource",
     "KinesisSource",
+    "FeastDataFrame",
     "Feature",
     "Field",
     "FeatureService",
@@ -53,7 +57,5 @@ __all__ = [
     "RequestSource",
     "AthenaSource",
     "Project",
-    "FeastIndex",
-    "FeastRAGRetriever",
     "FeastVectorStore",
 ]
