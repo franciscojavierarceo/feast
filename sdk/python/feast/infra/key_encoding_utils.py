@@ -28,20 +28,22 @@ def _serialize_val(
         raise ValueError(f"Value type not supported for feast feature store: {v}")
 
 
-def _deserialize_value(value_type, value_bytes) -> ValueProto:
+def _deserialize_value(
+    value_type, value_bytes: Union[bytes, memoryview]
+) -> ValueProto:
     if value_type == ValueType.INT64:
-        value = struct.unpack("<q", value_bytes)[0]
+        value = struct.unpack_from("<q", value_bytes, 0)[0]
         return ValueProto(int64_val=value)
     if value_type == ValueType.INT32:
-        value = struct.unpack("<i", value_bytes)[0]
+        value = struct.unpack_from("<i", value_bytes, 0)[0]
         return ValueProto(int32_val=value)
     elif value_type == ValueType.STRING:
-        value = value_bytes.decode("utf-8")
+        value = bytes(value_bytes).decode("utf-8")
         return ValueProto(string_val=value)
     elif value_type == ValueType.BYTES:
-        return ValueProto(bytes_val=value_bytes)
+        return ValueProto(bytes_val=bytes(value_bytes))
     elif value_type == ValueType.UNIX_TIMESTAMP:
-        value = struct.unpack("<q", value_bytes)[0]
+        value = struct.unpack_from("<q", value_bytes, 0)[0]
         return ValueProto(unix_timestamp_val=value)
     else:
         raise ValueError(f"Unsupported value type: {value_type}")
@@ -209,59 +211,56 @@ def deserialize_entity_key(
             "Deserialization of entity key with version < 3 is removed. Please use version 3 by setting entity_key_serialization_version=3."
             "To reserializa your online store featrues refer -  https://github.com/feast-dev/feast/blob/master/docs/how-to-guides/entity-reserialization-of-from-v2-to-v3.md"
         )
-    # Optimized deserialization using memoryview for zero-copy slicing
     buffer = memoryview(serialized_entity_key)
+    buffer_len = len(buffer)
     pos = 0
     keys = []
     values = []
 
     # Read number of keys
-    if len(buffer) < pos + 4:
+    if buffer_len < pos + 4:
         raise ValueError(
             "Invalid serialized entity key: insufficient data for key count"
         )
-    num_keys = struct.unpack("<I", buffer[pos : pos + 4])[0]
+    num_keys = struct.unpack_from("<I", buffer, pos)[0]
     pos += 4
 
     # Process all keys uniformly
     for _ in range(num_keys):
-        if len(buffer) < pos + 8:  # Need at least 8 bytes for type + length
+        if buffer_len < pos + 8:  # Need at least 8 bytes for type + length
             raise ValueError(
                 "Invalid serialized entity key: insufficient data for key metadata"
             )
 
-        key_type, key_length = struct.unpack("<2I", buffer[pos : pos + 8])
+        key_type, key_length = struct.unpack_from("<2I", buffer, pos)
         pos += 8
 
         if key_type == ValueType.STRING:
-            if len(buffer) < pos + key_length:
+            if buffer_len < pos + key_length:
                 raise ValueError(
                     "Invalid serialized entity key: insufficient data for key"
                 )
-            key = struct.unpack(f"<{key_length}s", buffer[pos : pos + key_length])[0]
-            keys.append(key.decode("utf-8").rstrip("\x00"))
+            keys.append(bytes(buffer[pos : pos + key_length]).decode("utf-8"))
             pos += key_length
         else:
             raise ValueError(f"Unsupported key type: {key_type}")
 
     # Process values with bounds checking
-    while pos < len(buffer):
-        if len(buffer) < pos + 8:  # Need at least 8 bytes for type + length
+    while pos < buffer_len:
+        if buffer_len < pos + 8:  # Need at least 8 bytes for type + length
             raise ValueError(
                 "Invalid serialized entity key: insufficient data for value metadata"
             )
 
-        value_type, value_length = struct.unpack("<2I", buffer[pos : pos + 8])
+        value_type, value_length = struct.unpack_from("<2I", buffer, pos)
         pos += 8
 
-        if len(buffer) < pos + value_length:
+        if buffer_len < pos + value_length:
             raise ValueError(
                 "Invalid serialized entity key: insufficient data for value"
             )
 
-        # Zero-copy slice for value bytes
-        value_bytes = buffer[pos : pos + value_length].tobytes()
-        value = _deserialize_value(value_type, value_bytes)
+        value = _deserialize_value(value_type, buffer[pos : pos + value_length])
         values.append(value)
         pos += value_length
 
